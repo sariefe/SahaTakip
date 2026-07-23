@@ -50,11 +50,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.local.entity.LocationEntity
 import com.example.ui.components.CustomMapView
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.viewmodel.MainViewModel
 import com.example.util.tr
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun MapTrackingScreen(
@@ -119,6 +124,90 @@ fun MapTrackingScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
+                // TELEMETRY & LIVE METRICS CARD
+                val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
+                val avgSpeed = remember(locations) {
+                    if (locations.isNotEmpty()) locations.map { it.speed }.average() else 0.0
+                }
+
+                val activeGeofenceViolation = remember(latestLoc, geofences) {
+                    val current = latestLoc ?: return@remember false
+                    geofences.filter { it.isActive }.any { zone ->
+                        val dLat = Math.toRadians(zone.centerLat - current.latitude)
+                        val dLng = Math.toRadians(zone.centerLng - current.longitude)
+                        val lat1 = Math.toRadians(current.latitude)
+                        val lat2 = Math.toRadians(zone.centerLat)
+                        val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
+                        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+                        val distanceMeters = 6371000.0 * c
+                        distanceMeters > zone.radiusMeters
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = tr("24s Toplam Mesafe", "24h Total Distance"),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${String.format("%.2f", totalDistKm)} km",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = tr("Ortalama Hız", "Average Speed"),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${avgSpeed.toInt()} km/h",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = tr("Safe Zone Durumu", "Safe Zone Status"),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (activeGeofenceViolation) StatusAmber.copy(alpha = 0.2f) else StatusGreen.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = if (activeGeofenceViolation) tr("BÖLGE DIŞI", "OUTSIDE ZONE") else tr("GÜVENLİ", "SAFE"),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (activeGeofenceViolation) StatusAmber else StatusGreen,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // ROUTE PLAYBACK CONTROLS CARD
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -311,4 +400,22 @@ fun MapTrackingScreen(
         )
     }
 }
+
+fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
+    if (locations.size < 2) return 0.0
+    var totalMeters = 0.0
+    for (i in 0 until locations.size - 1) {
+        val l1 = locations[i]
+        val l2 = locations[i + 1]
+        val lat1 = Math.toRadians(l1.latitude)
+        val lat2 = Math.toRadians(l2.latitude)
+        val dLat = Math.toRadians(l2.latitude - l1.latitude)
+        val dLng = Math.toRadians(l2.longitude - l1.longitude)
+        val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        totalMeters += 6371000.0 * c
+    }
+    return totalMeters / 1000.0
+}
+
 

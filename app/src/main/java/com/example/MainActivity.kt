@@ -3,7 +3,7 @@ package com.example
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -16,7 +16,7 @@ import com.example.ui.theme.SahaTakipTheme
 import com.example.ui.viewmodel.MainViewModel
 import com.example.util.NotificationHelper
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 

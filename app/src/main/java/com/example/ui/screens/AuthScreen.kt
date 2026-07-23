@@ -28,7 +28,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.fragment.app.FragmentActivity
+import com.example.util.BiometricPromptManager
+import com.example.util.BiometricStatus
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
@@ -98,6 +101,11 @@ fun AuthScreen(
     val ocrResult by viewModel.ocrScanningState.collectAsState()
     val ocrIsLoading by viewModel.ocrIsLoading.collectAsState()
     val errorMessage by viewModel.authErrorMessage.collectAsState()
+
+    val bioTitle = tr("Biyometrik Hızlı Giriş", "Biometric Quick Login")
+    val bioSub = tr("Saha Personeli Biyometrik Kimlik Doğrulama", "Field Staff Biometric Verification")
+    val bioDesc = tr("Parmak izi veya Yüz Tanıma sensörüne dokunun", "Touch the fingerprint or Face ID sensor")
+    val bioCancel = tr("İptal", "Cancel")
 
     var nameInput by remember { mutableStateOf("AHMET CAN YILMAZ") }
     var codeInput by remember { mutableStateOf("SAHA2026") }
@@ -511,6 +519,51 @@ fun AuthScreen(
                 Text(
                     text = tr("Aktivasyonu Tamamla & Giriş Yap", "Complete Activation & Sign In"),
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = {
+                    val activity = context as? FragmentActivity
+                    val biometricManager = BiometricPromptManager(context)
+                    if (activity != null && biometricManager.checkBiometricAvailability() is BiometricStatus.Available) {
+                        biometricManager.showBiometricPrompt(
+                            activity = activity,
+                            title = bioTitle,
+                            subtitle = bioSub,
+                            description = bioDesc,
+                            negativeButtonText = bioCancel,
+                            onSuccess = {
+                                if (viewModel.authenticateWithBiometrics()) {
+                                    onAuthSuccess()
+                                }
+                            },
+                            onError = { _, _ -> },
+                            onFailed = { }
+                        )
+                    } else {
+                        if (viewModel.authenticateWithBiometrics()) {
+                            onAuthSuccess()
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = tr("Biyometrik Hızlı Giriş (Parmak İzi / Yüz Tanıma)", "Biometric Quick Sign In (Fingerprint / Face ID)"),
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
             }

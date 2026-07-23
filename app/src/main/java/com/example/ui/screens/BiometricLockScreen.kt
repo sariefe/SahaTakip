@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,12 +42,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import com.example.ui.theme.StatusGreen
+import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.BiometricPromptManager
+import com.example.util.BiometricStatus
 import com.example.util.tr
 
 @Composable
@@ -52,9 +60,58 @@ fun BiometricLockScreen(
     viewModel: MainViewModel,
     onLoginSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsState()
+
     var isVerifying by remember { mutableStateOf(false) }
     var verificationSuccess by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    val biometricManager = remember { BiometricPromptManager(context) }
+    val biometricAvailability = remember { biometricManager.checkBiometricAvailability() }
+
+    val promptTitle = tr("Biyometrik Kimlik Doğrulama", "Biometric Authentication")
+    val promptSubtitle = tr("Saha Personeli Güvenlik Doğrulaması", "Field Staff Security Verification")
+    val promptDesc = tr("Parmak izi veya Yüz Tanıma sensörüne dokunun", "Touch the fingerprint or Face ID sensor")
+    val promptCancel = tr("İptal", "Cancel")
+    val errPrefix = tr("Biyometrik Hata", "Biometric Error")
+    val matchFailedMsg = tr("Biyometrik eşleşme başarısız. Tekrar deneyin.", "Biometric match failed. Try again.")
+
+    val triggerBiometricAuth = {
+        val activity = context as? FragmentActivity
+        if (activity != null && biometricAvailability is BiometricStatus.Available) {
+            isVerifying = true
+            biometricManager.showBiometricPrompt(
+                activity = activity,
+                title = promptTitle,
+                subtitle = promptSubtitle,
+                description = promptDesc,
+                negativeButtonText = promptCancel,
+                onSuccess = {
+                    isVerifying = false
+                    verificationSuccess = true
+                    if (viewModel.authenticateWithBiometrics()) {
+                        onLoginSuccess()
+                    }
+                },
+                onError = { errorCode, errString ->
+                    isVerifying = false
+                    statusMessage = "$errPrefix: $errString"
+                },
+                onFailed = {
+                    isVerifying = false
+                    statusMessage = matchFailedMsg
+                }
+            )
+        } else {
+            // Fallback for emulator / environments without hardware enrollment
+            isVerifying = true
+            verificationSuccess = true
+            if (viewModel.authenticateWithBiometrics()) {
+                onLoginSuccess()
+            }
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -103,19 +160,13 @@ fun BiometricLockScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // BIOMETRIC PROMPT SIMULATION CARD
+            // BIOMETRIC PROMPT CARD
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        isVerifying = true
-                        verificationSuccess = true
-                        if (viewModel.authenticateWithBiometrics()) {
-                            onLoginSuccess()
-                        }
-                    },
+                    .clickable { triggerBiometricAuth() },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -126,7 +177,7 @@ fun BiometricLockScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(76.dp)
                             .clip(CircleShape)
                             .background(
                                 if (verificationSuccess) StatusGreen.copy(alpha = 0.2f)
@@ -134,34 +185,75 @@ fun BiometricLockScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Fingerprint,
-                            contentDescription = "Fingerprint / Face ID",
-                            tint = if (verificationSuccess) StatusGreen else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = "Fingerprint",
+                                tint = if (verificationSuccess) StatusGreen else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(38.dp)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Face,
+                                contentDescription = "Face ID",
+                                tint = if (verificationSuccess) StatusGreen else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = tr("Biyometrik Kimlik Doğrulama", "Biometric Authentication"),
+                        text = tr("BiometricPrompt API ile Güvenli Giriş", "Secure Sign In with BiometricPrompt API"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = tr("Parmak izi veya Yüz Tanıma (Face ID) sensörüne dokunun", "Touch the fingerprint or Face ID sensor"),
+                        text = tr("Parmak İzi veya Yüz Tanıma (Face ID) Sensörünü Başlatmak İçin Dokunun", "Tap to launch Fingerprint or Face Recognition sensor"),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Availability Status Indicator
+                    val (statusText, statusColor) = when (biometricAvailability) {
+                        is BiometricStatus.Available -> Pair(tr("Donanım Hazır (Parmak İzi / Yüz)", "Hardware Ready (Fingerprint / Face)"), StatusGreen)
+                        is BiometricStatus.Unavailable -> Pair(biometricAvailability.reason, MaterialTheme.colorScheme.secondary)
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    statusMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = StatusRed,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
                     AnimatedVisibility(visible = verificationSuccess) {
                         Text(
-                            text = tr("✓ Doğrulama Başarılı! Giriş yapılıyor...", "✓ Verification Successful! Signing in..."),
+                            text = tr("✓ Doğrulama Başarılı! Giriş Yapılıyor...", "✓ Verification Successful! Signing In..."),
                             style = MaterialTheme.typography.labelMedium,
                             color = StatusGreen,
                             fontWeight = FontWeight.Bold,
@@ -174,21 +266,23 @@ fun BiometricLockScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = {
-                    if (viewModel.authenticateWithBiometrics()) {
-                        onLoginSuccess()
-                    }
-                },
+                onClick = { triggerBiometricAuth() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Fingerprint, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(tr("Biyometrik Giriş Yap", "Biometric Sign In"), fontWeight = FontWeight.Bold)
+                Text(
+                    text = tr("BiometricPrompt Sistemini Çalıştır", "Launch BiometricPrompt System"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
+
 

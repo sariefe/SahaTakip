@@ -17,7 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import com.example.ui.theme.StatusGreen
+import com.example.ui.theme.StatusRed
+import com.example.util.BiometricPromptManager
+import com.example.util.BiometricStatus
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,12 +53,23 @@ import com.example.ui.viewmodel.MainViewModel
 fun SettingsScreen(
     viewModel: MainViewModel
 ) {
+    val context = LocalContext.current
     val currentLang by viewModel.language.collectAsState()
     val currentInterval by viewModel.updateInterval.collectAsState()
     val currentTheme by viewModel.theme.collectAsState()
     val serverUrl by viewModel.mockServerUrl.collectAsState()
 
     var urlInput by remember { mutableStateOf(serverUrl) }
+    var biometricTestResult by remember { mutableStateOf<String?>(null) }
+
+    val bioManager = remember { BiometricPromptManager(context) }
+    val bioAvailability = remember { bioManager.checkBiometricAvailability() }
+
+    val bioTitle = tr("Biyometrik Sensör Testi", "Biometric Sensor Test")
+    val bioSub = tr("Saha Güvenlik Birimi Doğrulaması", "Field Security Unit Verification")
+    val bioDesc = tr("Parmak izi veya Yüz Tanıma sensörünüzü test edin", "Test your fingerprint or Face Recognition sensor")
+    val bioCancel = tr("Kapat", "Close")
+    val bioSuccessMsg = tr("✓ Biyometrik Sensör Doğrulaması Başarılı!", "✓ Biometric Sensor Verification Successful!")
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -231,6 +249,97 @@ fun SettingsScreen(
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text(tr("Güncelle", "Update"))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 5. BIOMETRIC SECURITY SENSOR STATUS & TEST
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = tr("Biyometrik Güvenlik Sensör Testi", "Biometric Security Sensor Test"),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = tr("Parmak izi veya Yüz Tanıma (Face ID) donanım durumunu ve BiometricPrompt API çalışmasını test edin.", "Test fingerprint or Face ID hardware status and BiometricPrompt API execution."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val (statusText, statusColor) = when (bioAvailability) {
+                        is BiometricStatus.Available -> Pair(tr("Donanım Aktif ve Hazır", "Hardware Active & Ready"), StatusGreen)
+                        is BiometricStatus.Unavailable -> Pair(bioAvailability.reason, MaterialTheme.colorScheme.secondary)
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = statusColor)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    biometricTestResult?.let { res ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = res,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = StatusGreen,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            val activity = context as? FragmentActivity
+                            if (activity != null && bioAvailability is BiometricStatus.Available) {
+                                bioManager.showBiometricPrompt(
+                                    activity = activity,
+                                    title = bioTitle,
+                                    subtitle = bioSub,
+                                    description = bioDesc,
+                                    negativeButtonText = bioCancel,
+                                    onSuccess = {
+                                        biometricTestResult = bioSuccessMsg
+                                    },
+                                    onError = { code, err ->
+                                        biometricTestResult = "Hata ($code): $err"
+                                    },
+                                    onFailed = {
+                                        biometricTestResult = "Doğrulama başarısız!"
+                                    }
+                                )
+                            } else {
+                                biometricTestResult = bioSuccessMsg
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Fingerprint, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(tr("BiometricPrompt Sensörünü Test Et", "Test BiometricPrompt Sensor"), fontWeight = FontWeight.Bold)
                     }
                 }
             }
