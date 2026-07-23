@@ -176,12 +176,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startIdCardOcrScan(fullNameInput: String = "") {
+    fun startIdCardOcrScan(fullNameInput: String = "", preset: com.example.util.IdCardPreset? = null) {
         viewModelScope.launch {
             _ocrIsLoading.value = true
-            val result = OcrCardScanner.processIdCardScan(fallbackNameInput = fullNameInput)
+            val result = OcrCardScanner.processIdCardScan(fallbackNameInput = fullNameInput, preset = preset)
             _ocrScanningState.value = result
             _ocrIsLoading.value = false
+
+            repository.addEventLog(
+                type = "OCR_SCAN_SUCCESS",
+                title = "Kimlik Kartı OCR Taraması Yapıldı",
+                detail = "Personel: ${result.fullName} (TC: ${result.tcNo}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
+                status = "BAŞARILI"
+            )
         }
     }
 

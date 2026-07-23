@@ -64,6 +64,7 @@ import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.tr
 
 @Composable
 fun DashboardScreen(
@@ -113,18 +114,18 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = userProfile?.fullName ?: "Saha Saha Personeli",
+                            text = userProfile?.fullName ?: tr("Saha Personeli", "Field Staff"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${userProfile?.roleTitle ?: "Saha Operatörü"} • T.C. ${userProfile?.tcNo ?: "---"}",
+                            text = "${userProfile?.roleTitle ?: tr("Saha Operatörü", "Field Operator")} • ${tr("T.C.", "ID")} ${userProfile?.tcNo ?: "---"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = { viewModel.updateDeviceStatus() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Yenile")
+                        Icon(Icons.Default.Refresh, contentDescription = tr("Yenile", "Refresh"))
                     }
                 }
             }
@@ -148,13 +149,13 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "GÜVENLİK UYARISI: Root Tespiti!",
+                                text = tr("GÜVENLİK UYARISI: Root Tespiti!", "SECURITY WARNING: Root Detected!"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = StatusRed
                             )
                             Text(
-                                text = "Cihazınızda yetkisiz kök erişimi tespit edildi. Güvenlik politikaları gereği verileriniz şifrelenmiştir.",
+                                text = tr("Cihazınızda yetkisiz kök erişimi tespit edildi. Güvenlik politikaları gereği verileriniz şifrelenmiştir.", "Unauthorized root access detected on device. Your data is encrypted per security policy."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -177,7 +178,7 @@ fun DashboardScreen(
                             Icon(Icons.Default.Warning, contentDescription = null, tint = StatusRed)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Eksik İzin Uyarısı (${deviceStatus.missingPermissionsCount} Eksik)",
+                                text = tr("Eksik İzin Uyarısı (${deviceStatus.missingPermissionsCount} Eksik)", "Missing Permission Warning (${deviceStatus.missingPermissionsCount} Missing)"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = StatusRed
@@ -185,7 +186,7 @@ fun DashboardScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Konum veya bildirim servislerinizin bir kısmı kapalı. Lütfen ayarlardan gerekli izinleri aktif ediniz.",
+                            text = tr("Konum veya bildirim servislerinizin bir kısmı kapalı. Lütfen ayarlardan gerekli izinleri aktif ediniz.", "Some location or notification services are disabled. Please enable required permissions in settings."),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -202,14 +203,14 @@ fun DashboardScreen(
                         ) {
                             Icon(Icons.Default.PhonelinkSetup, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Sistem Ayarlarına Git", fontWeight = FontWeight.Bold)
+                            Text(tr("Sistem Ayarlarına Git", "Go to System Settings"), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
             Text(
-                text = "Anlık Sistem & Servis Durumu",
+                text = tr("Anlık Sistem & Servis Durumu", "Live System & Service Status"),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 4.dp)
@@ -219,31 +220,31 @@ fun DashboardScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // 1. Internet Status Card
                 StatusItemCard(
-                    title = "İnternet Bağlantısı",
-                    subtitle = if (deviceStatus.isInternetConnected) "Çevrimiçi (Online)" else "Çevrimdışı (Offline Mode)",
+                    title = tr("İnternet Bağlantısı", "Internet Connection"),
+                    subtitle = if (deviceStatus.isInternetConnected) tr("Çevrimiçi (Online)", "Online") else tr("Çevrimdışı (Offline Mode)", "Offline Mode"),
                     isOk = deviceStatus.isInternetConnected,
                     icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                    actionLabel = "Simüle Et",
+                    actionLabel = tr("Simüle Et", "Simulate"),
                     onAction = { viewModel.toggleInternetSimulation() }
                 )
 
                 // 2. Location Services Status Card
                 StatusItemCard(
-                    title = "GPS Konum Servisleri",
-                    subtitle = if (deviceStatus.isGpsEnabled) "Açık • Yüksek Hassasiyet" else "KAPALI (Eksik İzin!)",
+                    title = tr("GPS Konum Servisleri", "GPS Location Services"),
+                    subtitle = if (deviceStatus.isGpsEnabled) tr("Açık • Yüksek Hassasiyet", "On • High Accuracy") else tr("KAPALI (Eksik İzin!)", "OFF (Missing Permission!)"),
                     isOk = deviceStatus.isGpsEnabled,
                     icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                    actionLabel = "Değiştir",
+                    actionLabel = tr("Değiştir", "Toggle"),
                     onAction = { viewModel.toggleGpsSimulation() }
                 )
 
                 // 3. Background Location Work Permission Card
                 StatusItemCard(
-                    title = "Arka Plan Çalışma İzni",
-                    subtitle = if (deviceStatus.isBackgroundLocationGranted) "İzin Verildi (Servis Aktif)" else "Arka Plan Kısıtlı",
+                    title = tr("Arka Plan Çalışma İzni", "Background Work Permission"),
+                    subtitle = if (deviceStatus.isBackgroundLocationGranted) tr("İzin Verildi (Servis Aktif)", "Granted (Service Active)") else tr("Arka Plan Kısıtlı", "Background Restricted"),
                     isOk = deviceStatus.isBackgroundLocationGranted,
                     icon = Icons.Default.LocationOn,
-                    actionLabel = "Ayarla",
+                    actionLabel = tr("Ayarla", "Settings"),
                     onAction = {
                         try {
                             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -258,11 +259,11 @@ fun DashboardScreen(
 
                 // 4. Notification Permission Card
                 StatusItemCard(
-                    title = "Bildirim İzni",
-                    subtitle = if (deviceStatus.isNotificationGranted) "İzin Verildi (Gizlilik Safe)" else "Bildirimler Kapalı",
+                    title = tr("Bildirim İzni", "Notification Permission"),
+                    subtitle = if (deviceStatus.isNotificationGranted) tr("İzin Verildi (Gizlilik Safe)", "Granted (Privacy Safe)") else tr("Bildirimler Kapalı", "Notifications Disabled"),
                     isOk = deviceStatus.isNotificationGranted,
                     icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
-                    actionLabel = "Ayarla",
+                    actionLabel = tr("Ayarla", "Settings"),
                     onAction = {
                         try {
                             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -295,7 +296,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Pil Seviyesi: %${deviceStatus.batteryLevel} ${if (deviceStatus.isBatteryCharging) "(Şarj Oluyor)" else ""}",
+                                text = "${tr("Pil Seviyesi", "Battery Level")}: %${deviceStatus.batteryLevel} ${if (deviceStatus.isBatteryCharging) tr("(Şarj Oluyor)", "(Charging)") else ""}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -332,7 +333,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Son Kaydedilen Saha Konumu",
+                            text = tr("Son Kaydedilen Saha Konumu", "Last Recorded Field Location"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -340,12 +341,12 @@ fun DashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = latestLoc?.address ?: "Merkez Saha Bölgesi (41.0082, 28.9784)",
+                        text = latestLoc?.address ?: tr("Merkez Saha Bölgesi (41.0082, 28.9784)", "Central Field Zone (41.0082, 28.9784)"),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Enlem: ${latestLoc?.latitude ?: 41.0082} • Boylam: ${latestLoc?.longitude ?: 28.9784} • Hız: ${latestLoc?.speed?.toInt() ?: 0} km/s",
+                        text = "${tr("Enlem", "Lat")}: ${latestLoc?.latitude ?: 41.0082} • ${tr("Boylam", "Lng")}: ${latestLoc?.longitude ?: 28.9784} • ${tr("Hız", "Speed")}: ${latestLoc?.speed?.toInt() ?: 0} km/h",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -372,12 +373,12 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Çevrimdışı Veri Senkronizasyonu",
+                            text = tr("Çevrimdışı Veri Senkronizasyonu", "Offline Data Synchronization"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (deviceStatus.isInternetConnected) "İnternet aktif. Veriler sunucu ile eşzamanlı." else "Çevrimdışı mod: Veriler lokalde saklanıyor.",
+                            text = if (deviceStatus.isInternetConnected) tr("İnternet aktif. Veriler sunucu ile eşzamanlı.", "Internet active. Data synchronized with server.") else tr("Çevrimdışı mod: Veriler lokalde saklanıyor.", "Offline mode: Data stored locally."),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -389,7 +390,7 @@ fun DashboardScreen(
                         if (isSyncing) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
                         } else {
-                            Text("Senkronize Et", style = MaterialTheme.typography.labelMedium)
+                            Text(tr("Senkronize Et", "Sync Now"), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

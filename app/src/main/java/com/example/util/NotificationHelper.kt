@@ -45,7 +45,7 @@ object NotificationHelper {
 
         // Privacy safe alert text: generic message without raw GPS / violation details
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification_stat)
             .setContentTitle(alertTitle)
             .setContentText("Saha uygulamanızda yeni bir güvenlik/durum olayı kaydedildi. Detaylar için dokunun.")
             .setStyle(

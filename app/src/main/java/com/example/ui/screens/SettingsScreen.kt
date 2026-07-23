@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.util.tr
 import com.example.ui.viewmodel.MainViewModel
 
 @Composable
@@ -63,12 +64,12 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Uygulama & Takip Ayarları",
+                text = tr("Uygulama & Takip Ayarları", "Application & Tracking Settings"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Dil, güncelleme sıklığı ve sunucu yapılandırması",
+                text = tr("Dil, güncelleme sıklığı ve sunucu yapılandırması", "Language, update frequency, and server configuration"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -87,7 +88,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Dil Seçimi (Language)",
+                            text = tr("Dil Seçimi (Language)", "Language Selection"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -112,7 +113,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. GPS UPDATE INTERVAL (30s / 60s / 120s / 300s)
+            // 2. GPS UPDATE INTERVAL
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -124,7 +125,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Konum Güncelleme Sıklığı",
+                            text = tr("Konum Güncelleme Sıklığı", "Location Update Frequency"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -133,7 +134,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Arka planda GPS verisi alma periyodu (Varsayılan: 60s)",
+                        text = tr("Arka planda GPS verisi alma periyodu (Varsayılan: 60s)", "Background GPS fetch interval (Default: 60s)"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -166,7 +167,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Tema Tercihi",
+                            text = tr("Tema Tercihi", "Theme Preference"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -178,17 +179,17 @@ fun SettingsScreen(
                         FilterChip(
                             selected = currentTheme == "system",
                             onClick = { viewModel.setTheme("system") },
-                            label = { Text("Sistem") }
+                            label = { Text(tr("Sistem", "System")) }
                         )
                         FilterChip(
                             selected = currentTheme == "light",
                             onClick = { viewModel.setTheme("light") },
-                            label = { Text("Açık") }
+                            label = { Text(tr("Açık", "Light")) }
                         )
                         FilterChip(
                             selected = currentTheme == "dark",
                             onClick = { viewModel.setTheme("dark") },
-                            label = { Text("Koyu") }
+                            label = { Text(tr("Koyu", "Dark")) }
                         )
                     }
                 }
@@ -208,7 +209,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Sunucu Senkronizasyon URL",
+                            text = tr("Sunucu Senkronizasyon URL", "Server Synchronization URL"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -229,10 +230,11 @@ fun SettingsScreen(
                         onClick = { viewModel.setMockServerUrl(urlInput) },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Güncelle")
+                        Text(tr("Güncelle", "Update"))
                     }
                 }
             }
         }
     }
 }
+

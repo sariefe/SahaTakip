@@ -61,7 +61,7 @@ class LocationTrackingService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Saha Takip Aktif")
             .setContentText("Saha personeli konum takibi ve güvenlik kontrolü çalışıyor.")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification_stat)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()

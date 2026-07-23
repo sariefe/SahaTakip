@@ -30,6 +30,8 @@ import com.example.ui.screens.LeaveRequestScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.CompositionLocalProvider
+import com.example.util.LocalLanguage
 import com.example.ui.screens.MapTrackingScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.viewmodel.MainViewModel
@@ -63,7 +65,8 @@ fun AppNavGraph(viewModel: MainViewModel) {
 
     val showBottomBar = currentRoute in bottomNavScreens.map { it.route }
 
-    Scaffold(
+    CompositionLocalProvider(LocalLanguage provides currentLang) {
+        Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             if (showBottomBar) {
@@ -155,4 +158,5 @@ fun AppNavGraph(viewModel: MainViewModel) {
             }
         }
     }
+}
 }

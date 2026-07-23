@@ -55,6 +55,7 @@ import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,12 +86,12 @@ fun EventLogsScreen(
             ) {
                 Column {
                     Text(
-                        text = "Sistem & Güvenlik Olay Kayıtları",
+                        text = tr("Sistem & Güvenlik Olay Kayıtları", "System & Security Event Logs"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Toplam ${eventLogs.size} Olay Kaydı Bulundu",
+                        text = "${tr("Toplam", "Total")} ${eventLogs.size} ${tr("Olay Kaydı Bulundu", "Event Logs Found")}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -107,7 +108,7 @@ fun EventLogsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Henüz kaydedilmiş olay günlüğü yok.",
+                        text = tr("Henüz kaydedilmiş olay günlüğü yok.", "No event logs recorded yet."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -122,6 +123,14 @@ fun EventLogsScreen(
                             "TEHLİKE" -> StatusRed
                             "UYARI" -> StatusAmber
                             else -> StatusGreen
+                        }
+
+                        val localizedStatus = when (log.status) {
+                            "TEHLİKE" -> tr("TEHLİKE", "DANGER")
+                            "UYARI" -> tr("UYARI", "WARNING")
+                            "BİLGİ" -> tr("BİLGİ", "INFO")
+                            "BAŞARILI" -> tr("BAŞARILI", "SUCCESS")
+                            else -> log.status
                         }
 
                         val icon = when (log.type) {
@@ -182,7 +191,7 @@ fun EventLogsScreen(
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Text(
-                                            text = log.status,
+                                            text = localizedStatus,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = badgeColor
@@ -204,7 +213,7 @@ fun EventLogsScreen(
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
                                         Text(
-                                            text = "Not: ${log.note}",
+                                            text = "${tr("Not", "Note")}: ${log.note}",
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             modifier = Modifier.padding(8.dp)
@@ -226,7 +235,10 @@ fun EventLogsScreen(
                                     ) {
                                         Icon(Icons.Default.AddComment, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (log.note.isBlank()) "Not Ekle" else "Notu Düzenle", style = MaterialTheme.typography.labelMedium)
+                                        Text(
+                                            text = if (log.note.isBlank()) tr("Not Ekle", "Add Note") else tr("Notu Düzenle", "Edit Note"),
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
                                     }
                                 }
                             }
@@ -241,7 +253,7 @@ fun EventLogsScreen(
     selectedLogForNote?.let { log ->
         AlertDialog(
             onDismissRequest = { selectedLogForNote = null },
-            title = { Text("Olaya Not Ekle") },
+            title = { Text(tr("Olaya Not Ekle", "Add Note to Event")) },
             text = {
                 Column {
                     Text(
@@ -253,7 +265,7 @@ fun EventLogsScreen(
                     OutlinedTextField(
                         value = noteInputText,
                         onValueChange = { noteInputText = it },
-                        label = { Text("Personel Notu / Açıklama") },
+                        label = { Text(tr("Personel Notu / Açıklama", "Personnel Note / Explanation")) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -266,14 +278,15 @@ fun EventLogsScreen(
                         selectedLogForNote = null
                     }
                 ) {
-                    Text("Kaydet")
+                    Text(tr("Kaydet", "Save"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { selectedLogForNote = null }) {
-                    Text("İptal")
+                    Text(tr("İptal", "Cancel"))
                 }
             }
         )
     }
 }
+

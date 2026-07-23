@@ -54,6 +54,7 @@ import com.example.ui.components.CustomMapView
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.tr
 
 @Composable
 fun MapTrackingScreen(
@@ -103,7 +104,7 @@ fun MapTrackingScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "24s Rota Takibi: ${locations.size} Konum Noktası",
+                            text = "${tr("24s Rota Takibi", "24h Route Tracking")}: ${locations.size} ${tr("Konum Noktası", "Location Points")}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -132,7 +133,7 @@ fun MapTrackingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Güzergah Oynatma (Playback)",
+                                text = tr("Güzergah Oynatma (Playback)", "Route Playback"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -172,7 +173,7 @@ fun MapTrackingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "İlerleme: %${(playbackState.progress * 100).toInt()}",
+                                text = "${tr("İlerleme", "Progress")}: %${(playbackState.progress * 100).toInt()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -188,7 +189,7 @@ fun MapTrackingScreen(
                                     contentDescription = null
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(if (playbackState.isPlaying) "Duraklat" else "Oynat")
+                                Text(if (playbackState.isPlaying) tr("Duraklat", "Pause") else tr("Oynat", "Play"))
                             }
                         }
                     }
@@ -213,13 +214,13 @@ fun MapTrackingScreen(
                                 Icon(Icons.Default.Security, contentDescription = null, tint = StatusGreen)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Bölge Tanımlama (Geofencing)",
+                                    text = tr("Bölge Tanımlama (Geofencing)", "Geofencing Zone Management"),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             IconButton(onClick = { showAddGeofenceDialog = true }) {
-                                Icon(Icons.Default.AddLocation, contentDescription = "Bölge Ekle")
+                                Icon(Icons.Default.AddLocation, contentDescription = tr("Bölge Ekle", "Add Zone"))
                             }
                         }
 
@@ -240,7 +241,7 @@ fun MapTrackingScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Merkez: ${String.format("%.4f", zone.centerLat)}, ${String.format("%.4f", zone.centerLng)} • Yarıçap: ${zone.radiusMeters.toInt()}m",
+                                        text = "${tr("Merkez", "Center")}: ${String.format("%.4f", zone.centerLat)}, ${String.format("%.4f", zone.centerLng)} • ${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -259,29 +260,30 @@ fun MapTrackingScreen(
 
     // ADD GEOFENCE DIALOG
     if (showAddGeofenceDialog) {
-        var zoneName by remember { mutableStateOf("Yeni Güvenli Saha Bölgesi") }
+        val defaultZoneName = tr("Yeni Güvenli Saha Bölgesi", "New Safe Zone")
+        var zoneName by remember { mutableStateOf(defaultZoneName) }
         var radiusStr by remember { mutableStateOf("600") }
 
         AlertDialog(
             onDismissRequest = { showAddGeofenceDialog = false },
-            title = { Text("Yeni Safe Zone (Bölge) Tanımla") },
+            title = { Text(tr("Yeni Safe Zone (Bölge) Tanımla", "Define New Safe Zone")) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = zoneName,
                         onValueChange = { zoneName = it },
-                        label = { Text("Bölge Adı") },
+                        label = { Text(tr("Bölge Adı", "Zone Name")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = radiusStr,
                         onValueChange = { radiusStr = it },
-                        label = { Text("İhlal Yarıçapı (Metre)") },
+                        label = { Text(tr("İhlal Yarıçapı (Metre)", "Violation Radius (Meters)")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        text = "Merkez nokta olarak en son kaydedilen konum alınacaktır.",
+                        text = tr("Merkez nokta olarak en son kaydedilen konum alınacaktır.", "Last recorded location will be set as center point."),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 6.dp)
@@ -298,14 +300,15 @@ fun MapTrackingScreen(
                         showAddGeofenceDialog = false
                     }
                 ) {
-                    Text("Kaydet")
+                    Text(tr("Kaydet", "Save"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddGeofenceDialog = false }) {
-                    Text("İptal")
+                    Text(tr("İptal", "Cancel"))
                 }
             }
         )
     }
 }
+

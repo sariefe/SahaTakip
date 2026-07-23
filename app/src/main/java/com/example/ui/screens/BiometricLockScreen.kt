@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.StatusGreen
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.tr
 
 @Composable
 fun BiometricLockScreen(
@@ -84,20 +85,20 @@ fun BiometricLockScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "SAHA TAKİP SİSTEMİ",
+                text = tr("SAHA TAKİP SİSTEMİ", "FIELD TRACKING SYSTEM"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
 
             Text(
-                text = "Hoş Geldiniz, ${userProfile?.fullName ?: "Saha Personeli"}",
+                text = tr("Hoş Geldiniz, ${userProfile?.fullName ?: "Saha Personeli"}", "Welcome, ${userProfile?.fullName ?: "Field Staff"}"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
             Text(
-                text = "T.C. No: ${userProfile?.tcNo ?: "-----------"}",
+                text = "${tr("T.C. No", "ID No")}: ${userProfile?.tcNo ?: "-----------"}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -144,7 +145,7 @@ fun BiometricLockScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Biyometrik Kimlik Doğrulama",
+                        text = tr("Biyometrik Kimlik Doğrulama", "Biometric Authentication"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -152,7 +153,7 @@ fun BiometricLockScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Parmak izi veya Yüz Tanıma (Face ID) sensörüne dokunun",
+                        text = tr("Parmak izi veya Yüz Tanıma (Face ID) sensörüne dokunun", "Touch the fingerprint or Face ID sensor"),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -160,7 +161,7 @@ fun BiometricLockScreen(
 
                     AnimatedVisibility(visible = verificationSuccess) {
                         Text(
-                            text = "✓ Doğrulama Başarılı! Giriş yapılıyor...",
+                            text = tr("✓ Doğrulama Başarılı! Giriş yapılıyor...", "✓ Verification Successful! Signing in..."),
                             style = MaterialTheme.typography.labelMedium,
                             color = StatusGreen,
                             fontWeight = FontWeight.Bold,
@@ -185,8 +186,9 @@ fun BiometricLockScreen(
             ) {
                 Icon(Icons.Default.Fingerprint, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Biyometrik Giriş Yap", fontWeight = FontWeight.Bold)
+                Text(tr("Biyometrik Giriş Yap", "Biometric Sign In"), fontWeight = FontWeight.Bold)
             }
         }
     }
 }
+
