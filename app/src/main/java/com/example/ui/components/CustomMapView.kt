@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -80,6 +81,7 @@ data class PoiStation(
     val category: String
 )
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun CustomMapView(
     locations: List<LocationEntity>,

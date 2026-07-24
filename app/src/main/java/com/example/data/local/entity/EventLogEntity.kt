@@ -3,7 +3,13 @@ package com.example.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "event_logs")
+@Entity(
+    tableName = "event_logs",
+    indices = [
+        androidx.room.Index(value = ["isSynced"]),
+        androidx.room.Index(value = ["timestamp"])
+    ]
+)
 data class EventLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val type: String, // "GEOFENCE_VIOLATION", "INTERNET_LOST", "INTERNET_RESTORED", "GPS_DISABLED", "GPS_ENABLED", "SECURITY_ALERT", "BATTERY_LOW", "CUSTOM"

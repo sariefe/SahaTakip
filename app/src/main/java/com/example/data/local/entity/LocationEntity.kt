@@ -3,7 +3,13 @@ package com.example.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "locations")
+@Entity(
+    tableName = "locations",
+    indices = [
+        androidx.room.Index(value = ["isSynced"]),
+        androidx.room.Index(value = ["timestamp"])
+    ]
+)
 data class LocationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val latitude: Double,
