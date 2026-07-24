@@ -81,14 +81,16 @@ fun AppNavGraph(viewModel: MainViewModel) {
                             onClick = {
                                 if (currentRoute != screen.route) {
                                     navController.navigate(screen.route) {
-                                        // Use Dashboard as the home anchor if authenticated, otherwise use the dynamic start destination
-                                        val popToTarget = if (isAuthenticated) Screen.Dashboard.route else startDestination
-                                        
-                                        popUpTo(popToTarget) {
+                                        // Use startDestination as the anchor for popping
+                                        popUpTo(startDestination) {
                                             saveState = true
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
+                                        
+                                        // Disable restoreState for Dashboard to prevent freezes
+                                        if (screen.route != Screen.Dashboard.route) {
+                                            restoreState = true
+                                        }
                                     }
                                 }
                             },

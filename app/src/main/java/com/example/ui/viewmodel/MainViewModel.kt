@@ -15,7 +15,7 @@ import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
 import com.example.data.local.entity.UserProfileEntity
 import com.example.data.repository.SahaRepository
-import com.example.data.util.SecurityUtils
+import com.example.util.SecurityUtils
 import com.example.domain.model.DeviceStatus
 import com.example.util.OcrCardScanner
 import com.example.util.PermissionUtils
@@ -115,7 +115,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
-        val isRooted = SecurityUtils.checkIsDeviceRooted(context)
+        val isRooted = SecurityUtils.checkIsDeviceRooted()
 
         _deviceStatus.value = DeviceStatus(
             isInternetConnected = isOnline,

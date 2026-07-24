@@ -99,7 +99,6 @@ fun CustomMapView(
 
     val activeLocation = playbackLocation ?: currentLocation ?: locations.lastOrNull()
 
-    // Preset Field Stations / POIs
     val poiStations = remember {
         listOf(
             PoiStation("Merkez Saha Deposu", 41.0125, 28.9810, "HQ"),
@@ -153,7 +152,6 @@ fun CustomMapView(
                     val latSpan = (maxLat - minLat).coerceAtLeast(0.005)
                     val lngSpan = (maxLng - minLng).coerceAtLeast(0.005)
 
-                    // Find nearest location point within tap threshold
                     var closestLoc: LocationEntity? = null
                     var minDistancePx = 50f * scale
 
@@ -187,7 +185,6 @@ fun CustomMapView(
             val canvasWidth = size.width
             val canvasHeight = size.height
 
-            // Calculate bounding box for Lat/Lng mapping
             val minLat = (locations.minOfOrNull { it.latitude } ?: 41.000).coerceAtMost(41.000)
             val maxLat = (locations.maxOfOrNull { it.latitude } ?: 41.020).coerceAtLeast(41.020)
             val minLng = (locations.minOfOrNull { it.longitude } ?: 28.970).coerceAtMost(28.970)
@@ -201,7 +198,7 @@ fun CustomMapView(
 
             fun mapToCanvas(lat: Double, lng: Double): Offset {
                 val normalizedX = ((lng - minLng) / lngSpan).toFloat()
-                val normalizedY = (1f - ((lat - minLat) / latSpan).toFloat()) // Invert Y
+                val normalizedY = (1f - ((lat - minLat) / latSpan).toFloat())
                 val padding = 100f
                 val x = padding + normalizedX * (canvasWidth - 2 * padding)
                 val y = padding + normalizedY * (canvasHeight - 2 * padding)
@@ -214,9 +211,7 @@ fun CustomMapView(
                 return Offset(transformedX, transformedY)
             }
 
-            // 1. DRAW SATELLITE TERRAIN / HEATMAP / VECTOR BACKGROUND
             if (selectedLayer == MapLayerMode.SATELLITE) {
-                // Satellite Contour Vegetation Zones
                 drawCircle(
                     color = Color(0xFF1E3A1E).copy(alpha = 0.5f),
                     radius = 280f * scale,
@@ -228,8 +223,6 @@ fun CustomMapView(
                     center = Offset(canvasWidth * 0.7f + offsetX, canvasHeight * 0.7f + offsetY)
                 )
             }
-
-            // Grid Lines
             val step = (80f * scale).coerceAtLeast(25f)
             var xGrid = (offsetX % step)
             while (xGrid < canvasWidth) {
@@ -242,7 +235,6 @@ fun CustomMapView(
                 yGrid += step
             }
 
-            // Road Network
             val mainRoad1 = Path().apply {
                 moveTo(0f, canvasHeight * 0.4f + offsetY)
                 lineTo(canvasWidth, canvasHeight * 0.45f + offsetY)
@@ -255,7 +247,6 @@ fun CustomMapView(
             }
             drawPath(mainRoad2, roadColor, style = Stroke(width = 14f * scale))
 
-            // 2. DRAW HEATMAP LAYER
             if (selectedLayer == MapLayerMode.HEATMAP) {
                 locations.forEach { loc ->
                     val pt = mapToCanvas(loc.latitude, loc.longitude)
@@ -274,12 +265,9 @@ fun CustomMapView(
                     )
                 }
             }
-
-            // 3. DRAW GEOFENCE SAFE ZONES
             geofences.forEach { zone ->
                 if (zone.isActive) {
                     val centerOffset = mapToCanvas(zone.centerLat, zone.centerLng)
-                    // Precise radius calculation based on map scale
                     val radiusPx = (zone.radiusMeters.toFloat() / metersPerDegreeLat) * pixelsPerDegreeLat * scale
 
                     drawCircle(
@@ -297,14 +285,12 @@ fun CustomMapView(
                 }
             }
 
-            // 4. DRAW FIELD STATIONS / POIs
             poiStations.forEach { poi ->
                 val poiPt = mapToCanvas(poi.lat, poi.lng)
                 drawCircle(Color(0xFF38BDF8), radius = 8f * scale, center = poiPt)
                 drawCircle(Color.White, radius = 4f * scale, center = poiPt)
             }
 
-            // 5. DRAW ROUTE POLYLINE & DIRECTION ARROWS
             if (locations.size > 1 && selectedLayer != MapLayerMode.HEATMAP) {
                 val routePath = Path()
                 locations.forEachIndexed { i, loc ->
@@ -313,20 +299,18 @@ fun CustomMapView(
                     else routePath.lineTo(point.x, point.y)
                 }
 
-                // Outer route glow
                 drawPath(
                     routePath,
                     StatusBlue.copy(alpha = 0.3f),
                     style = Stroke(width = 10f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
-                // Solid route line
+
                 drawPath(
                     routePath,
                     StatusBlue,
                     style = Stroke(width = 4f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
 
-                // Directional Arrows on Route
                 for (i in 0 until locations.size - 1) {
                     val p1 = mapToCanvas(locations[i].latitude, locations[i].longitude)
                     val p2 = mapToCanvas(locations[i + 1].latitude, locations[i + 1].longitude)
@@ -347,7 +331,6 @@ fun CustomMapView(
                     }
                 }
 
-                // Route waypoints
                 locations.forEach { loc ->
                     val pt = mapToCanvas(loc.latitude, loc.longitude)
                     val isSelected = selectedLocation?.id == loc.id
@@ -357,11 +340,10 @@ fun CustomMapView(
                 }
             }
 
-            // 6. DRAW ACTIVE USER MARKER
+
             activeLocation?.let { loc ->
                 val markerOffset = mapToCanvas(loc.latitude, loc.longitude)
 
-                // Calculate if current location is in violation
                 val activeZones = geofences.filter { it.isActive }
                 val isInsideAny = if (activeZones.isEmpty()) true else activeZones.any { zone ->
                     val dLat = Math.toRadians(zone.centerLat - loc.latitude)
@@ -399,14 +381,12 @@ fun CustomMapView(
             }
         }
 
-        // FLOATING MAP CONTROLS (Top Right & Bottom Right)
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Layer Switcher Button
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -429,7 +409,6 @@ fun CustomMapView(
                 }
             }
 
-            // Zoom In
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -440,7 +419,6 @@ fun CustomMapView(
                 }
             }
 
-            // Zoom Out
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -451,7 +429,6 @@ fun CustomMapView(
                 }
             }
 
-            // Recenter
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -473,7 +450,6 @@ fun CustomMapView(
             }
         }
 
-        // MAP LAYER MODE LABEL
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -494,7 +470,6 @@ fun CustomMapView(
             )
         }
 
-        // SELECTED WAYPOINT POPUP CARD
         selectedLocation?.let { loc ->
             val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
             val formattedTime = timeFormat.format(Date(loc.timestamp))

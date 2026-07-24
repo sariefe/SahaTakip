@@ -1,7 +1,7 @@
 package com.example.util
 
-import android.graphics.Bitmap
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 data class ScannedIdCardResult(
     val fullName: String,
@@ -34,11 +34,10 @@ object OcrCardScanner {
      * Simulates scanning/OCR extraction from an ID Card image.
      */
     suspend fun processIdCardScan(
-        bitmap: Bitmap? = null,
         fallbackNameInput: String = "",
         preset: IdCardPreset? = null
     ): ScannedIdCardResult {
-        delay(1200) // Simulate OCR image recognition latency
+        delay(1200.milliseconds) // Simulate OCR image recognition latency
 
         if (preset != null) {
             val rawText = """
