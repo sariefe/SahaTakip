@@ -1,11 +1,7 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -25,11 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CompassCalibration
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
@@ -47,7 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,7 +54,6 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LocationEntity
 import com.example.ui.theme.StatusAmber
@@ -136,6 +129,7 @@ fun CustomMapView(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .clipToBounds()
             .background(mapBgColor)
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
@@ -199,6 +193,9 @@ fun CustomMapView(
 
             val latSpan = (maxLat - minLat).coerceAtLeast(0.005)
             val lngSpan = (maxLng - minLng).coerceAtLeast(0.005)
+
+            val pixelsPerDegreeLat = (canvasHeight - 200f) / latSpan.toFloat()
+            val metersPerDegreeLat = 111319.9f // Approx meters per degree latitude
 
             fun mapToCanvas(lat: Double, lng: Double): Offset {
                 val normalizedX = ((lng - minLng) / lngSpan).toFloat()
@@ -280,7 +277,8 @@ fun CustomMapView(
             geofences.forEach { zone ->
                 if (zone.isActive) {
                     val centerOffset = mapToCanvas(zone.centerLat, zone.centerLng)
-                    val radiusPx = (zone.radiusMeters / 10.0).toFloat() * scale
+                    // Precise radius calculation based on map scale
+                    val radiusPx = (zone.radiusMeters.toFloat() / metersPerDegreeLat) * pixelsPerDegreeLat * scale
 
                     drawCircle(
                         color = StatusGreen.copy(alpha = 0.18f),
@@ -361,18 +359,33 @@ fun CustomMapView(
             activeLocation?.let { loc ->
                 val markerOffset = mapToCanvas(loc.latitude, loc.longitude)
 
+                // Calculate if current location is in violation
+                val activeZones = geofences.filter { it.isActive }
+                val isInsideAny = if (activeZones.isEmpty()) true else activeZones.any { zone ->
+                    val dLat = Math.toRadians(zone.centerLat - loc.latitude)
+                    val dLng = Math.toRadians(zone.centerLng - loc.longitude)
+                    val lat1 = Math.toRadians(loc.latitude)
+                    val lat2 = Math.toRadians(zone.centerLat)
+                    val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
+                    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+                    (6371000.0 * c) <= zone.radiusMeters
+                }
+
+                val markerBaseColor = if (isInsideAny) StatusAmber else StatusRed
+                val glowColor = if (isInsideAny) StatusGreen else StatusRed
+
                 drawCircle(
-                    color = StatusAmber.copy(alpha = 0.25f),
+                    color = glowColor.copy(alpha = 0.25f),
                     radius = 26f * scale,
                     center = markerOffset
                 )
                 drawCircle(
-                    color = StatusAmber.copy(alpha = 0.5f),
+                    color = markerBaseColor.copy(alpha = 0.5f),
                     radius = 16f * scale,
                     center = markerOffset
                 )
                 drawCircle(
-                    color = StatusAmber,
+                    color = markerBaseColor,
                     radius = 8f * scale,
                     center = markerOffset
                 )

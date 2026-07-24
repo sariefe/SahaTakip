@@ -13,7 +13,7 @@
     <string name="auth_subtitle">TC Kimlik OCR Taraması &amp; Biyometrik Doğrulama</string>
     <string name="auth_id_scan_title">1. Kimlik Kartı Tarama (OCR)</string>
     <string name="auth_id_scan_desc">T.C. Kimlik kartınızın ön yüzünü okutun</string>
-    <string name="auth_scan_reading">Kimlik Kartı OCR ile Okunuyor...</string>
+    <string name="auth_scan_reading">Kimlik Kartı OCR ile Okunuyor…</string>
     <string name="auth_scan_success">OCR Taraması Başarılı</string>
     <string name="auth_tap_to_scan">Kamerayı Aç ve Kimlik Kartı Tara</string>
     <string name="auth_front_side_scan">T.C. Kimlik Kartı Ön Yüz Okuma</string>
@@ -41,7 +41,7 @@
     <string name="biometric_desc">Parmak izi veya Yüz Tanıma sensörüne dokunun</string>
     <string name="biometric_cancel">İptal</string>
     <string name="biometric_error">Biyometrik Hata</string>
-    <string name="biometric_success">Doğrulama Başarılı! Giriş Yapılıyor...</string>
+    <string name="biometric_success">Doğrulama Başarılı! Giriş Yapılıyor…</string>
     <string name="biometric_prompt_launch">BiometricPrompt Sistemini Çalıştır</string>
     <string name="biometric_hardware_ready">Donanım Hazır (Parmak İzi / Yüz)</string>
 

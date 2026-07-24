@@ -217,25 +217,34 @@ class SahaRepository(private val context: Context) {
 
     private suspend fun checkGeofenceBreach(lat: Double, lng: Double) {
         val activeGeofences = geofenceDao.getActiveGeofences()
+        if (activeGeofences.isEmpty()) return
+        
         val now = System.currentTimeMillis()
-        activeGeofences.forEach { zone ->
-            val distance = calculateDistanceInMeters(lat, lng, zone.centerLat, zone.centerLng)
-            if (distance > zone.radiusMeters) {
-                // Out of geofence zone -> throttle violation log & notification to once every 2 minutes
-                if (now - lastGeofenceAlertTimestamp > 120_000L) {
-                    lastGeofenceAlertTimestamp = now
-                    val log = EventLogEntity(
-                        type = "GEOFENCE_VIOLATION",
-                        title = "Bölge İhlal Kaydı",
-                        detail = "'${zone.name}' güvenli bölgesinin dışına çıkıldı (Mevcut Mesafe: ${distance.toInt()} metre).",
-                        isSensitive = true,
-                        status = "UYARI",
-                        timestamp = now,
-                        isSynced = false
-                    )
-                    eventLogDao.insertEventLog(log)
-                    NotificationHelper.sendPrivacySafeAlert(context, "Güvenlik & Bölge İhlali Uyarısı")
+
+        val isInsideAny = activeGeofences.any { zone ->
+            calculateDistanceInMeters(lat, lng, zone.centerLat, zone.centerLng) <= zone.radiusMeters
+        }
+
+        if (!isInsideAny) {
+            if (now - lastGeofenceAlertTimestamp > 120_000L) {
+                lastGeofenceAlertTimestamp = now
+
+                val nearestZone = activeGeofences.minByOrNull { 
+                    calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) 
                 }
+                val distance = nearestZone?.let { calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) } ?: 0.0
+
+                val log = EventLogEntity(
+                    type = "GEOFENCE_VIOLATION",
+                    title = "Bölge İhlal Kaydı",
+                    detail = "Güvenli bölge dışına çıkıldı (En yakın bölgeye mesafe: ${distance.toInt()} metre).",
+                    isSensitive = true,
+                    status = "UYARI",
+                    timestamp = now,
+                    isSynced = false
+                )
+                eventLogDao.insertEventLog(log)
+                NotificationHelper.sendPrivacySafeAlert(context, "Güvenlik & Bölge İhlali Uyarısı")
             }
         }
     }

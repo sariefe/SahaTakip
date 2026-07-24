@@ -132,7 +132,10 @@ fun MapTrackingScreen(
 
                 val activeGeofenceViolation = remember(latestLoc, geofences) {
                     val current = latestLoc ?: return@remember false
-                    geofences.filter { it.isActive }.any { zone ->
+                    val activeZones = geofences.filter { it.isActive }
+                    if (activeZones.isEmpty()) return@remember false
+
+                    val isInsideAny = activeZones.any { zone ->
                         val dLat = Math.toRadians(zone.centerLat - current.latitude)
                         val dLng = Math.toRadians(zone.centerLng - current.longitude)
                         val lat1 = Math.toRadians(current.latitude)
@@ -140,8 +143,9 @@ fun MapTrackingScreen(
                         val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
                         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
                         val distanceMeters = 6371000.0 * c
-                        distanceMeters > zone.radiusMeters
+                        distanceMeters <= zone.radiusMeters
                     }
+                    !isInsideAny
                 }
 
                 Card(

@@ -103,13 +103,13 @@ class LocationTrackingService : Service() {
             while (isActive) {
                 val intervalSeconds = repository.preferencesManager.updateInterval.first()
                 // Simulate slight movement for testing
-                val latDelta = ((-10..10).random()) * 0.0003
-                val lngDelta = ((-10..10).random()) * 0.0003
+                val latDelta = ((-10..10).random()) * 0.0002
+                val lngDelta = ((-10..10).random()) * 0.0002
                 currentLat += latDelta
                 currentLng += lngDelta
 
-                val speed = (10..50).random().toFloat()
-                val battery = (60..100).random()
+                val speed = (10..40).random().toFloat()
+                val battery = (30..100).random()
 
                 repository.recordNewLocation(
                     lat = currentLat,
