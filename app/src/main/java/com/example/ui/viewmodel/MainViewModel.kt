@@ -13,12 +13,12 @@ import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
-import com.example.data.local.entity.OfflineActivityReportEntity
 import com.example.data.local.entity.UserProfileEntity
 import com.example.data.repository.SahaRepository
 import com.example.data.util.SecurityUtils
 import com.example.domain.model.DeviceStatus
 import com.example.util.OcrCardScanner
+import com.example.util.PermissionUtils
 import com.example.util.ScannedIdCardResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,10 +26,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 data class PlaybackState(
     val isPlaying: Boolean = false,
@@ -59,9 +58,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allGeofences: StateFlow<List<GeofenceZoneEntity>> = repository.allGeofences
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val allOfflineReports: StateFlow<List<OfflineActivityReportEntity>> = repository.allOfflineReports
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val language = repository.preferencesManager.language
@@ -123,9 +119,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _deviceStatus.value = DeviceStatus(
             isInternetConnected = isOnline,
-            isGpsEnabled = true,
-            isBackgroundLocationGranted = true,
-            isNotificationGranted = true,
+            isGpsEnabled = PermissionUtils.isGpsEnabled(context) && PermissionUtils.hasLocationPermissions(context),
+            isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
+            isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
+            isBatteryOptimizationIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context),
             batteryLevel = batteryPct,
             isBatteryCharging = isCharging,
             isRooted = isRooted,
@@ -252,7 +249,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     currentLocation = currPoint
                 )
 
-                delay((800 / _playbackState.value.speedMultiplier).toLong())
+                delay((800 / _playbackState.value.speedMultiplier).toLong().milliseconds)
                 idx++
             }
 
@@ -317,26 +314,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleGeofenceActive(id: Long, isActive: Boolean) {
         viewModelScope.launch {
             repository.geofenceDao.setGeofenceActive(id, isActive)
-        }
-    }
-
-    fun submitOfflineActivityReport(
-        title: String,
-        description: String,
-        locationAddress: String = "Saha Lokasyonu",
-        lat: Double = 0.0,
-        lng: Double = 0.0,
-        reportType: String = "SAHA_DEVRIYE"
-    ) {
-        viewModelScope.launch {
-            repository.addOfflineActivityReport(
-                title = title,
-                description = description,
-                locationAddress = locationAddress,
-                lat = lat,
-                lng = lng,
-                reportType = reportType
-            )
         }
     }
 

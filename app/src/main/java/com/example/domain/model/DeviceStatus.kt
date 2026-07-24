@@ -5,7 +5,8 @@ data class DeviceStatus(
     val isGpsEnabled: Boolean = true,
     val isBackgroundLocationGranted: Boolean = true,
     val isNotificationGranted: Boolean = true,
-    val batteryLevel: Int = 85,
+    val isBatteryOptimizationIgnored: Boolean = true,
+    val batteryLevel: Int = 90,
     val isBatteryCharging: Boolean = false,
     val isRooted: Boolean = false,
     val lastCheckedTimestamp: Long = System.currentTimeMillis()

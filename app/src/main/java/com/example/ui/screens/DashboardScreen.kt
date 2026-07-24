@@ -1,8 +1,8 @@
 package com.example.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.LocationOn
@@ -59,18 +58,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
 import com.example.util.tr
 
+@SuppressLint("BatteryLife")
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
     onNavigateToMap: () -> Unit,
-    onNavigateToLogs: () -> Unit
+    onNavigateToLogs: () -> Unit,
 ) {
     val context = LocalContext.current
     val deviceStatus by viewModel.deviceStatus.collectAsState()
@@ -90,7 +88,7 @@ fun DashboardScreen(
         ) {
             // User Header Card
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().clickable { onNavigateToLogs() },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
@@ -240,11 +238,11 @@ fun DashboardScreen(
 
                 // 3. Background Location Work Permission Card
                 StatusItemCard(
-                    title = tr("Arka Plan Çalışma İzni", "Background Work Permission"),
-                    subtitle = if (deviceStatus.isBackgroundLocationGranted) tr("İzin Verildi (Servis Aktif)", "Granted (Service Active)") else tr("Arka Plan Kısıtlı", "Background Restricted"),
+                    title = tr("Arka Plan Konum İzni", "Background Location Permission"),
+                    subtitle = if (deviceStatus.isBackgroundLocationGranted) tr("İzin Verildi (Her Zaman)", "Granted (All the time)") else tr("Eksik: 'Her Zaman İzin Ver' seçilmeli", "Missing: 'Allow all the time' required"),
                     isOk = deviceStatus.isBackgroundLocationGranted,
                     icon = Icons.Default.LocationOn,
-                    actionLabel = tr("Ayarla", "Settings"),
+                    actionLabel = tr("İzinlere Git", "Permissions"),
                     onAction = {
                         try {
                             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -253,6 +251,27 @@ fun DashboardScreen(
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             e.printStackTrace()
+                        }
+                    }
+                )
+
+                // 3b. Battery Optimization Card
+                StatusItemCard(
+                    title = tr("Pil Optimizasyonu", "Battery Optimization"),
+                    subtitle = if (deviceStatus.isBatteryOptimizationIgnored) tr("Kısıtlama Yok", "No Restrictions") else tr("Kısıtlı (Servis Durabilir)", "Restricted (Service may stop)"),
+                    isOk = deviceStatus.isBatteryOptimizationIgnored,
+                    icon = Icons.Default.BatteryFull,
+                    actionLabel = tr("Devre Dışı Bırak", "Disable"),
+                    onAction = {
+                        try {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = android.net.Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            // Fallback to general battery optimization settings if direct request fails
+                            val fallbackIntent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            context.startActivity(fallbackIntent)
                         }
                     }
                 )
@@ -266,10 +285,17 @@ fun DashboardScreen(
                     actionLabel = tr("Ayarla", "Settings"),
                     onAction = {
                         try {
-                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                }
+                                context.startActivity(intent)
+                            } else {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
                             }
-                            context.startActivity(intent)
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
