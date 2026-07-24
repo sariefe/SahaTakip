@@ -1,3 +1,69 @@
 <resources>
     <string name="app_name">SahaTakip</string>
+
+    <!-- Navigation Labels -->
+    <string name="nav_dashboard">Panel</string>
+    <string name="nav_map">Harita &amp; Rota</string>
+    <string name="nav_leave">Mazeret / İzin</string>
+    <string name="nav_logs">Olay Günlüğü</string>
+    <string name="nav_settings">Ayarlar</string>
+
+    <!-- Auth & Login Labels -->
+    <string name="auth_title">Saha Personeli Girişi</string>
+    <string name="auth_subtitle">TC Kimlik OCR Taraması &amp; Biyometrik Doğrulama</string>
+    <string name="auth_id_scan_title">1. Kimlik Kartı Tarama (OCR)</string>
+    <string name="auth_id_scan_desc">T.C. Kimlik kartınızın ön yüzünü okutun</string>
+    <string name="auth_scan_reading">Kimlik Kartı OCR ile Okunuyor...</string>
+    <string name="auth_scan_success">OCR Taraması Başarılı</string>
+    <string name="auth_tap_to_scan">Kamerayı Aç ve Kimlik Kartı Tara</string>
+    <string name="auth_front_side_scan">T.C. Kimlik Kartı Ön Yüz Okuma</string>
+    <string name="auth_extracted_details">Ayrıştırılan Kart Bilgileri</string>
+    <string name="auth_hide">Gizle</string>
+    <string name="auth_raw_text">Ham Veri</string>
+    <string name="auth_id_number">T.C. Kimlik No</string>
+    <string name="auth_birth_date">Doğum Tarihi</string>
+    <string name="auth_serial_no">Seri No</string>
+    <string name="auth_valid_until">Son Geçerlilik</string>
+    <string name="auth_mrz_output">OCR &amp; MRZ Metin Çıktısı:</string>
+    <string name="auth_passcode_title">2. Güvenlik Parolası</string>
+    <string name="auth_passcode_hint">Saha Erişim Kodu (örn. SAHA2026)</string>
+    <string name="auth_login_button">Saha Sistemine Giriş Yap</string>
+    <string name="auth_biometric_quick_login">Biyometrik Hızlı Giriş (Parmak İzi / Yüz Tanıma)</string>
+    <string name="auth_ocr_camera_title">OCR Kimlik Kartı Kamerası</string>
+    <string name="auth_close">Kapat</string>
+    <string name="auth_scan_and_read">Kameradan Tara &amp; OCR Bilgilerini Oku</string>
+    <string name="auth_preset_sample">Taranacak Kart Örneği / Test Personeli:</string>
+    <string name="auth_keep_aligned">Kimliğin ön yüzünü hizada tutun</string>
+
+    <!-- Biometric Labels -->
+    <string name="biometric_title">Biyometrik Kimlik Doğrulama</string>
+    <string name="biometric_subtitle">Saha Personeli Güvenlik Doğrulaması</string>
+    <string name="biometric_desc">Parmak izi veya Yüz Tanıma sensörüne dokunun</string>
+    <string name="biometric_cancel">İptal</string>
+    <string name="biometric_error">Biyometrik Hata</string>
+    <string name="biometric_success">Doğrulama Başarılı! Giriş Yapılıyor...</string>
+    <string name="biometric_prompt_launch">BiometricPrompt Sistemini Çalıştır</string>
+    <string name="biometric_hardware_ready">Donanım Hazır (Parmak İzi / Yüz)</string>
+
+    <!-- Dashboard Labels -->
+    <string name="dashboard_welcome">Hoş Geldiniz</string>
+    <string name="dashboard_staff_id">Sicil No</string>
+    <string name="dashboard_duty_status">Vardiya Durumu</string>
+    <string name="dashboard_check_in">Vardiya Başlat (Check-in)</string>
+    <string name="dashboard_check_out">Vardiyayı Bitir (Check-out)</string>
+    <string name="dashboard_gps_active">Canlı GPS Takibi Aktif</string>
+    <string name="dashboard_recent_activity">Son Saha Faaliyetleri</string>
+    <string name="dashboard_summary">Personel Mesai ve Devam Özeti</string>
+
+    <!-- Map & Tracking Labels -->
+    <string name="map_title">Saha GPS &amp; Rota İzleme</string>
+
+    <!-- Action & Common Labels -->
+    <string name="action_save">Kaydet</string>
+    <string name="action_cancel">İptal</string>
+    <string name="action_close">Kapat</string>
+    <string name="action_ok">Tamam</string>
+    <string name="action_delete">Sil</string>
+    <string name="status_safe">GÜVENLİ</string>
+    <string name="status_outside_zone">BÖLGE DIŞI</string>
 </resources>

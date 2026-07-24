@@ -29,7 +29,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
+import com.example.R
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
 import androidx.compose.material.icons.filled.Badge
@@ -84,7 +86,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.R
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
@@ -102,10 +103,10 @@ fun AuthScreen(
     val ocrIsLoading by viewModel.ocrIsLoading.collectAsState()
     val errorMessage by viewModel.authErrorMessage.collectAsState()
 
-    val bioTitle = tr("Biyometrik Hızlı Giriş", "Biometric Quick Login")
-    val bioSub = tr("Saha Personeli Biyometrik Kimlik Doğrulama", "Field Staff Biometric Verification")
-    val bioDesc = tr("Parmak izi veya Yüz Tanıma sensörüne dokunun", "Touch the fingerprint or Face ID sensor")
-    val bioCancel = tr("İptal", "Cancel")
+    val bioTitle = stringResource(R.string.auth_biometric_quick_login)
+    val bioSub = stringResource(R.string.biometric_subtitle)
+    val bioDesc = stringResource(R.string.biometric_desc)
+    val bioCancel = stringResource(R.string.biometric_cancel)
 
     var nameInput by remember { mutableStateOf("AHMET CAN YILMAZ") }
     var codeInput by remember { mutableStateOf("SAHA2026") }

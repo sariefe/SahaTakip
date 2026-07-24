@@ -8,11 +8,13 @@ import com.example.data.local.dao.EventLogDao
 import com.example.data.local.dao.GeofenceDao
 import com.example.data.local.dao.LeaveRequestDao
 import com.example.data.local.dao.LocationDao
+import com.example.data.local.dao.OfflineActivityReportDao
 import com.example.data.local.dao.UserDao
 import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
+import com.example.data.local.entity.OfflineActivityReportEntity
 import com.example.data.local.entity.UserProfileEntity
 
 @Database(
@@ -21,9 +23,10 @@ import com.example.data.local.entity.UserProfileEntity
         EventLogEntity::class,
         LeaveRequestEntity::class,
         GeofenceZoneEntity::class,
-        UserProfileEntity::class
+        UserProfileEntity::class,
+        OfflineActivityReportEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun leaveRequestDao(): LeaveRequestDao
     abstract fun geofenceDao(): GeofenceDao
     abstract fun userDao(): UserDao
+    abstract fun offlineActivityReportDao(): OfflineActivityReportDao
 
     companion object {
         @Volatile

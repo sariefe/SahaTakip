@@ -13,6 +13,7 @@ import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
+import com.example.data.local.entity.OfflineActivityReportEntity
 import com.example.data.local.entity.UserProfileEntity
 import com.example.data.repository.SahaRepository
 import com.example.data.util.SecurityUtils
@@ -58,6 +59,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allGeofences: StateFlow<List<GeofenceZoneEntity>> = repository.allGeofences
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allOfflineReports: StateFlow<List<OfflineActivityReportEntity>> = repository.allOfflineReports
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val language = repository.preferencesManager.language
@@ -313,6 +317,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleGeofenceActive(id: Long, isActive: Boolean) {
         viewModelScope.launch {
             repository.geofenceDao.setGeofenceActive(id, isActive)
+        }
+    }
+
+    fun submitOfflineActivityReport(
+        title: String,
+        description: String,
+        locationAddress: String = "Saha Lokasyonu",
+        lat: Double = 0.0,
+        lng: Double = 0.0,
+        reportType: String = "SAHA_DEVRIYE"
+    ) {
+        viewModelScope.launch {
+            repository.addOfflineActivityReport(
+                title = title,
+                description = description,
+                locationAddress = locationAddress,
+                lat = lat,
+                lng = lng,
+                reportType = reportType
+            )
         }
     }
 

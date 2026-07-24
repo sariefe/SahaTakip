@@ -7,6 +7,7 @@ import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
+import com.example.data.local.entity.OfflineActivityReportEntity
 import com.example.data.local.entity.UserProfileEntity
 import com.example.data.remote.MockSyncApi
 import com.example.data.remote.SyncPayload
@@ -29,6 +30,7 @@ class SahaRepository(private val context: Context) {
     val leaveRequestDao = db.leaveRequestDao()
     val geofenceDao = db.geofenceDao()
     val userDao = db.userDao()
+    val offlineReportDao = db.offlineActivityReportDao()
 
     val preferencesManager = PreferencesManager(context)
     private val mockSyncApi = MockSyncApi()
@@ -39,6 +41,7 @@ class SahaRepository(private val context: Context) {
     val allLeaveRequests: Flow<List<LeaveRequestEntity>> = leaveRequestDao.getAllLeaveRequests()
     val allGeofences: Flow<List<GeofenceZoneEntity>> = geofenceDao.getAllGeofences()
     val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
+    val allOfflineReports: Flow<List<OfflineActivityReportEntity>> = offlineReportDao.getAllReports()
 
     suspend fun initializeDefaultDataIfEmpty() = withContext(Dispatchers.IO) {
         // Initialize default user if not exists
@@ -169,6 +172,20 @@ class SahaRepository(private val context: Context) {
                 submittedAt = now - 48 * 3600 * 1000L
             )
         )
+
+        // Add sample offline activity report
+        offlineReportDao.insertReport(
+            OfflineActivityReportEntity(
+                title = "Şantiye Güvenlik Ve Devriye Raporu",
+                description = "Saha A2 bölgesinde akşam devriyesi tamamlandı. Çevre çit kontrolü yapıldı, kapı kilitleri doğrulandı.",
+                locationAddress = "Saha Şantiye A2 Bölgesi",
+                latitude = 41.0150,
+                longitude = 28.9850,
+                reportType = "SAHA_DEVRIYE",
+                timestamp = now - 3 * 3600 * 1000L,
+                isSynced = false
+            )
+        )
     }
 
     suspend fun recordNewLocation(
@@ -237,11 +254,45 @@ class SahaRepository(private val context: Context) {
         NotificationHelper.sendPrivacySafeAlert(context, title)
     }
 
+    suspend fun addOfflineActivityReport(
+        title: String,
+        description: String,
+        locationAddress: String = "Saha Lokasyonu",
+        lat: Double = 0.0,
+        lng: Double = 0.0,
+        reportType: String = "SAHA_DEVRIYE"
+    ): Long = withContext(Dispatchers.IO) {
+        val report = OfflineActivityReportEntity(
+            title = title,
+            description = description,
+            locationAddress = locationAddress,
+            latitude = lat,
+            longitude = lng,
+            reportType = reportType,
+            timestamp = System.currentTimeMillis(),
+            isSynced = false
+        )
+        val id = offlineReportDao.insertReport(report)
+        eventLogDao.insertEventLog(
+            EventLogEntity(
+                type = "OFFLINE_REPORT_ADDED",
+                title = "Çevrimdışı Rapor Kaydedildi",
+                detail = "'$title' başlıklı aktivite raporu yerel veritabanında saklandı.",
+                isSensitive = false,
+                status = "BİLGİ",
+                timestamp = System.currentTimeMillis(),
+                isSynced = false
+            )
+        )
+        id
+    }
+
     suspend fun performOfflineSync(): Boolean = withContext(Dispatchers.IO) {
         val unsyncedLocs = locationDao.getUnsyncedLocations()
         val unsyncedLogs = eventLogDao.getUnsyncedLogs()
+        val unsyncedReports = offlineReportDao.getUnsyncedReports()
 
-        if (unsyncedLocs.isEmpty() && unsyncedLogs.isEmpty()) {
+        if (unsyncedLocs.isEmpty() && unsyncedLogs.isEmpty() && unsyncedReports.isEmpty()) {
             return@withContext true
         }
 
@@ -250,21 +301,25 @@ class SahaRepository(private val context: Context) {
                 deviceId = UUID.randomUUID().toString(),
                 timestamp = System.currentTimeMillis(),
                 locationHistory = unsyncedLocs,
-                eventLogs = unsyncedLogs
+                eventLogs = unsyncedLogs,
+                offlineActivityReports = unsyncedReports
             )
             val response = mockSyncApi.syncOfflineData(preferencesManager.mockServerUrl.value, payload)
             if (response.success) {
                 val locIds = unsyncedLocs.map { it.id }
                 val logIds = unsyncedLogs.map { it.id }
+                val reportIds = unsyncedReports.map { it.id }
+
                 if (locIds.isNotEmpty()) locationDao.markAsSynced(locIds)
                 if (logIds.isNotEmpty()) eventLogDao.markAsSynced(logIds)
+                if (reportIds.isNotEmpty()) offlineReportDao.markAsSynced(reportIds)
 
                 // Add log for successful sync
                 eventLogDao.insertEventLog(
                     EventLogEntity(
                         type = "SYNC_SUCCESS",
                         title = "Veri Senkronizasyonu",
-                        detail = "${locIds.size} konum kaydı ve ${logIds.size} olay günlüğü sunucuya başarıyla iletildi.",
+                        detail = "${locIds.size} konum kaydı, ${logIds.size} olay günlüğü ve ${reportIds.size} çevrimdışı aktivite raporu sunucuya başarıyla iletildi.",
                         isSensitive = false,
                         status = "BİLGİ",
                         timestamp = System.currentTimeMillis(),

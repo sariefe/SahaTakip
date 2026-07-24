@@ -94,8 +94,13 @@ fun AppNavGraph(viewModel: MainViewModel) {
                                 }
                             },
                             label = {
+                                val labelText = if (screen.stringResId != null) {
+                                    androidx.compose.ui.res.stringResource(id = screen.stringResId)
+                                } else {
+                                    if (currentLang == "tr") screen.titleTr else screen.titleEn
+                                }
                                 Text(
-                                    text = if (currentLang == "tr") screen.titleTr else screen.titleEn,
+                                    text = labelText,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                 )
