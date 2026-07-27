@@ -41,7 +41,6 @@ class SahaRepository(private val context: Context) {
     val allLeaveRequests: Flow<List<LeaveRequestEntity>> = leaveRequestDao.getAllLeaveRequests()
     val allGeofences: Flow<List<GeofenceZoneEntity>> = geofenceDao.getAllGeofences()
     val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
-    val allOfflineReports: Flow<List<OfflineActivityReportEntity>> = offlineReportDao.getAllReports()
 
     suspend fun initializeDefaultDataIfEmpty() = withContext(Dispatchers.IO) {
         // Initialize default user if not exists
@@ -258,39 +257,6 @@ class SahaRepository(private val context: Context) {
         )
         eventLogDao.insertEventLog(log)
         NotificationHelper.sendPrivacySafeAlert(context, title)
-    }
-
-    suspend fun addOfflineActivityReport(
-        title: String,
-        description: String,
-        locationAddress: String = "Saha Lokasyonu",
-        lat: Double = 0.0,
-        lng: Double = 0.0,
-        reportType: String = "SAHA_DEVRIYE"
-    ): Long = withContext(Dispatchers.IO) {
-        val report = OfflineActivityReportEntity(
-            title = title,
-            description = description,
-            locationAddress = locationAddress,
-            latitude = lat,
-            longitude = lng,
-            reportType = reportType,
-            timestamp = System.currentTimeMillis(),
-            isSynced = false
-        )
-        val id = offlineReportDao.insertReport(report)
-        eventLogDao.insertEventLog(
-            EventLogEntity(
-                type = "OFFLINE_REPORT_ADDED",
-                title = "Çevrimdışı Rapor Kaydedildi",
-                detail = "'$title' başlıklı aktivite raporu yerel veritabanında saklandı.",
-                isSensitive = false,
-                status = "BİLGİ",
-                timestamp = System.currentTimeMillis(),
-                isSynced = false
-            )
-        )
-        id
     }
 
     suspend fun performOfflineSync(): Boolean = withContext(Dispatchers.IO) {
