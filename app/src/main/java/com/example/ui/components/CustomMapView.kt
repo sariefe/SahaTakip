@@ -42,7 +42,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,6 +54,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -107,7 +110,6 @@ fun CustomMapView(
         )
     }
 
-    // Colors depending on Layer & Dark/Light theme
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
     val mapBgColor = when (selectedLayer) {
         MapLayerMode.VECTOR -> if (isDark) Color(0xFF0F172A) else Color(0xFFE2E8F0)
@@ -381,95 +383,68 @@ fun CustomMapView(
             }
         }
 
+        // REDESIGNED CONTROLS - Modern "Soft" Style
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                shadowElevation = 4.dp
-            ) {
-                IconButton(
-                    onClick = {
-                        selectedLayer = when (selectedLayer) {
-                            MapLayerMode.VECTOR -> MapLayerMode.SATELLITE
-                            MapLayerMode.SATELLITE -> MapLayerMode.HEATMAP
-                            MapLayerMode.HEATMAP -> MapLayerMode.VECTOR
-                        }
+            MapControlButton(
+                icon = Icons.Default.Layers,
+                onClick = {
+                    selectedLayer = when (selectedLayer) {
+                        MapLayerMode.VECTOR -> MapLayerMode.SATELLITE
+                        MapLayerMode.SATELLITE -> MapLayerMode.HEATMAP
+                        MapLayerMode.HEATMAP -> MapLayerMode.VECTOR
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Layers,
-                        contentDescription = "Layer Switch",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
                 }
-            }
+            )
 
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                shadowElevation = 4.dp
-            ) {
-                IconButton(onClick = { scale = (scale * 1.25f).coerceAtMost(4.5f) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Zoom In")
-                }
-            }
+            MapControlButton(
+                icon = Icons.Default.Add,
+                onClick = { scale = (scale * 1.25f).coerceAtMost(4.5f) }
+            )
 
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                shadowElevation = 4.dp
-            ) {
-                IconButton(onClick = { scale = (scale / 1.25f).coerceAtLeast(0.5f) }) {
-                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out")
-                }
-            }
+            MapControlButton(
+                icon = Icons.Default.Remove,
+                onClick = { scale = (scale / 1.25f).coerceAtLeast(0.5f) }
+            )
 
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                shadowElevation = 4.dp
-            ) {
-                IconButton(
-                    onClick = {
-                        scale = 1f
-                        offsetX = 0f
-                        offsetY = 0f
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.MyLocation,
-                        contentDescription = "Recenter",
-                        tint = StatusGreen
-                    )
+            MapControlButton(
+                icon = Icons.Default.MyLocation,
+                iconColor = StatusGreen,
+                onClick = {
+                    scale = 1f
+                    offsetX = 0f
+                    offsetY = 0f
                 }
-            }
+            )
         }
 
+        // Layer Badge
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp),
+                .padding(16.dp),
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            shadowElevation = 4.dp
         ) {
             val layerName = when (selectedLayer) {
                 MapLayerMode.VECTOR -> tr("Vektör Haritası", "Vector Map")
                 MapLayerMode.SATELLITE -> tr("Uydu Görünümü", "Satellite Hybrid")
-                MapLayerMode.HEATMAP -> tr("Saha Yoğunluk Haritası", "Density Heatmap")
+                MapLayerMode.HEATMAP -> tr("Yoğunluk Haritası", "Density Heatmap")
             }
             Text(
-                text = "$layerName • %${(scale * 100).toInt()}",
+                text = "$layerName • ${(scale * 100).toInt()}%",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )
         }
 
+        // REDESIGNED DETAIL CARD
         selectedLocation?.let { loc ->
             val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
             val formattedTime = timeFormat.format(Date(loc.timestamp))
@@ -477,28 +452,36 @@ fun CustomMapView(
             Card(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 50.dp)
-                    .fillMaxWidth(0.92f),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 40.dp)
+                    .fillMaxWidth()
+                    .shadow(12.dp, RoundedCornerShape(24.dp)),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = StatusAmber,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(StatusAmber.copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = StatusAmber,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "${tr("Konum Noktası", "Location Point")} (#${loc.id})",
+                                text = tr("Konum Detayı", "Location Detail"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -506,66 +489,38 @@ fun CustomMapView(
 
                         IconButton(
                             onClick = { selectedLocation = null },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "${loc.address} (${String.format("%.4f", loc.latitude)}, ${String.format("%.4f", loc.longitude)})",
+                        text = loc.address,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${String.format("%.4f", loc.latitude)}, ${String.format("%.4f", loc.longitude)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.secondary
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Speed,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${loc.speed.toInt()} km/h",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.BatteryChargingFull,
-                                contentDescription = null,
-                                tint = StatusGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "%${loc.batteryLevel}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Text(
-                            text = "${tr("Saat", "Time")}: $formattedTime",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        DetailBadge(icon = Icons.Default.Speed, text = "${loc.speed.toInt()} km/h", color = MaterialTheme.colorScheme.primary)
+                        DetailBadge(icon = Icons.Default.BatteryChargingFull, text = "%${loc.batteryLevel}", color = StatusGreen)
+                        DetailBadge(icon = Icons.Default.MyLocation, text = formattedTime, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
@@ -573,3 +528,35 @@ fun CustomMapView(
     }
 }
 
+@Composable
+fun MapControlButton(
+    icon: ImageVector,
+    iconColor: Color = MaterialTheme.colorScheme.primary,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .size(48.dp)
+            .shadow(4.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun DetailBadge(icon: ImageVector, text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+    }
+}

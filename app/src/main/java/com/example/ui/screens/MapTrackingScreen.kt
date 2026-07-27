@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,46 +15,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddLocation
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.LocationEntity
 import com.example.ui.components.CustomMapView
-import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.viewmodel.MainViewModel
 import com.example.util.tr
@@ -61,6 +50,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@SuppressLint("DefaultLocale")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapTrackingScreen(
     viewModel: MainViewModel
@@ -71,17 +62,18 @@ fun MapTrackingScreen(
     val playbackState by viewModel.playbackState.collectAsState()
 
     var showAddGeofenceDialog by remember { mutableStateOf(false) }
+    var geofenceToDelete by remember { mutableStateOf<Long?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Interactive Map Area (Takes top 55% of screen)
+            // Interactive Map Area
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1.2f)
             ) {
                 CustomMapView(
                     locations = locations,
@@ -90,134 +82,78 @@ fun MapTrackingScreen(
                     geofences = geofences
                 )
 
-                // Top Overlay Status Badge
+                // Premium Top Badge
                 Card(
                     modifier = Modifier
-                        .padding(12.dp)
+                        .padding(16.dp)
                         .align(Alignment.TopStart),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(10.dp)
-                                .background(StatusGreen, shape = RoundedCornerShape(5.dp))
+                                .size(8.dp)
+                                .background(StatusGreen, shape = CircleShape)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${tr("24s Rota Takibi", "24h Route Tracking")}: ${locations.size} ${tr("Konum Noktası", "Location Points")}",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "${tr("Rota Takibi", "Route Tracking")}: ${locations.size} pts",
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
-            // Bottom Panel: Route Playback & Geofence Controls (Scrollable)
+            // Bottom Panel: Telemetry & Controls
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(MaterialTheme.colorScheme.surface)
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(20.dp)
             ) {
-                // TELEMETRY & LIVE METRICS CARD
+                // QUICK TELEMETRY ROW
                 val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
                 val avgSpeed = remember(locations) {
                     if (locations.isNotEmpty()) locations.map { it.speed }.average() else 0.0
                 }
-
-                val activeGeofenceViolation = remember(latestLoc, geofences) {
-                    val current = latestLoc ?: return@remember false
-                    val activeZones = geofences.filter { it.isActive }
-                    if (activeZones.isEmpty()) return@remember false
-
-                    val isInsideAny = activeZones.any { zone ->
-                        val dLat = Math.toRadians(zone.centerLat - current.latitude)
-                        val dLng = Math.toRadians(zone.centerLng - current.longitude)
-                        val lat1 = Math.toRadians(current.latitude)
-                        val lat2 = Math.toRadians(zone.centerLat)
-                        val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
-                        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-                        val distanceMeters = 6371000.0 * c
-                        distanceMeters <= zone.radiusMeters
-                    }
-                    !isInsideAny
-                }
-
-                Card(
+                
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = tr("24s Toplam Mesafe", "24h Total Distance"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${String.format("%.2f", totalDistKm)} km",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = tr("Ortalama Hız", "Average Speed"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${avgSpeed.toInt()} km/h",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = tr("Safe Zone Durumu", "Safe Zone Status"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (activeGeofenceViolation) StatusAmber.copy(alpha = 0.2f) else StatusGreen.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = if (activeGeofenceViolation) tr("BÖLGE DIŞI", "OUTSIDE ZONE") else tr("GÜVENLİ", "SAFE"),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (activeGeofenceViolation) StatusAmber else StatusGreen,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
+                    TelemetryCard(
+                        modifier = Modifier.weight(1f),
+                        label = tr("Mesafe", "Distance"),
+                        value = "${String.format("%.1f", totalDistKm)} km",
+                        icon = Icons.Default.Route,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    TelemetryCard(
+                        modifier = Modifier.weight(1f),
+                        label = tr("Ort. Hız", "Avg Speed"),
+                        value = "${avgSpeed.toInt()} km/h",
+                        icon = Icons.Default.Speed,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // ROUTE PLAYBACK CONTROLS CARD
+                // COMPACT PLAYBACK CONTROLS
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -226,34 +162,33 @@ fun MapTrackingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = tr("Güzergah Oynatma (Playback)", "Route Playback"),
+                                tr("Güzergah Oynat", "Route Playback"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
+                            
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                FilterChip(
-                                    selected = playbackState.speedMultiplier == 1f,
-                                    onClick = { viewModel.setPlaybackSpeed(1f) },
-                                    label = { Text("1x") }
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                FilterChip(
-                                    selected = playbackState.speedMultiplier == 2f,
-                                    onClick = { viewModel.setPlaybackSpeed(2f) },
-                                    label = { Text("2x") }
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                FilterChip(
-                                    selected = playbackState.speedMultiplier == 4f,
-                                    onClick = { viewModel.setPlaybackSpeed(4f) },
-                                    label = { Text("4x") }
-                                )
+                                listOf(1, 2, 4).forEach { multiplier ->
+                                    val isSelected = playbackState.speedMultiplier == multiplier.toFloat()
+                                    Surface(
+                                        modifier = Modifier
+                                            .padding(start = 4.dp)
+                                            .clickable { viewModel.setPlaybackSpeed(multiplier.toFloat()) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                                    ) {
+                                        Text(
+                                            text = "${multiplier}x",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Progress Slider
                         Slider(
                             value = playbackState.progress,
                             onValueChange = { viewModel.seekPlaybackProgress(it) },
@@ -267,142 +202,226 @@ fun MapTrackingScreen(
                         ) {
                             Text(
                                 text = "${tr("İlerleme", "Progress")}: %${(playbackState.progress * 100).toInt()}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
                             )
 
-                            Button(
+                            IconButton(
                                 onClick = {
                                     if (playbackState.isPlaying) viewModel.pauseRoutePlayback()
                                     else viewModel.startRoutePlayback()
-                                }
+                                },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
                             ) {
                                 Icon(
                                     imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = null
+                                    contentDescription = null,
+                                    tint = Color.White
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(if (playbackState.isPlaying) tr("Duraklat", "Pause") else tr("Oynat", "Play"))
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // GEOFENCE SAFE ZONES LIST & ADD BUTTON
-                Card(
+                // GEOFENCE SECTION
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Security, contentDescription = null, tint = StatusGreen)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = tr("Bölge Tanımlama (Geofencing)", "Geofencing Zone Management"),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            IconButton(onClick = { showAddGeofenceDialog = true }) {
-                                Icon(Icons.Default.AddLocation, contentDescription = tr("Bölge Ekle", "Add Zone"))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        geofences.forEach { zone ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = zone.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "${tr("Merkez", "Center")}: ${String.format("%.4f", zone.centerLat)}, ${String.format("%.4f", zone.centerLng)} • ${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Switch(
-                                    checked = zone.isActive,
-                                    onCheckedChange = { active -> viewModel.toggleGeofenceActive(zone.id, active) }
-                                )
-                            }
-                        }
+                    Text(
+                        text = tr("Güvenli Bölgeler", "Safe Zones"),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = { showAddGeofenceDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(tr("Bölge Ekle", "Add Zone"), style = MaterialTheme.typography.labelLarge)
                     }
                 }
+
+                geofences.forEach { zone ->
+                    GeofenceItem(
+                        zoneName = zone.name,
+                        details = "${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
+                        isActive = zone.isActive,
+                        onToggle = { active -> viewModel.toggleGeofenceActive(zone.id, active) },
+                        onDelete = { geofenceToDelete = zone.id }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
 
-    // ADD GEOFENCE DIALOG
-    if (showAddGeofenceDialog) {
-        val defaultZoneName = tr("Yeni Güvenli Saha Bölgesi", "New Safe Zone")
-        var zoneName by remember { mutableStateOf(defaultZoneName) }
-        var radiusStr by remember { mutableStateOf("600") }
-
+    if (geofenceToDelete != null) {
         AlertDialog(
-            onDismissRequest = { showAddGeofenceDialog = false },
-            title = { Text(tr("Yeni Safe Zone (Bölge) Tanımla", "Define New Safe Zone")) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = zoneName,
-                        onValueChange = { zoneName = it },
-                        label = { Text(tr("Bölge Adı", "Zone Name")) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = radiusStr,
-                        onValueChange = { radiusStr = it },
-                        label = { Text(tr("İhlal Yarıçapı (Metre)", "Violation Radius (Meters)")) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = tr("Merkez nokta olarak en son kaydedilen konum alınacaktır.", "Last recorded location will be set as center point."),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
-            },
+            onDismissRequest = { geofenceToDelete = null },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text(tr("Bölgeyi Sil", "Delete Zone"), fontWeight = FontWeight.Bold) },
+            text = { Text(tr("Bu güvenli bölgeyi silmek istediğinize emin misiniz?", "Are you sure you want to delete this safe zone?")) },
             confirmButton = {
                 Button(
                     onClick = {
-                        val lat = latestLoc?.latitude ?: 41.0082
-                        val lng = latestLoc?.longitude ?: 28.9784
-                        val rad = radiusStr.toDoubleOrNull() ?: 500.0
-                        viewModel.addGeofenceZone(zoneName, lat, lng, rad)
-                        showAddGeofenceDialog = false
-                    }
+                        geofenceToDelete?.let { viewModel.deleteGeofence(it) }
+                        geofenceToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.StatusRed),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(tr("Kaydet", "Save"))
+                    Text(tr("Evet, Sil", "Yes, Delete"))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddGeofenceDialog = false }) {
+                TextButton(onClick = { geofenceToDelete = null }) {
                     Text(tr("İptal", "Cancel"))
                 }
             }
         )
     }
+
+    if (showAddGeofenceDialog) {
+        AddGeofenceDialog(
+            onDismiss = { showAddGeofenceDialog = false },
+            onConfirm = { name, radius ->
+                val lat = latestLoc?.latitude ?: 41.0082
+                val lng = latestLoc?.longitude ?: 28.9784
+                viewModel.addGeofenceZone(name, lat, lng, radius)
+                showAddGeofenceDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun TelemetryCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun GeofenceItem(
+    zoneName: String,
+    details: String,
+    isActive: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (isActive) StatusGreen.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = if (isActive) StatusGreen else Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = zoneName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(text = details, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            }
+            
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Switch(
+                checked = isActive,
+                onCheckedChange = onToggle,
+                colors = SwitchDefaults.colors(checkedThumbColor = StatusGreen)
+            )
+        }
+    }
+}
+
+@Composable
+fun AddGeofenceDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, Double) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var radius by remember { mutableStateOf("500") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text(tr("Yeni Güvenli Bölge", "New Safe Zone"), fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(tr("Bölge İsmi", "Zone Name")) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = radius,
+                    onValueChange = { radius = it },
+                    label = { Text(tr("Yarıçap (Metre)", "Radius (Meters)")) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(name, radius.toDoubleOrNull() ?: 500.0) }) {
+                Text(tr("Ekle", "Add"))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(tr("İptal", "Cancel"))
+            }
+        }
+    )
 }
 
 fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
@@ -421,5 +440,3 @@ fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
     }
     return totalMeters / 1000.0
 }
-
-

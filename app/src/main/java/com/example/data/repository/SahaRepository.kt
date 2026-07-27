@@ -81,7 +81,6 @@ class SahaRepository(private val context: Context) {
             )
         }
 
-        // Seed initial history if empty
         val locations = locationDao.getUnsyncedLocations()
         if (locations.isEmpty()) {
             seedSampleLocationHistory()
@@ -251,6 +250,14 @@ class SahaRepository(private val context: Context) {
         )
         eventLogDao.insertEventLog(log)
         NotificationHelper.sendPrivacySafeAlert(context, title)
+    }
+
+    suspend fun deleteLeaveRequest(id: Long) = withContext(Dispatchers.IO) {
+        leaveRequestDao.deleteById(id)
+    }
+
+    suspend fun deleteGeofence(id: Long) = withContext(Dispatchers.IO) {
+        geofenceDao.deleteById(id)
     }
 
     suspend fun performOfflineSync(): Boolean = withContext(Dispatchers.IO) {

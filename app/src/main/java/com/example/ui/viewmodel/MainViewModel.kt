@@ -340,6 +340,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteLeaveRequest(id: Long) {
+        viewModelScope.launch {
+            repository.deleteLeaveRequest(id)
+        }
+    }
+
+    fun deleteGeofence(id: Long) {
+        viewModelScope.launch {
+            repository.deleteGeofence(id)
+        }
+    }
+
     fun submitLeaveRequest(type: String, startDate: String, endDate: String, reason: String) {
         viewModelScope.launch {
             repository.leaveRequestDao.insertLeaveRequest(

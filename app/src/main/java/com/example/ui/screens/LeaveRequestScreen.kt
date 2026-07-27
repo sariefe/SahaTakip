@@ -17,32 +17,34 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -70,7 +72,7 @@ data class LocalLeaveRequestItem(
     val date: String,
     val description: String,
     val status: String,
-    val type: String = "Mazeret İzni"
+    val type: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,26 +81,26 @@ fun LeaveRequestScreen(
     viewModel: MainViewModel
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsState()
-
-    // Local state array holding leave requests / excuses as requested
-    val localLeaveList = remember {
-        mutableStateListOf(
-            LocalLeaveRequestItem(
-                date = "22.07.2026",
-                description = "Yıllık periyodik sağlık kontrolü randevusu.",
-                status = "ONAYLANDI",
-                type = "Sağlık İzni"
-            ),
-            LocalLeaveRequestItem(
-                date = "25.07.2026",
-                description = "Ailevi mazeret nedeni ile saha izin talebi.",
-                status = "BEKLEMEDE",
-                type = "Mazeret İzni"
-            )
-        )
+    val localLeaveList = remember { mutableStateListOf<LocalLeaveRequestItem>() }
+    
+    val currentLang by viewModel.language.collectAsState()
+    
+    // Seed initial demo data if empty
+    LaunchedEffect(Unit) {
+        if (localLeaveList.isEmpty()) {
+            val sickLeave = if (currentLang == "en") "Sick Leave" else "Sağlık İzni"
+            val excuseLeave = if (currentLang == "en") "Excuse Leave" else "Mazeret İzni"
+            val desc1 = if (currentLang == "en") "Periodic health checkup." else "Periyodik sağlık kontrolü."
+            val desc2 = if (currentLang == "en") "Field excuse leave request." else "Saha mazeret izni talebi."
+            
+            // Use static IDs for demo data to avoid issues with delete logic
+            localLeaveList.add(LocalLeaveRequestItem(id = "demo1", date = "22.07.2026", description = desc1, status = "ONAYLANDI", type = sickLeave))
+            localLeaveList.add(LocalLeaveRequestItem(id = "demo2", date = "25.07.2026", description = desc2, status = "BEKLEMEDE", type = excuseLeave))
+        }
     }
 
     var showForm by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<LocalLeaveRequestItem?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -107,136 +109,113 @@ fun LeaveRequestScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
-            // Header Section
+            // Modern Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = tr("İzin & Mazeret Formu", "Leave & Excuse Form"),
-                        style = MaterialTheme.typography.titleLarge,
+                        text = tr("İzin Talepleri", "Leave Requests"),
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = tr("Saha personel izin talepleri ve mazeret bildirimleri", "Field personnel leave requests and excuse notices"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = tr("İzin ve mazeret bildirimleri", "Manage leaves and excuses"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
-                Button(
+                IconButton(
                     onClick = { showForm = !showForm },
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = if (showForm) Icons.Default.Close else Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (showForm) tr("Kapat", "Close") else tr("Yeni Talep", "New Request"))
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Form Component
-            AnimatedVisibility(
-                visible = showForm,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            // Form Section
+            AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
                 LeaveSubmitFormComponent(
                     onSubmit = { newDate, newDesc, newStatus, newType ->
-                        // Store in local state array
-                        localLeaveList.add(
-                            0,
-                            LocalLeaveRequestItem(
-                                date = newDate,
-                                description = newDesc,
-                                status = newStatus,
-                                type = newType
-                            )
-                        )
-                        // Also persist via Room DB repository
-                        viewModel.submitLeaveRequest(
-                            type = newType,
-                            startDate = newDate,
-                            endDate = newDate,
-                            reason = newDesc
-                        )
+                        localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
+                        viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
                         showForm = false
                     },
                     onCancel = { showForm = false }
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Combine local items and room DB items for display
-            val combinedList = remember(localLeaveList.size, dbRequests.size) {
-                val dbMapped = dbRequests.map { req ->
-                    LocalLeaveRequestItem(
-                        id = req.id.toString(),
-                        date = req.startDate,
-                        description = req.reason,
-                        status = req.status,
-                        type = req.requestType
-                    )
-                }
-                (localLeaveList + dbMapped).distinctBy { it.id }
-            }
-
-            Text(
-                text = "${tr("Kayıtlı İzin & Mazeret Talepleri", "Saved Leave & Excuse Requests")} (${combinedList.size})",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            if (combinedList.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = tr("Henüz kayıtlı izin veya mazeret talebi bulunmamaktadır.", "No saved leave or excuse requests found."),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            if (!showForm) {
+                val combinedList = remember(localLeaveList.size, dbRequests.size) {
+                    val dbMapped = dbRequests.map { req ->
+                        LocalLeaveRequestItem(id = req.id.toString(), date = req.startDate, description = req.reason, status = req.status, type = req.requestType)
                     }
+                    (localLeaveList + dbMapped).distinctBy { it.id }.sortedByDescending { it.date }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(combinedList, key = { it.id }) { item ->
-                        LeaveRequestCardItem(
-                            item = item,
-                            onDelete = {
-                                localLeaveList.removeIf { local -> local.id == item.id }
-                            }
-                        )
+
+                if (combinedList.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        Text(tr("Talep bulunamadı.", "No requests found."), color = MaterialTheme.colorScheme.secondary)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(combinedList, key = { it.id }) { item ->
+                            LeaveRequestCardItem(
+                                item = item,
+                                onDelete = {
+                                    itemToDelete = item
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    // DELETE CONFIRMATION DIALOG
+    itemToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemToDelete = null },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text(tr("İşlemi Onayla", "Confirm Action"), fontWeight = FontWeight.Bold) },
+            text = { Text(tr("Bu talebi silmek istediğinize emin misiniz?", "Are you sure you want to delete this request?")) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Handle removal from both local and DB
+                        localLeaveList.removeIf { it.id == item.id }
+                        item.id.toLongOrNull()?.let { dbId ->
+                            viewModel.deleteLeaveRequest(dbId)
+                        }
+                        itemToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusRed),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(tr("Evet, Sil", "Yes, Delete"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDelete = null }) {
+                    Text(tr("İptal", "Cancel"))
+                }
+            }
+        )
     }
 }
 
@@ -246,312 +225,116 @@ fun LeaveSubmitFormComponent(
     onSubmit: (date: String, description: String, status: String, type: String) -> Unit,
     onCancel: () -> Unit
 ) {
-    val currentDateStr = remember {
-        val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        formatter.format(Date())
-    }
-
+    val currentDateStr = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()) }
     var dateInput by remember { mutableStateOf(currentDateStr) }
     var descriptionInput by remember { mutableStateOf("") }
-
-    val statusOptions = listOf("BEKLEMEDE", "ONAYLANDI", "REDDEDİLDİ")
-    var selectedStatus by remember { mutableStateOf(statusOptions[0]) }
-    var expandedStatusDropdown by remember { mutableStateOf(false) }
-
-    val leaveTypes = listOf(
-        tr("Mazeret İzni", "Excuse Leave"),
-        tr("Yıllık İzin", "Annual Leave"),
-        tr("Sağlık İzni", "Sick Leave"),
-        tr("Görevli İzin", "Duty Leave")
-    )
+    
+    val leaveTypes = listOf(tr("Mazeret İzni", "Excuse Leave"), tr("Yıllık İzin", "Annual Leave"), tr("Sağlık İzni", "Sick Leave"))
     var selectedType by remember { mutableStateOf(leaveTypes[0]) }
-    var expandedTypeDropdown by remember { mutableStateOf(false) }
-
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var expandedType by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = tr("Talep Formu Doldur", "Fill Request Form"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(tr("Yeni Talep Oluştur", "Create New Request"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExposedDropdownMenuBox(expanded = expandedType, onExpandedChange = { expandedType = !expandedType }) {
+                OutlinedTextField(
+                    value = selectedType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(tr("İzin Türü", "Leave Type")) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                ExposedDropdownMenu(expanded = expandedType, onDismissRequest = { expandedType = false }) {
+                    leaveTypes.forEach { type ->
+                        DropdownMenuItem(text = { Text(type) }, onClick = { selectedType = type; expandedType = false })
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = dateInput,
+                onValueChange = { dateInput = it },
+                label = { Text(tr("Tarih", "Date")) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Row: Type & Status Selectors
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Type Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = expandedTypeDropdown,
-                    onExpandedChange = { expandedTypeDropdown = !expandedTypeDropdown },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = selectedType,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(tr("Talep Türü", "Request Type")) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTypeDropdown) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTypeDropdown,
-                        onDismissRequest = { expandedTypeDropdown = false }
-                    ) {
-                        leaveTypes.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type) },
-                                onClick = {
-                                    selectedType = type
-                                    expandedTypeDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Status Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = expandedStatusDropdown,
-                    onExpandedChange = { expandedStatusDropdown = !expandedStatusDropdown },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    val statusLabel = when (selectedStatus.uppercase()) {
-                        "ONAYLANDI" -> tr("ONAYLANDI", "APPROVED")
-                        "REDDEDİLDİ" -> tr("REDDEDİLDİ", "REJECTED")
-                        else -> tr("BEKLEMEDE", "PENDING")
-                    }
-
-                    OutlinedTextField(
-                        value = statusLabel,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(tr("Durum", "Status")) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStatusDropdown) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedStatusDropdown,
-                        onDismissRequest = { expandedStatusDropdown = false }
-                    ) {
-                        statusOptions.forEach { st ->
-                            val stDisplay = when (st.uppercase()) {
-                                "ONAYLANDI" -> tr("ONAYLANDI", "APPROVED")
-                                "REDDEDİLDİ" -> tr("REDDEDİLDİ", "REJECTED")
-                                else -> tr("BEKLEMEDE", "PENDING")
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stDisplay) },
-                                onClick = {
-                                    selectedStatus = st
-                                    expandedStatusDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Date Field
-            OutlinedTextField(
-                value = dateInput,
-                onValueChange = {
-                    dateInput = it
-                    errorMessage = null
-                },
-                label = { Text(tr("Tarih (Date)", "Date")) },
-                leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Description / Reason Field
             OutlinedTextField(
                 value = descriptionInput,
-                onValueChange = {
-                    descriptionInput = it
-                    errorMessage = null
-                },
-                label = { Text(tr("Açıklama / Mazeret", "Description / Excuse Reason")) },
-                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                placeholder = { Text(tr("Lütfen izin veya mazeret nedenini detaylandırın...", "Please elaborate on reason for leave or excuse...")) },
-                minLines = 3,
-                maxLines = 5,
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = { descriptionInput = it },
+                label = { Text(tr("Açıklama", "Description")) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                minLines = 3
             )
 
-            errorMessage?.let { err ->
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = err,
-                    color = StatusRed,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val emptyDescErr = tr("Lütfen geçerli bir mazeret açıklaması giriniz.", "Please enter a valid excuse description.")
-            val emptyDateErr = tr("Lütfen tarih alanını boş bırakmayınız.", "Please do not leave the date field empty.")
-
-            // Actions: Submit & Cancel
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text(tr("İptal", "Cancel"))
-                }
-
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onCancel) { Text(tr("İptal", "Cancel")) }
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = {
-                        if (descriptionInput.trim().isEmpty()) {
-                            errorMessage = emptyDescErr
-                        } else if (dateInput.trim().isEmpty()) {
-                            errorMessage = emptyDateErr
-                        } else {
-                            onSubmit(dateInput.trim(), descriptionInput.trim(), selectedStatus, selectedType)
-                        }
-                    }
+                    onClick = { if (descriptionInput.isNotBlank()) onSubmit(dateInput, descriptionInput, "BEKLEMEDE", selectedType) },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(tr("Talebi Kaydet", "Save Request"), fontWeight = FontWeight.Bold)
+                    Text(tr("Kaydet", "Save"))
                 }
             }
-
         }
     }
-
 }
 
 @Composable
-fun LeaveRequestCardItem(
-    item: LocalLeaveRequestItem,
-    onDelete: () -> Unit
-) {
-    val statusColor = when (item.status.uppercase()) {
-        "ONAYLANDI" -> StatusGreen
-        "REDDEDİLDİ" -> StatusRed
-        else -> StatusAmber
-    }
-
-    val statusIcon = when (item.status.uppercase()) {
-        "ONAYLANDI" -> Icons.Default.CheckCircle
-        "REDDEDİLDİ" -> Icons.Default.Report
-        else -> Icons.Default.HourglassTop
-    }
-
-    val statusLabel = when (item.status.uppercase()) {
-        "ONAYLANDI" -> tr("ONAYLANDI", "APPROVED")
-        "REDDEDİLDİ" -> tr("REDDEDİLDİ", "REJECTED")
-        else -> tr("BEKLEMEDE", "PENDING")
+fun LeaveRequestCardItem(item: LocalLeaveRequestItem, onDelete: () -> Unit) {
+    val (color, icon) = when (item.status.uppercase(Locale.ROOT)) {
+        "ONAYLANDI" -> StatusGreen to Icons.Default.Verified
+        "REDDEDİLDİ" -> StatusRed to Icons.Default.Error
+        else -> StatusAmber to Icons.Default.Pending
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = item.type,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(statusColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = statusIcon,
-                                contentDescription = null,
-                                tint = statusColor,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = statusLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = statusColor
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = tr("Sil", "Delete"),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(18.dp)
-                        )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(text = item.type, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(text = item.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                }
+                
+                Surface(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
+                    Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = item.status, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color)
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "${tr("Tarih", "Date")}: ${item.date}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(text = item.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                }
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "${tr("Açıklama", "Description")}: ${item.description}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
-
 }
-

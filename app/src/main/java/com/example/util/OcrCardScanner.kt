@@ -31,25 +31,25 @@ object OcrCardScanner {
     )
 
     fun parseTextFromIdCard(rawText: String): ScannedIdCardResult? {
-        val lines = rawText.lines().map { it.trim().uppercase() }
+        val lines = rawText.lines().map { it.trim() }
         
         // Regex for 11-digit TC No
         val tcRegex = Regex("\\b[1-9][0-9]{10}\\b")
         val tcNo = tcRegex.find(rawText)?.value ?: return null
 
-        // Improved heuristic for Name/Surname extraction from Turkish ID cards
         var surname = ""
         var names = ""
 
         lines.forEachIndexed { index, line ->
-            if (line.contains("SOYADI") || line.contains("SURNAME")) {
+            // Use ignoreCase = true to handle Turkish 'i/İ' and 'ı/I' issues correctly during matching
+            if (line.contains("SOYADI", ignoreCase = true) || line.contains("SURNAME", ignoreCase = true)) {
                 surname = if (line.substringAfter(":", "").isNotBlank()) {
                     line.substringAfter(":").trim()
                 } else if (index + 1 < lines.size) {
                     lines[index + 1]
                 } else ""
             }
-            if (line.contains("ADI") || line.contains("GIVEN NAMES")) {
+            if (line.contains("ADI", ignoreCase = true) || line.contains("GIVEN NAMES", ignoreCase = true)) {
                 names = if (line.substringAfter(":", "").isNotBlank()) {
                     line.substringAfter(":").trim()
                 } else if (index + 1 < lines.size) {
@@ -118,7 +118,7 @@ object OcrCardScanner {
             """.trimIndent()
 
             return ScannedIdCardResult(
-                fullName = fallbackNameInput.trim().uppercase(),
+                fullName = fallbackNameInput.trim().uppercase(java.util.Locale.forLanguageTag("tr")),
                 tcNo = randomTc,
                 serialNo = serial,
                 birthDate = "15.04.1992",

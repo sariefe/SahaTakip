@@ -2,41 +2,40 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Bold Typography Palette - Light
-val PrimaryLight = Color(0xFF0061A4)
+// Modern Security Palette - Light
+val PrimaryLight = Color(0xFF475AD7) // Electric Indigo
 val OnPrimaryLight = Color(0xFFFFFFFF)
-val PrimaryContainerLight = Color(0xFFD1E4FF)
-val OnPrimaryContainerLight = Color(0xFF001D36)
+val PrimaryContainerLight = Color(0xFFEDF0FF)
+val OnPrimaryContainerLight = Color(0xFF1B1D28)
 
-val SecondaryLight = Color(0xFF001D36)
+val SecondaryLight = Color(0xFF7C82A1) // Slate Gray
 val OnSecondaryLight = Color(0xFFFFFFFF)
 
-val BackgroundLight = Color(0xFFFDFBFF)
-val OnBackgroundLight = Color(0xFF1A1C1E)
+val BackgroundLight = Color(0xFFF7F8F9) // Pearl White
+val OnBackgroundLight = Color(0xFF1B1D28)
 val SurfaceLight = Color(0xFFFFFFFF)
-val OnSurfaceLight = Color(0xFF1A1C1E)
-val SurfaceVariantLight = Color(0xFFF3F4F9)
-val OutlineLight = Color(0xFFE1E2E9)
+val OnSurfaceLight = Color(0xFF1B1D28)
+val SurfaceVariantLight = Color(0xFFF0F1F5)
+val OutlineLight = Color(0xFFE3E5EE)
 
-// Bold Typography Palette - Dark
-val PrimaryDark = Color(0xFF9ECAFF)
-val OnPrimaryDark = Color(0xFF003258)
-val PrimaryContainerDark = Color(0xFF00497D)
-val OnPrimaryContainerDark = Color(0xFFD1E4FF)
+// Modern Security Palette - Dark
+val PrimaryDark = Color(0xFF8190FF) // Soft Indigo
+val OnPrimaryDark = Color(0xFF001469)
+val PrimaryContainerDark = Color(0xFF2E3D8F)
+val OnPrimaryContainerDark = Color(0xFFEDF0FF)
 
-val SecondaryDark = Color(0xFFBBC7DB)
-val OnSecondaryDark = Color(0xFF253140)
+val SecondaryDark = Color(0xFFACAFC3)
+val OnSecondaryDark = Color(0xFF1B202D)
 
-val BackgroundDark = Color(0xFF101418)
-val OnBackgroundDark = Color(0xFFE1E2E6)
-val SurfaceDark = Color(0xFF1A1C1E)
-val OnSurfaceDark = Color(0xFFE1E2E6)
-val SurfaceVariantDark = Color(0xFF2E3339)
-val OutlineDark = Color(0xFF43474E)
+val BackgroundDark = Color(0xFF0D101C) // Deep Navy Charcoal
+val OnBackgroundDark = Color(0xFFE3E5EE)
+val SurfaceDark = Color(0xFF151A29)
+val OnSurfaceDark = Color(0xFFE3E5EE)
+val SurfaceVariantDark = Color(0xFF1F2435)
+val OutlineDark = Color(0xFF32394E)
 
-// Status Accents
-val StatusGreen = Color(0xFF2E7D32)
-val StatusRed = Color(0xFFBA1A1A)
-val StatusAmber = Color(0xFFE65100)
-val StatusBlue = Color(0xFF0061A4)
-
+// Premium Status Accents
+val StatusGreen = Color(0xFF27AE60) // Emerald
+val StatusRed = Color(0xFFEB5757) // Crimson
+val StatusAmber = Color(0xFFF2994A) // Amber
+val StatusBlue = Color(0xFF2D9CDB) // Sky Blue

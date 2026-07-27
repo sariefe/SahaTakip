@@ -22,5 +22,5 @@ interface GeofenceDao {
     suspend fun setGeofenceActive(id: Long, isActive: Boolean)
 
     @Query("DELETE FROM geofence_zones WHERE id = :id")
-    suspend fun deleteGeofence(id: Long)
+    suspend fun deleteById(id: Long)
 }

@@ -2,6 +2,7 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
@@ -9,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,38 +75,50 @@ fun AppNavGraph(viewModel: MainViewModel) {
                 NavigationBar(
                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp
+                    tonalElevation = 8.dp
                 ) {
                     bottomNavScreens.forEach { screen ->
                         val selected = currentRoute == screen.route
                         NavigationBarItem(
                             selected = selected,
+                            alwaysShowLabel = true,
                             onClick = {
                                 if (currentRoute != screen.route) {
                                     navController.navigate(screen.route) {
-                                        // Use startDestination as the anchor for popping
                                         popUpTo(startDestination) {
                                             saveState = true
                                         }
                                         launchSingleTop = true
-                                        
-                                        // Disable restoreState for Dashboard to prevent freezes
                                         if (screen.route != Screen.Dashboard.route) {
                                             restoreState = true
                                         }
                                     }
                                 }
                             },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            ),
                             icon = {
                                 screen.icon?.let {
-                                    Icon(imageVector = it, contentDescription = screen.titleTr)
+                                    Icon(
+                                        imageVector = it, 
+                                        contentDescription = screen.titleTr,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
                             },
                             label = {
                                 Text(
                                     text = tr(screen.titleTr, screen.titleEn),
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Visible
                                 )
                             }
                         )
@@ -143,8 +157,7 @@ fun AppNavGraph(viewModel: MainViewModel) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     viewModel = viewModel,
-                    onNavigateToMap = { navController.navigate(Screen.TrackingMap.route) },
-                    onNavigateToLogs = { navController.navigate(Screen.EventLogs.route) }
+                    onNavigateToMap = { navController.navigate(Screen.TrackingMap.route) }
                 )
             }
 
