@@ -78,8 +78,6 @@ class LocationTrackingService : Service() {
             }
         } catch (e: Exception) {
             android.util.Log.e("LocationTrackingService", "Failed to start foreground service: ${e.message}", e)
-            // CRITICAL: If startForeground fails, we MUST stop the service immediately
-            // to avoid ForegroundServiceDidNotStartInTimeException (ANR/Crash)
             stopSelf()
         }
     }
@@ -87,7 +85,6 @@ class LocationTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         android.util.Log.d("LocationTrackingService", "Service onCreate")
-        // Promote to foreground immediately to avoid ForegroundServiceDidNotStartInTimeException
         startForegroundServiceNotification()
         
         repository = SahaRepository(applicationContext)
@@ -126,7 +123,6 @@ class LocationTrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         android.util.Log.d("LocationTrackingService", "Service onStartCommand")
-        // Redundant call to ensure foreground status if service was already running
         startForegroundServiceNotification()
         return START_STICKY
     }

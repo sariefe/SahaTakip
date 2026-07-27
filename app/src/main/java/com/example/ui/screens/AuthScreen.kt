@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,16 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.ui.res.stringResource
-import androidx.fragment.app.FragmentActivity
-import com.example.R
-import com.example.util.BiometricPromptManager
-import com.example.util.BiometricStatus
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -42,7 +37,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,8 +44,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,23 +59,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.example.R
+import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.BiometricPromptManager
+import com.example.util.BiometricStatus
 import com.example.util.tr
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
-import com.example.ui.components.OcrCameraScannerModal
-
-import androidx.core.content.ContextCompat
 
 @Composable
 fun AuthScreen(
@@ -103,7 +97,6 @@ fun AuthScreen(
     var nameInput by remember { mutableStateOf("AHMET CAN YILMAZ") }
     var codeInput by remember { mutableStateOf("SAHA2026") }
     var showCameraModal by remember { mutableStateOf(false) }
-    var showRawTextLog by remember { mutableStateOf(false) }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -113,10 +106,9 @@ fun AuthScreen(
         }
     }
 
-    // Auto-prompt for OCR scan on first entry
     LaunchedEffect(Unit) {
         if (!ocrScanSuggested && ocrResult == null) {
-            delay(1000.milliseconds) // Give user a moment to see the screen
+            delay(1000.milliseconds)
             if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 showCameraModal = true
             } else {
@@ -192,8 +184,6 @@ fun AuthScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // STEP 1: ID CARD OCR SCANNER CARD
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -317,8 +307,6 @@ fun AuthScreen(
                             }
                         }
                     }
-
-                    // Extracted OCR Details Card (If scanned)
                     ocrResult?.let { res ->
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
@@ -345,18 +333,6 @@ fun AuthScreen(
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-
-                                    TextButton(onClick = { showRawTextLog = !showRawTextLog }) {
-                                        Text(
-                                            text = if (showRawTextLog) tr("Gizle", "Hide") else tr("Ham Veri", "Raw Text"),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                        Icon(
-                                            imageVector = if (showRawTextLog) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -390,30 +366,6 @@ fun AuthScreen(
                                         )
                                     }
                                 }
-
-                                AnimatedVisibility(visible = showRawTextLog) {
-                                    Column(modifier = Modifier.padding(top = 8.dp)) {
-                                        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-                                        Text(
-                                            text = tr("OCR & MRZ Metin Çıktısı:", "OCR & MRZ Text Output:"),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = res.rawExtractedText,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(
-                                                    MaterialTheme.colorScheme.surface,
-                                                    shape = RoundedCornerShape(6.dp)
-                                                )
-                                                .padding(8.dp)
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
@@ -443,7 +395,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // STEP 2: ONE-TIME ACTIVATION CODE
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

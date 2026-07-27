@@ -96,7 +96,6 @@ fun BiometricLockScreen(
                 }
             )
         } else {
-            // Fallback for emulator / environments without hardware enrollment
             verificationSuccess = true
             if (viewModel.authenticateWithBiometrics()) {
                 onLoginSuccess()
@@ -147,7 +146,6 @@ fun BiometricLockScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // OPTION 1: IDENTITY OCR SCAN CARD
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,8 +290,6 @@ fun BiometricLockScreen(
             }
         )
     }
-
-    // Handle auto-close modal on success from real-time detection
     LaunchedEffect(viewModel.isAuthenticated.collectAsState().value) {
         if (viewModel.isAuthenticated.value) {
             verificationSuccess = true
