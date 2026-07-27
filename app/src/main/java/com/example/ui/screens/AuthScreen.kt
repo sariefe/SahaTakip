@@ -59,7 +59,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,10 +86,10 @@ fun AuthScreen(
     val ocrIsLoading by viewModel.ocrIsLoading.collectAsState()
     val errorMessage by viewModel.authErrorMessage.collectAsState()
 
-    val bioTitle = stringResource(R.string.auth_biometric_quick_login)
-    val bioSub = stringResource(R.string.biometric_subtitle)
-    val bioDesc = stringResource(R.string.biometric_desc)
-    val bioCancel = stringResource(R.string.biometric_cancel)
+    val bioTitle = tr("Biyometrik Hızlı Giriş", "Biometric Quick Login")
+    val bioSub = tr("Saha Güvenlik Birimi Doğrulaması", "Field Security Unit Verification")
+    val bioDesc = tr("Parmak izi veya Yüz Tanıma sensörünüzü kullanın", "Use your fingerprint or Face ID sensor")
+    val bioCancel = tr("İptal", "Cancel")
 
     val ocrScanSuggested by viewModel.ocrScanSuggested.collectAsState()
 

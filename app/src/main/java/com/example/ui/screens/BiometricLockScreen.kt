@@ -37,11 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import com.example.R
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -66,11 +64,11 @@ fun BiometricLockScreen(
     val biometricManager = remember { BiometricPromptManager(context) }
     val biometricAvailability = remember { biometricManager.checkBiometricAvailability() }
 
-    val promptTitle = stringResource(R.string.biometric_title)
-    val promptSubtitle = stringResource(R.string.biometric_subtitle)
-    val promptDesc = stringResource(R.string.biometric_desc)
-    val promptCancel = stringResource(R.string.biometric_cancel)
-    val errPrefix = stringResource(R.string.biometric_error)
+    val promptTitle = tr("Biyometrik Kimlik Doğrulama", "Biometric Authentication")
+    val promptSubtitle = tr("Saha personeli güvenli giriş doğrulaması", "Field personnel secure login verification")
+    val promptDesc = tr("Devam etmek için parmak izi veya yüz tanıma sensörünü kullanın", "Use fingerprint or face recognition sensor to continue")
+    val promptCancel = tr("İptal", "Cancel")
+    val errPrefix = tr("Hata", "Error")
     val matchFailedMsg = tr("Biyometrik eşleşme başarısız. Tekrar deneyin.", "Biometric match failed. Try again.")
 
     val triggerBiometricAuth = {

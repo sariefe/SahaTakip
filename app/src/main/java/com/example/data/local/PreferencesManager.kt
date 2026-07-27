@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.core.content.edit
 
 class PreferencesManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("saha_preferences", Context.MODE_PRIVATE)
@@ -19,27 +20,27 @@ class PreferencesManager(context: Context) {
     val theme: StateFlow<String> = _theme.asStateFlow()
 
     private val _mockServerUrl = MutableStateFlow(
-        prefs.getString(KEY_SERVER_URL, "https://saha-api.kurum.gov.tr/v1/telemetry/sync") ?: "https://saha-api.kurum.gov.tr/v1/telemetry/sync"
+        prefs.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync") ?: "https://mock-api.example.com/v1/telemetry/sync"
     )
     val mockServerUrl: StateFlow<String> = _mockServerUrl.asStateFlow()
 
     fun setLanguage(lang: String) {
-        prefs.edit().putString(KEY_LANGUAGE, lang).apply()
+        prefs.edit { putString(KEY_LANGUAGE, lang) }
         _language.value = lang
     }
 
     fun setUpdateInterval(seconds: Int) {
-        prefs.edit().putInt(KEY_UPDATE_INTERVAL, seconds).apply()
+        prefs.edit { putInt(KEY_UPDATE_INTERVAL, seconds) }
         _updateInterval.value = seconds
     }
 
     fun setTheme(themeMode: String) {
-        prefs.edit().putString(KEY_THEME, themeMode).apply()
+        prefs.edit { putString(KEY_THEME, themeMode) }
         _theme.value = themeMode
     }
 
     fun setMockServerUrl(url: String) {
-        prefs.edit().putString(KEY_SERVER_URL, url).apply()
+        prefs.edit { putString(KEY_SERVER_URL, url) }
         _mockServerUrl.value = url
     }
 

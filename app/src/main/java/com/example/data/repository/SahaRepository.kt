@@ -43,15 +43,14 @@ class SahaRepository(private val context: Context) {
     val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
 
     suspend fun initializeDefaultDataIfEmpty() = withContext(Dispatchers.IO) {
-        // Initialize default user if not exists
         val currentUser = userDao.getUserProfile().firstOrNull()
         if (currentUser == null) {
             userDao.insertOrUpdateUser(
                 UserProfileEntity(
                     id = 1,
-                    fullName = "AHMET CAN YILMAZ",
-                    tcNo = "10293847562",
-                    roleTitle = "Saha Operasyon Personeli",
+                    fullName = "Örnek Personel",
+                    tcNo = "10000000000",
+                    roleTitle = "Saha Personeli (Demo)",
                     activationCode = PreferencesManager.DEFAULT_ACTIVATION_CODE,
                     isActivated = false,
                     isBiometricEnabled = true
@@ -225,15 +224,10 @@ class SahaRepository(private val context: Context) {
             if (now - lastGeofenceAlertTimestamp > 120_000L) {
                 lastGeofenceAlertTimestamp = now
 
-                val nearestZone = activeGeofences.minByOrNull { 
-                    calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) 
-                }
-                val distance = nearestZone?.let { calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) } ?: 0.0
-
                 val log = EventLogEntity(
                     type = "GEOFENCE_VIOLATION",
                     title = "Bölge İhlal Kaydı",
-                    detail = "Güvenli bölge dışına çıkıldı (En yakın bölgeye mesafe: ${distance.toInt()} metre).",
+                    detail = "Güvenli bölge dışına çıkıldı (Demo Tespiti).",
                     isSensitive = true,
                     status = "UYARI",
                     timestamp = now,

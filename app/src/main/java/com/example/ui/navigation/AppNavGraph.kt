@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.CompositionLocalProvider
 import com.example.util.LocalLanguage
+import com.example.util.tr
 import com.example.ui.screens.MapTrackingScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.viewmodel.MainViewModel
@@ -100,13 +101,8 @@ fun AppNavGraph(viewModel: MainViewModel) {
                                 }
                             },
                             label = {
-                                val labelText = if (screen.stringResId != null) {
-                                    androidx.compose.ui.res.stringResource(id = screen.stringResId)
-                                } else {
-                                    if (currentLang == "tr") screen.titleTr else screen.titleEn
-                                }
                                 Text(
-                                    text = labelText,
+                                    text = tr(screen.titleTr, screen.titleEn),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                 )

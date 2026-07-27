@@ -330,7 +330,7 @@ fun LeaveSubmitFormComponent(
                     onExpandedChange = { expandedStatusDropdown = !expandedStatusDropdown },
                     modifier = Modifier.weight(1f)
                 ) {
-                    val statusLabel = when (selectedStatus) {
+                    val statusLabel = when (selectedStatus.uppercase()) {
                         "ONAYLANDI" -> tr("ONAYLANDI", "APPROVED")
                         "REDDEDİLDİ" -> tr("REDDEDİLDİ", "REJECTED")
                         else -> tr("BEKLEMEDE", "PENDING")
@@ -340,7 +340,7 @@ fun LeaveSubmitFormComponent(
                         value = statusLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text(tr("Durum (Status)", "Status")) },
+                        label = { Text(tr("Durum", "Status")) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStatusDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -351,7 +351,7 @@ fun LeaveSubmitFormComponent(
                         onDismissRequest = { expandedStatusDropdown = false }
                     ) {
                         statusOptions.forEach { st ->
-                            val stDisplay = when (st) {
+                            val stDisplay = when (st.uppercase()) {
                                 "ONAYLANDI" -> tr("ONAYLANDI", "APPROVED")
                                 "REDDEDİLDİ" -> tr("REDDEDİLDİ", "REJECTED")
                                 else -> tr("BEKLEMEDE", "PENDING")
