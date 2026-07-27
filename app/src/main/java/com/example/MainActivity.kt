@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,6 +19,9 @@ import com.example.ui.theme.SahaTakipTheme
 import com.example.ui.viewmodel.MainViewModel
 import com.example.util.NotificationHelper
 import com.example.util.PermissionUtils
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : FragmentActivity() {
 
@@ -38,7 +42,6 @@ class MainActivity : FragmentActivity() {
         val coarseLocationGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         
         if (fineLocationGranted || coarseLocationGranted) {
-            // Location granted, request background location now
             requestBackgroundLocationPermission()
             startTrackingService()
         } else {
@@ -52,11 +55,11 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Create privacy notification channel
         NotificationHelper.createNotificationChannel(this)
-
-        // Request initial permissions
-        checkAndRequestPermissions()
+        lifecycleScope.launch {
+            delay(500.milliseconds)
+            checkAndRequestPermissions()
+        }
 
         setContent {
             val themeMode by viewModel.theme.collectAsState()
@@ -93,11 +96,6 @@ class MainActivity : FragmentActivity() {
                     android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 ) != android.content.pm.PackageManager.PERMISSION_GRANTED
             ) {
-                // On Android 11+ (API 30+), we MUST show an explanation before requesting background location
-                // because it must be granted manually by the user in the settings.
-                // For this test project, we'll guide them to the settings if it's the second attempt,
-                // or just launch the prompt if it's the first.
-                
                 android.app.AlertDialog.Builder(this)
                     .setTitle("Arka Plan Konum İzni")
                     .setMessage("Saha takibinin kesintisiz devam etmesi için konum iznini 'Her zaman izin ver' olarak ayarlamanız gerekmektedir.")
@@ -114,12 +112,20 @@ class MainActivity : FragmentActivity() {
         try {
             val serviceIntent = Intent(this, LocationTrackingService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
+                try {
+                    startForegroundService(serviceIntent)
+                } catch (e: Exception) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
+                        android.util.Log.e("MainActivity", "Foreground service start not allowed from background", e)
+                    } else {
+                        throw e
+                    }
+                }
             } else {
                 startService(serviceIntent)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("MainActivity", "Failed to start tracking service", e)
         }
     }
 }

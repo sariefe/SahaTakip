@@ -1,14 +1,16 @@
 package com.example.util
 
-import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object SecurityUtils {
 
     /**
      * Checks common indicators for root access on Android.
+     * Run on IO thread to avoid blocking main thread with file lookups.
      */
-    fun checkIsDeviceRooted(): Boolean {
+    suspend fun checkIsDeviceRooted(): Boolean = withContext(Dispatchers.IO) {
         val rootPaths = arrayOf(
             "/system/app/Superuser.apk",
             "/sbin/su",
@@ -21,10 +23,13 @@ object SecurityUtils {
             "/data/local/su"
         )
         for (path in rootPaths) {
-            if (File(path).exists()) return true
+            try {
+                if (File(path).exists()) return@withContext true
+            } catch (_: Exception) {
+                // Ignore permission issues for specific paths
+            }
         }
-        val buildTags = Build.TAGS
-        return buildTags != null && buildTags.contains("test-keys")
+        val buildTags = android.os.Build.TAGS
+        buildTags != null && buildTags.contains("test-keys")
     }
-
 }

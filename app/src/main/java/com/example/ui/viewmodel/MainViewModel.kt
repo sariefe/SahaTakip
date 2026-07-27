@@ -20,6 +20,7 @@ import com.example.domain.model.DeviceStatus
 import com.example.util.OcrCardScanner
 import com.example.util.PermissionUtils
 import com.example.util.ScannedIdCardResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,36 +99,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateDeviceStatus() {
         val context = getApplication<Application>()
 
-        // Connectivity check
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = cm.activeNetwork
-        val capabilities = cm.getNetworkCapabilities(activeNetwork)
-        val isOnline = capabilities != null &&
-                (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+        viewModelScope.launch(Dispatchers.IO) {
+            // Connectivity check
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = cm.activeNetwork
+            val capabilities = cm.getNetworkCapabilities(activeNetwork)
+            val isOnline = capabilities != null &&
+                    (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
 
-        // Battery check
-        val batteryIntent = context.registerReceiver(null, IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
-        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 85
-        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
-        val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 85
-        val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            // Battery check
+            val batteryIntent = context.registerReceiver(null, IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+            val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 85
+            val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
+            val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 85
+            val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
-        val isRooted = SecurityUtils.checkIsDeviceRooted()
+            val isRooted = SecurityUtils.checkIsDeviceRooted()
 
-        _deviceStatus.value = DeviceStatus(
-            isInternetConnected = isOnline,
-            isGpsEnabled = PermissionUtils.isGpsEnabled(context) && PermissionUtils.hasLocationPermissions(context),
-            isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
-            isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
-            isBatteryOptimizationIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context),
-            batteryLevel = batteryPct,
-            isBatteryCharging = isCharging,
-            isRooted = isRooted,
-            lastCheckedTimestamp = System.currentTimeMillis()
-        )
+            _deviceStatus.value = DeviceStatus(
+                isInternetConnected = isOnline,
+                isGpsEnabled = PermissionUtils.isGpsEnabled(context) && PermissionUtils.hasLocationPermissions(context),
+                isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
+                isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
+                isBatteryOptimizationIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context),
+                batteryLevel = batteryPct,
+                isBatteryCharging = isCharging,
+                isRooted = isRooted,
+                lastCheckedTimestamp = System.currentTimeMillis()
+            )
+        }
     }
 
     fun toggleGpsSimulation() {

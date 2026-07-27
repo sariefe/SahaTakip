@@ -161,7 +161,6 @@ class SahaRepository(private val context: Context) {
             )
         )
 
-        // Add sample leave request
         leaveRequestDao.insertLeaveRequest(
             LeaveRequestEntity(
                 startDate = "25.07.2026",
@@ -173,7 +172,6 @@ class SahaRepository(private val context: Context) {
             )
         )
 
-        // Add sample offline activity report
         offlineReportDao.insertReport(
             OfflineActivityReportEntity(
                 title = "Şantiye Güvenlik Ve Devriye Raporu",
@@ -208,7 +206,6 @@ class SahaRepository(private val context: Context) {
         )
         val id = locationDao.insertLocation(locationEntity)
 
-        // Check geofence status
         checkGeofenceBreach(lat, lng)
         id
     }

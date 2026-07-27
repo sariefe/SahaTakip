@@ -1,11 +1,11 @@
 package com.example.domain.service
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -20,19 +20,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class LocationTrackingService : Service() {
 
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private lateinit var repository: SahaRepository
-
-    override fun onCreate() {
-        super.onCreate()
-        repository = SahaRepository(applicationContext)
-        startForegroundServiceNotification()
-        startTrackingLoop()
-    }
 
     private fun startForegroundServiceNotification() {
         val channelId = "saha_tracking_service"
@@ -46,7 +40,7 @@ class LocationTrackingService : Service() {
             ).apply {
                 description = "Arka planda periyodik konum kaydı yapılıyor."
             }
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
 
@@ -67,34 +61,40 @@ class LocationTrackingService : Service() {
             .build()
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val hasLocationPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                androidx.core.content.ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                if (hasLocationPermission) {
-                    startForeground(1001, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-                } else {
-                    startForeground(1001, notification)
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    1001,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    1001,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                )
             } else {
                 startForeground(1001, notification)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            try {
-                startForeground(1001, notification)
-            } catch (e2: Exception) {
-                e2.printStackTrace()
-            }
+            android.util.Log.e("LocationTrackingService", "Failed to start foreground service: ${e.message}", e)
+            // CRITICAL: If startForeground fails, we MUST stop the service immediately
+            // to avoid ForegroundServiceDidNotStartInTimeException (ANR/Crash)
+            stopSelf()
         }
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        android.util.Log.d("LocationTrackingService", "Service onCreate")
+        // Promote to foreground immediately to avoid ForegroundServiceDidNotStartInTimeException
+        startForegroundServiceNotification()
+        
+        repository = SahaRepository(applicationContext)
+        startTrackingLoop()
+    }
+
+    @SuppressLint("DefaultLocale")
     private fun startTrackingLoop() {
         serviceScope.launch {
             var currentLat = 41.0082
@@ -102,7 +102,6 @@ class LocationTrackingService : Service() {
 
             while (isActive) {
                 val intervalSeconds = repository.preferencesManager.updateInterval.first()
-                // Simulate slight movement for testing
                 val latDelta = ((-10..10).random()) * 0.0002
                 val lngDelta = ((-10..10).random()) * 0.0002
                 currentLat += latDelta
@@ -120,12 +119,15 @@ class LocationTrackingService : Service() {
                     address = "Saha Bölgesi (${String.format("%.4f", currentLat)}, ${String.format("%.4f", currentLng)})"
                 )
 
-                delay(intervalSeconds * 1000L)
+                delay((intervalSeconds * 1000L).milliseconds)
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        android.util.Log.d("LocationTrackingService", "Service onStartCommand")
+        // Redundant call to ensure foreground status if service was already running
+        startForegroundServiceNotification()
         return START_STICKY
     }
 
