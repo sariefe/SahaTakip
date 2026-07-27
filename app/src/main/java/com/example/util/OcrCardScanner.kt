@@ -30,6 +30,42 @@ object OcrCardScanner {
         IdCardPreset("Sistem Operatörü", "ZEHRA ELİF ÇELİK", "48102938472", "D33P59102", "Sistem & Tesis Operatörü")
     )
 
+    fun parseTextFromIdCard(rawText: String): ScannedIdCardResult? {
+        val lines = rawText.lines().map { it.trim().uppercase() }
+        
+        // Regex for 11-digit TC No
+        val tcRegex = Regex("\\b[1-9][0-9]{10}\\b")
+        val tcNo = tcRegex.find(rawText)?.value ?: return null
+
+        // Improved heuristic for Name/Surname extraction from Turkish ID cards
+        var surname = ""
+        var names = ""
+
+        lines.forEachIndexed { index, line ->
+            if (line.contains("SOYADI") || line.contains("SURNAME")) {
+                surname = if (line.substringAfter(":", "").isNotBlank()) {
+                    line.substringAfter(":").trim()
+                } else if (index + 1 < lines.size) {
+                    lines[index + 1]
+                } else ""
+            }
+            if (line.contains("ADI") || line.contains("GIVEN NAMES")) {
+                names = if (line.substringAfter(":", "").isNotBlank()) {
+                    line.substringAfter(":").trim()
+                } else if (index + 1 < lines.size) {
+                    lines[index + 1]
+                } else ""
+            }
+        }
+
+        return ScannedIdCardResult(
+            fullName = "${names.trim()} ${surname.trim()}".trim().ifBlank { "BİLİNMEYEN PERSONEL" },
+            tcNo = tcNo,
+            confidenceScore = 0.95f,
+            rawExtractedText = rawText
+        )
+    }
+
     /**
      * Simulates scanning/OCR extraction from an ID Card image.
      */
@@ -37,7 +73,7 @@ object OcrCardScanner {
         fallbackNameInput: String = "",
         preset: IdCardPreset? = null
     ): ScannedIdCardResult {
-        delay(1200.milliseconds) // Simulate OCR image recognition latency
+        delay(1200.milliseconds) 
 
         if (preset != null) {
             val rawText = """

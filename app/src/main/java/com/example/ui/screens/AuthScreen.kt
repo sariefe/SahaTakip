@@ -1,12 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,25 +29,19 @@ import com.example.R
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FlipCameraIos
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,17 +69,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
-import com.example.util.IdCardPreset
-import com.example.util.OcrCardScanner
 import com.example.util.tr
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+import com.example.ui.components.OcrCameraScannerModal
+
+import androidx.core.content.ContextCompat
 
 @Composable
 fun AuthScreen(
@@ -108,12 +98,34 @@ fun AuthScreen(
     val bioDesc = stringResource(R.string.biometric_desc)
     val bioCancel = stringResource(R.string.biometric_cancel)
 
+    val ocrScanSuggested by viewModel.ocrScanSuggested.collectAsState()
+
     var nameInput by remember { mutableStateOf("AHMET CAN YILMAZ") }
     var codeInput by remember { mutableStateOf("SAHA2026") }
     var showCameraModal by remember { mutableStateOf(false) }
     var showRawTextLog by remember { mutableStateOf(false) }
 
-    // If OCR scan result updates, sync nameInput automatically
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            showCameraModal = true
+        }
+    }
+
+    // Auto-prompt for OCR scan on first entry
+    LaunchedEffect(Unit) {
+        if (!ocrScanSuggested && ocrResult == null) {
+            delay(1000.milliseconds) // Give user a moment to see the screen
+            if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                showCameraModal = true
+            } else {
+                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            }
+            viewModel.markOcrScanSuggested()
+        }
+    }
+
     ocrResult?.let { result ->
         if (nameInput != result.fullName) {
             nameInput = result.fullName
@@ -133,8 +145,6 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Top
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Header Hero Banner Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -574,259 +584,13 @@ fun AuthScreen(
     // OCR CAMERA SCANNER MODAL DIALOG
     if (showCameraModal) {
         OcrCameraScannerModal(
-            currentNameInput = nameInput,
+            viewModel = viewModel,
             onDismiss = { showCameraModal = false },
             onScanStart = { preset ->
                 viewModel.startIdCardOcrScan(fullNameInput = nameInput, preset = preset)
                 showCameraModal = false
             }
         )
-    }
-}
-
-@Composable
-fun OcrCameraScannerModal(
-    currentNameInput: String,
-    onDismiss: () -> Unit,
-    onScanStart: (preset: IdCardPreset?) -> Unit
-) {
-    var selectedPreset by remember { mutableStateOf<IdCardPreset?>(OcrCardScanner.availablePresets[0]) }
-
-    val infiniteTransition = rememberInfiniteTransition()
-    val scanLineY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.DocumentScanner,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = tr("OCR Kimlik Kartı Kamerası", "OCR ID Card Camera"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    TextButton(onClick = onDismiss) {
-                        Text(tr("Kapat", "Close"))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Simulated Live Viewfinder Frame
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color.Black),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // ID Card Mockup Frame in Center
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.92f)
-                                .height(220.dp)
-                                .align(Alignment.Center)
-                                .border(
-                                    width = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .background(Color.White.copy(alpha = 0.08f))
-                        ) {
-                            // ID Card Design Simulation inside frame
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = tr("T.C. KİMLİK KARTI", "TURKEY IDENTITY CARD"),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .border(1.dp, Color.Yellow.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                            .padding(horizontal = 4.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "OCR DETECTED",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.Yellow,
-                                            fontSize = 9.sp
-                                        )
-                                    }
-                                }
-
-                                val previewName = selectedPreset?.fullName ?: currentNameInput.ifBlank { "AHMET CAN YILMAZ" }
-                                val previewTc = selectedPreset?.tcNo ?: "10293847562"
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(54.dp)
-                                            .background(Color.Gray.copy(alpha = 0.4f), RoundedCornerShape(6.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Badge,
-                                            contentDescription = null,
-                                            tint = Color.White
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = "TC: $previewTc",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = Color.Green,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = previewName,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = "I<TUR$previewTc<<<<<<<<<<<<<<<9008124M3008122TUR<<<<<<<<<<<0",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 10.sp
-                                )
-                            }
-
-                            // Moving Scan Line Animation
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(3.dp)
-                                    .align(Alignment.TopStart)
-                                    .padding(top = (217 * scanLineY).dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                Color.Red,
-                                                Color.Yellow,
-                                                Color.Red,
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                        }
-
-                        // Top Overlay Hint
-                        Text(
-                            text = tr("Kimliğin ön yüzünü hizada tutun", "Keep ID card front aligned"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Preset selector chips for quick testing
-                Text(
-                    text = tr("Taranacak Kart Örneği / Test Personeli:", "Card Sample to Scan / Test Staff:"),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OcrCardScanner.availablePresets.chunked(2).forEach { rowPresets ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowPresets.forEach { preset ->
-                                val isSelected = selectedPreset == preset
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedPreset = preset },
-                                    label = { Text("${preset.title} (${preset.fullName.substringBefore(" ")})", fontSize = 11.sp) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Shutter Button
-                Button(
-                    onClick = { onScanStart(selectedPreset) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = tr("Kameradan Tara & OCR Bilgilerini Oku", "Scan Camera & Read OCR Info"),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
     }
 }
 

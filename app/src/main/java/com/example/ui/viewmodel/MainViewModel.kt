@@ -81,11 +81,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _ocrIsLoading = MutableStateFlow(false)
     val ocrIsLoading: StateFlow<Boolean> = _ocrIsLoading.asStateFlow()
 
+    private val _ocrScanSuggested = MutableStateFlow(false)
+    val ocrScanSuggested: StateFlow<Boolean> = _ocrScanSuggested.asStateFlow()
+
+    fun markOcrScanSuggested() {
+        _ocrScanSuggested.value = true
+    }
+
     private val _authErrorMessage = MutableStateFlow<String?>(null)
     val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
 
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    private val _ocrAuthError = MutableStateFlow<String?>(null)
+    val ocrAuthError: StateFlow<String?> = _ocrAuthError.asStateFlow()
 
     private var playbackJob: Job? = null
 
@@ -196,6 +206,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onRealOcrDetected(rawText: String) {
+        val result = OcrCardScanner.parseTextFromIdCard(rawText)
+        if (result != null && result.tcNo != _ocrScanningState.value?.tcNo) {
+            _ocrScanningState.value = result
+            viewModelScope.launch {
+                repository.addEventLog(
+                    type = "REAL_OCR_DETECTION",
+                    title = "Canlı OCR Tespiti",
+                    detail = "Kamera üzerinden gerçek zamanlı kimlik tespiti yapıldı: ${result.fullName}",
+                    status = "BİLGİ"
+                )
+            }
+        }
+    }
+
     fun activateWithCode(code: String): Boolean {
         if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE || code.trim() == "123456") {
             viewModelScope.launch {
@@ -229,6 +254,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.userDao.updateLastLogin()
         }
         return true
+    }
+
+    fun authenticateWithOcr(scannedTc: String): Boolean {
+        val registeredTc = userProfile.value?.tcNo
+        return if (scannedTc == registeredTc) {
+            _isAuthenticated.value = true
+            _ocrAuthError.value = null
+            viewModelScope.launch {
+                repository.userDao.updateLastLogin()
+                repository.addEventLog(
+                    type = "OCR_AUTH_SUCCESS",
+                    title = "Kimlik Doğrulama Başarılı",
+                    detail = "Personel kimlik kartı OCR ile doğrulandı ve giriş yapıldı.",
+                    status = "BAŞARILI"
+                )
+            }
+            true
+        } else {
+            _ocrAuthError.value = "Kimlik kartı kayıtlı personel ile eşleşmiyor!"
+            viewModelScope.launch {
+                repository.addEventLog(
+                    type = "OCR_AUTH_FAILED",
+                    title = "Kimlik Doğrulama Başarısız",
+                    detail = "Farklı bir kimlik kartı ile giriş denemesi yapıldı (Tespit edilen TC: $scannedTc).",
+                    status = "TEHLİKE"
+                )
+            }
+            false
+        }
     }
 
     fun startRoutePlayback() {
