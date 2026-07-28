@@ -383,7 +383,6 @@ fun CustomMapView(
             }
         }
 
-        // REDESIGNED CONTROLS - Modern "Soft" Style
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -422,7 +421,6 @@ fun CustomMapView(
             )
         }
 
-        // Layer Badge
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -444,7 +442,6 @@ fun CustomMapView(
             )
         }
 
-        // REDESIGNED DETAIL CARD
         selectedLocation?.let { loc ->
             val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
             val formattedTime = timeFormat.format(Date(loc.timestamp))

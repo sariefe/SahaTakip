@@ -58,7 +58,7 @@ class SahaRepository(private val context: Context) {
             )
         }
 
-        // Initialize default safe geofence zones
+
         val geofenceList = geofenceDao.getActiveGeofences()
         if (geofenceList.isEmpty()) {
             geofenceDao.insertGeofence(
@@ -76,6 +76,15 @@ class SahaRepository(private val context: Context) {
                     centerLat = 41.0150,
                     centerLng = 28.9850,
                     radiusMeters = 500.0,
+                    isActive = true
+                )
+            )
+            geofenceDao.insertGeofence(
+                GeofenceZoneEntity(
+                    name = "Sirket Ana Kampüs",
+                    centerLat = 40.0201,
+                    centerLng = 29.1111,
+                    radiusMeters = 600.0,
                     isActive = true
                 )
             )

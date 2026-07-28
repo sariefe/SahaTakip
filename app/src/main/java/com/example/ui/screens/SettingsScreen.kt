@@ -106,8 +106,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Timer
                 ) {
                     // Modern Interval Selector
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(30, 60, 300).forEach { sec ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(30, 60, 120).forEach { sec ->
                             val isSelected = currentInterval == sec
                             Surface(
                                 modifier = Modifier

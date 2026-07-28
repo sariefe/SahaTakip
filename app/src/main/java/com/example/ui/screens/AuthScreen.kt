@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,16 +49,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import com.example.R
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -136,12 +132,6 @@ fun AuthScreen(
                 shape = RoundedCornerShape(28.dp)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    Image(
-                        painter = painterResource(id = R.drawable.saha_hero_banner_1784703591771),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -182,51 +172,51 @@ fun AuthScreen(
                 subtitle = tr("T.C. Kimlik Kartınızı kameraya gösterin", "Scan your T.C. Identity Card")
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        width = 1.dp,
-                        color = if (ocrResult != null) StatusGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .clickable { showCameraModal = true },
-                contentAlignment = Alignment.Center
-            ) {
-                if (ocrIsLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
-                } else if (ocrResult != null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = StatusGreen, modifier = Modifier.size(40.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(ocrResult!!.fullName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text(tr("Kimlik Doğrulandı", "Identity Verified"), style = MaterialTheme.typography.labelSmall, color = StatusGreen)
-                    }
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.FlipCameraIos,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            width = 1.dp,
+                            color = if (ocrResult != null) StatusGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(24.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            tr("Kamerayı Başlat", "Launch Camera"),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        .clickable { showCameraModal = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (ocrIsLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
+                    } else if (ocrResult != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+                            Icon(Icons.Default.Verified, contentDescription = null, tint = StatusGreen, modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(ocrResult!!.fullName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(tr("Kimlik Doğrulandı", "Identity Verified"), style = MaterialTheme.typography.labelSmall, color = StatusGreen)
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.FlipCameraIos,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                tr("Kamerayı Başlat", "Launch Camera"),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
             // STEP 2: ACTIVATION CODE SECTION
             AuthStepHeader(
@@ -235,80 +225,80 @@ fun AuthScreen(
                 subtitle = tr("Kurumunuzdan aldığınız kodu girin", "Enter the code from your organization")
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = codeInput,
-                onValueChange = { codeInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                placeholder = { Text("SAHA2026") },
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
-            )
-            
-            errorMessage?.let {
-                Text(it, color = StatusRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // MAIN ACTION BUTTON
-            Button(
-                onClick = {
-                    if (viewModel.activateWithCode(codeInput)) {
-                        onAuthSuccess()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Text(
-                    tr("AKTİVASYONU TAMAMLA", "COMPLETE ACTIVATION"),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+                OutlinedTextField(
+                    value = codeInput,
+                    onValueChange = { codeInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    placeholder = { Text("SAHA2026") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
                 )
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                errorMessage?.let {
+                    Text(it, color = StatusRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                }
 
-            // BIOMETRIC FALLBACK
-            TextButton(
-                onClick = {
-                    val activity = context as? FragmentActivity
-                    val biometricManager = BiometricPromptManager(context)
-                    if (activity != null && biometricManager.checkBiometricAvailability() is BiometricStatus.Available) {
-                        biometricManager.showBiometricPrompt(
-                            activity = activity,
-                            title = bioTitle,
-                            subtitle = bioSub,
-                            description = bioDesc,
-                            negativeButtonText = bioCancel,
-                            onSuccess = {
-                                if (viewModel.authenticateWithBiometrics()) onAuthSuccess()
-                            },
-                            onError = { _, _ -> },
-                            onFailed = { }
-                        )
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // MAIN ACTION BUTTON
+                Button(
+                    onClick = {
+                        if (viewModel.activateWithCode(codeInput)) {
+                            onAuthSuccess()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .shadow(8.dp, RoundedCornerShape(20.dp)),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        tr("AKTİVASYONU TAMAMLA", "COMPLETE ACTIVATION"),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // BIOMETRIC FALLBACK
+                TextButton(
+                    onClick = {
+                        val activity = context as? FragmentActivity
+                        val biometricManager = BiometricPromptManager(context)
+                        if (activity != null && biometricManager.checkBiometricAvailability() is BiometricStatus.Available) {
+                            biometricManager.showBiometricPrompt(
+                                activity = activity,
+                                title = bioTitle,
+                                subtitle = bioSub,
+                                description = bioDesc,
+                                negativeButtonText = bioCancel,
+                                onSuccess = {
+                                    if (viewModel.authenticateWithBiometrics()) onAuthSuccess()
+                                },
+                                onError = { _, _ -> },
+                                onFailed = { }
+                            )
+                        }
+                    }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(tr("Biyometrik Hızlı Giriş", "Biometric Quick Login"), style = MaterialTheme.typography.labelMedium)
                     }
                 }
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(tr("Biyometrik Hızlı Giriş", "Biometric Quick Login"), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
+
+                Spacer(modifier = Modifier.height(32.dp))
         }
     }
 

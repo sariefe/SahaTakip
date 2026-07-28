@@ -100,7 +100,6 @@ fun OcrCameraScannerModal(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -126,7 +125,6 @@ fun OcrCameraScannerModal(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Real Camera Viewfinder
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -220,7 +218,6 @@ fun OcrCameraScannerModal(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Preset selector chips for quick testing
                 Text(
                     text = tr("Taranacak Kart Örneği / Test Personeli:", "Card Sample to Scan / Test Staff:"),
                     style = MaterialTheme.typography.labelSmall,
@@ -253,7 +250,6 @@ fun OcrCameraScannerModal(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Shutter Button
                 Button(
                     onClick = { onScanStart(selectedPreset) },
                     modifier = Modifier
