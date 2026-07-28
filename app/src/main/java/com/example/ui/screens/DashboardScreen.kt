@@ -23,27 +23,39 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Transgender
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,12 +76,15 @@ import com.example.util.tr
 fun DashboardScreen(
     viewModel: MainViewModel,
     onNavigateToMap: () -> Unit,
+    windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val context = LocalContext.current
     val deviceStatus by viewModel.deviceStatus.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val latestLoc by viewModel.latestLocation.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
+    
+    var showProfileModal by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -108,7 +123,7 @@ fun DashboardScreen(
                         .size(50.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable { viewModel.updateDeviceStatus() },
+                        .clickable { showProfileModal = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -143,7 +158,7 @@ fun DashboardScreen(
                 }
             }
 
-            // TELEMETRY GRID - 2 Columns
+            // TELEMETRY GRID
             Text(
                 text = tr("Servis Durumları", "Service Status"),
                 style = MaterialTheme.typography.titleSmall,
@@ -151,54 +166,102 @@ fun DashboardScreen(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                StatusGridItem(
-                    modifier = Modifier.weight(1f),
-                    title = tr("İnternet", "Internet"),
-                    isOk = deviceStatus.isInternetConnected,
-                    icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                    onClick = { viewModel.toggleInternetSimulation() }
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                StatusGridItem(
-                    modifier = Modifier.weight(1f),
-                    title = tr("GPS", "GPS"),
-                    isOk = deviceStatus.isGpsEnabled,
-                    icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                    onClick = { viewModel.toggleGpsSimulation() }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth()) {
-                StatusGridItem(
-                    modifier = Modifier.weight(1f),
-                    title = tr("Arka Plan", "Background"),
-                    isOk = deviceStatus.isBackgroundLocationGranted,
-                    icon = Icons.Default.LocationOn,
-                    onClick = {
-                        try {
-                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = android.net.Uri.fromParts("package", context.packageName, null)
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {}
-                    }
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                StatusGridItem(
-                    modifier = Modifier.weight(1f),
-                    title = tr("Pil Tasarruf", "Battery Opt"),
-                    isOk = deviceStatus.isBatteryOptimizationIgnored,
-                    icon = Icons.Default.BatteryFull,
-                    onClick = {
-                        try {
-                            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                            context.startActivity(intent)
-                        } catch (_: Exception) {}
-                    }
-                )
+            if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("İnternet", "Internet"),
+                        isOk = deviceStatus.isInternetConnected,
+                        icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                        onClick = { viewModel.toggleInternetSimulation() }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("GPS", "GPS"),
+                        isOk = deviceStatus.isGpsEnabled,
+                        icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
+                        onClick = { viewModel.toggleGpsSimulation() }
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("Arka Plan", "Background"),
+                        isOk = deviceStatus.isBackgroundLocationGranted,
+                        icon = Icons.Default.LocationOn,
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("Pil Tasarruf", "Battery Opt"),
+                        isOk = deviceStatus.isBatteryOptimizationIgnored,
+                        icon = Icons.Default.BatteryFull,
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("İnternet", "Internet"),
+                        isOk = deviceStatus.isInternetConnected,
+                        icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                        onClick = { viewModel.toggleInternetSimulation() }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("GPS", "GPS"),
+                        isOk = deviceStatus.isGpsEnabled,
+                        icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
+                        onClick = { viewModel.toggleGpsSimulation() }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("Arka Plan", "Background"),
+                        isOk = deviceStatus.isBackgroundLocationGranted,
+                        icon = Icons.Default.LocationOn,
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("Pil Tasarruf", "Battery Opt"),
+                        isOk = deviceStatus.isBatteryOptimizationIgnored,
+                        icon = Icons.Default.BatteryFull,
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -312,7 +375,98 @@ fun DashboardScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(80.dp)) // Bottom bar padding
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+
+    if (showProfileModal) {
+        ProfileInfoModal(
+            user = userProfile,
+            onDismiss = { showProfileModal = false },
+            onLogout = { 
+                viewModel.logout()
+                showProfileModal = false
+            }
+        )
+    }
+}
+
+
+@Composable
+fun ProfileInfoModal(
+    user: com.example.data.local.entity.UserProfileEntity?,
+    onDismiss: () -> Unit,
+    onLogout: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 8.dp,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(tr("Kapat", "Close"), fontWeight = FontWeight.Bold)
+            }
+        },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(tr("Personel Bilgileri", "Staff Information"), fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileDetailRow(Icons.Default.Person, tr("Ad Soyad", "Full Name"), user?.fullName ?: "-")
+                ProfileDetailRow(Icons.Default.Badge, tr("Pozisyon", "Position"), user?.position ?: "-")
+                ProfileDetailRow(Icons.Default.Transgender, tr("Cinsiyet", "Gender"), user?.gender ?: "-")
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                
+                Text(
+                    text = tr("Kayıt Tarihi: ", "Registered: ") + (user?.registeredAt?.let { java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(it) } ?: "-"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusRed),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(tr("Çıkış Yap", "Log Out"), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun ProfileDetailRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }

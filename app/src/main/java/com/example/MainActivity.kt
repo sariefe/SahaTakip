@@ -11,6 +11,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.domain.service.LocationTrackingService
@@ -51,6 +53,7 @@ class MainActivity : FragmentActivity() {
         viewModel.updateDeviceStatus()
     }
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -62,6 +65,7 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
+            val windowSizeClass = calculateWindowSizeClass(this)
             val themeMode by viewModel.theme.collectAsState()
             val isDarkTheme = when (themeMode) {
                 "dark" -> true
@@ -70,7 +74,10 @@ class MainActivity : FragmentActivity() {
             }
 
             SahaTakipTheme(darkTheme = isDarkTheme) {
-                AppNavGraph(viewModel = viewModel)
+                AppNavGraph(
+                    viewModel = viewModel,
+                    windowSizeClass = windowSizeClass
+                )
             }
         }
     }

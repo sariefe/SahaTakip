@@ -43,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,7 +79,8 @@ data class LocalLeaveRequestItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveRequestScreen(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsState()
     val localLeaveList = remember { mutableStateListOf<LocalLeaveRequestItem>() }
@@ -144,42 +146,44 @@ fun LeaveRequestScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Form Section
-            AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
-                LeaveSubmitFormComponent(
-                    onSubmit = { newDate, newDesc, newStatus, newType ->
-                        localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
-                        viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
-                        showForm = false
-                    },
-                    onCancel = { showForm = false }
-                )
-            }
-
-            if (!showForm) {
-                val combinedList = remember(localLeaveList.size, dbRequests.size) {
-                    val dbMapped = dbRequests.map { req ->
-                        LocalLeaveRequestItem(id = req.id.toString(), date = req.startDate, description = req.reason, status = req.status, type = req.requestType)
-                    }
-                    (localLeaveList + dbMapped).distinctBy { it.id }.sortedByDescending { it.date }
+            if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
+                // Form Section (Compact)
+                AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
+                    LeaveSubmitFormComponent(
+                        onSubmit = { newDate, newDesc, newStatus, newType ->
+                            localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
+                            viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
+                            showForm = false
+                        },
+                        onCancel = { showForm = false }
+                    )
                 }
 
-                if (combinedList.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Text(tr("Talep bulunamadı.", "No requests found."), color = MaterialTheme.colorScheme.secondary)
+                if (!showForm) {
+                    val combinedList = getCombinedList(localLeaveList, dbRequests)
+                    if (combinedList.isEmpty()) {
+                        EmptyListMessage()
+                    } else {
+                        RequestList(combinedList) { itemToDelete = it }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(combinedList, key = { it.id }) { item ->
-                            LeaveRequestCardItem(
-                                item = item,
-                                onDelete = {
-                                    itemToDelete = item
-                                }
-                            )
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        LeaveSubmitFormComponent(
+                            onSubmit = { newDate, newDesc, newStatus, newType ->
+                                localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
+                                viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
+                            },
+                            onCancel = { /* No cancel needed in side-by-side */ }
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1.2f)) {
+                        val combinedList = getCombinedList(localLeaveList, dbRequests)
+                        if (combinedList.isEmpty()) {
+                            EmptyListMessage()
+                        } else {
+                            RequestList(combinedList) { itemToDelete = it }
                         }
                     }
                 }
@@ -216,6 +220,44 @@ fun LeaveRequestScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun getCombinedList(
+    localLeaveList: List<LocalLeaveRequestItem>,
+    dbRequests: List<com.example.data.local.entity.LeaveRequestEntity>
+): List<LocalLeaveRequestItem> {
+    return remember(localLeaveList.size, dbRequests.size) {
+        val dbMapped = dbRequests.map { req ->
+            LocalLeaveRequestItem(id = req.id.toString(), date = req.startDate, description = req.reason, status = req.status, type = req.requestType)
+        }
+        (localLeaveList + dbMapped).distinctBy { it.id }.sortedByDescending { it.date }
+    }
+}
+
+@Composable
+private fun EmptyListMessage() {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Text(tr("Talep bulunamadı.", "No requests found."), color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+@Composable
+private fun RequestList(
+    combinedList: List<LocalLeaveRequestItem>,
+    onDeleteItem: (LocalLeaveRequestItem) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(combinedList, key = { it.id }) { item ->
+            LeaveRequestCardItem(
+                item = item,
+                onDelete = { onDeleteItem(item) }
+            )
+        }
     }
 }
 

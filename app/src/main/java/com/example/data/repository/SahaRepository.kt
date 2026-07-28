@@ -48,12 +48,17 @@ class SahaRepository(private val context: Context) {
             userDao.insertOrUpdateUser(
                 UserProfileEntity(
                     id = 1,
+                    firstName = "Örnek",
+                    lastName = "Personel",
                     fullName = "Örnek Personel",
+                    position = "Saha Teknisyeni",
+                    gender = "Erkek",
                     tcNo = "10000000000",
                     roleTitle = "Saha Personeli (Demo)",
                     activationCode = PreferencesManager.DEFAULT_ACTIVATION_CODE,
                     isActivated = false,
-                    isBiometricEnabled = true
+                    isBiometricEnabled = true,
+                    isCheckedIn = false
                 )
             )
         }
@@ -263,6 +268,16 @@ class SahaRepository(private val context: Context) {
         )
         eventLogDao.insertEventLog(log)
         NotificationHelper.sendPrivacySafeAlert(context, title)
+    }
+
+    suspend fun deactivateUser() = withContext(Dispatchers.IO) {
+        userDao.deactivateUser()
+        addEventLog(
+            type = "APP_DEACTIVATED",
+            title = "Cihaz Devre Dışı",
+            detail = "Personel uygulama oturumunu tamamen sonlandırdı ve cihazı deaktive etti.",
+            status = "UYARI"
+        )
     }
 
     suspend fun deleteLeaveRequest(id: Long) = withContext(Dispatchers.IO) {

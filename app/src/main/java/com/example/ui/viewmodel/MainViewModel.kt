@@ -193,7 +193,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun startIdCardOcrScan(fullNameInput: String = "", preset: com.example.util.IdCardPreset? = null) {
         viewModelScope.launch {
             _ocrIsLoading.value = true
-            val result = OcrCardScanner.processIdCardScan(fallbackNameInput = fullNameInput, preset = preset)
+            
+            // If we already have a real OCR result and no preset is selected, keep the real one
+            val existingResult = _ocrScanningState.value
+            val result = if (preset == null && existingResult != null) {
+                delay(500.milliseconds) // Small UX delay
+                existingResult
+            } else {
+                OcrCardScanner.processIdCardScan(fallbackNameInput = fullNameInput, preset = preset)
+            }
+            
             _ocrScanningState.value = result
             _ocrIsLoading.value = false
 
@@ -224,14 +233,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun activateWithCode(code: String): Boolean {
         if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE || code.trim() == "123456") {
             viewModelScope.launch {
-                val scannedName = _ocrScanningState.value?.fullName ?: "AHMET CAN YILMAZ"
-                val scannedTc = _ocrScanningState.value?.tcNo ?: "10293847562"
+                val ocrResult = _ocrScanningState.value
+                val scannedName = ocrResult?.fullName ?: "AHMET CAN YILMAZ"
+                val scannedTc = ocrResult?.tcNo ?: "10293847562"
+                val scannedGender = ocrResult?.gender ?: "Belirtilmemiş"
 
                 repository.userDao.insertOrUpdateUser(
                     UserProfileEntity(
                         id = 1,
                         fullName = scannedName,
                         tcNo = scannedTc,
+                        gender = scannedGender,
                         activationCode = code.trim(),
                         isActivated = true,
                         isBiometricEnabled = true,
@@ -383,6 +395,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleGeofenceActive(id: Long, isActive: Boolean) {
         viewModelScope.launch {
             repository.geofenceDao.setGeofenceActive(id, isActive)
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repository.deactivateUser()
+            _isAuthenticated.value = false
         }
     }
 

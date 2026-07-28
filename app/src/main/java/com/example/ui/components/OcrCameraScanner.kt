@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,7 +73,8 @@ fun OcrCameraScannerModal(
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     
-    var selectedPreset by remember { mutableStateOf<IdCardPreset?>(OcrCardScanner.availablePresets[0]) }
+    var selectedPreset by remember { mutableStateOf<IdCardPreset?>(null) }
+    val liveOcrResult by viewModel.ocrScanningState.collectAsState()
 
     val infiniteTransition = rememberInfiniteTransition()
     val scanLineY by infiniteTransition.animateFloat(
@@ -113,7 +116,7 @@ fun OcrCameraScannerModal(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = tr("OCR Kimlik Kartı Kamerası", "OCR ID Card Camera"),
+                            text = tr("OCR Kimlik", "OCR ID"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -205,14 +208,46 @@ fun OcrCameraScannerModal(
                         }
 
                         // Top Overlay Hint
-                        Text(
-                            text = tr("Kimliğin ön yüzünü hizada tutun", "Keep ID card front aligned"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f),
+                        Column(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
-                        )
+                                .padding(top = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = tr("Kimliğin ön yüzünü hizada tutun", "Keep ID card front aligned"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            
+                            liveOcrResult?.let { result ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CameraAlt,
+                                            contentDescription = null,
+                                            tint = Color.Green,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "${result.fullName} (${result.tcNo})",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.Green,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -256,12 +291,18 @@ fun OcrCameraScannerModal(
                         .fillMaxWidth()
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (liveOcrResult != null && selectedPreset == null) 
+                            Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = tr("Kameradan Tara & OCR Bilgilerini Oku", "Scan Camera & Read OCR Info"),
+                        text = if (liveOcrResult != null && selectedPreset == null)
+                            tr("Tespit Edilen Kimliği Onayla", "Confirm Detected Identity")
+                        else
+                            tr("Kameradan Tara & OCR Bilgilerini Oku", "Scan Camera & Read OCR Info"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )

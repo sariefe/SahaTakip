@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,7 +56,8 @@ import kotlin.math.sqrt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapTrackingScreen(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val locations by viewModel.allLocations.collectAsState()
     val latestLoc by viewModel.latestLocation.collectAsState()
@@ -68,196 +71,66 @@ fun MapTrackingScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Interactive Map Area
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1.2f)
-            ) {
-                CustomMapView(
-                    locations = locations,
-                    currentLocation = latestLoc,
-                    playbackLocation = playbackState.currentLocation,
-                    geofences = geofences
-                )
-
-                // Premium Top Badge
-                Card(
+        if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Interactive Map Area
+                Box(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.TopStart),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        .fillMaxWidth()
+                        .weight(1.2f)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(StatusGreen, shape = CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${tr("Rota Takibi", "Route Tracking")}: ${locations.size} pts",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    MapArea(locations, latestLoc, geofences, playbackState)
+                }
+
+                // Bottom Panel: Telemetry & Controls
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp)
+                ) {
+                    MapControls(
+                        viewModel = viewModel,
+                        locations = locations,
+                        playbackState = playbackState,
+                        geofences = geofences,
+                        onAddGeofence = { showAddGeofenceDialog = true },
+                        onDeleteGeofence = { geofenceToDelete = it }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
-
-            // Bottom Panel: Telemetry & Controls
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp)
-            ) {
-                // QUICK TELEMETRY ROW
-                val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
-                val avgSpeed = remember(locations) {
-                    if (locations.isNotEmpty()) locations.map { it.speed }.average() else 0.0
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+        } else {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .fillMaxHeight()
                 ) {
-                    TelemetryCard(
-                        modifier = Modifier.weight(1f),
-                        label = tr("Mesafe", "Distance"),
-                        value = "${String.format("%.1f", totalDistKm)} km",
-                        icon = Icons.Default.Route,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    TelemetryCard(
-                        modifier = Modifier.weight(1f),
-                        label = tr("Ort. Hız", "Avg Speed"),
-                        value = "${avgSpeed.toInt()} km/h",
-                        icon = Icons.Default.Speed,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+                    MapArea(locations, latestLoc, geofences, playbackState)
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // COMPACT PLAYBACK CONTROLS
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                tr("Güzergah Oynat", "Route Playback"),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                listOf(1, 2, 4).forEach { multiplier ->
-                                    val isSelected = playbackState.speedMultiplier == multiplier.toFloat()
-                                    Surface(
-                                        modifier = Modifier
-                                            .padding(start = 4.dp)
-                                            .clickable { viewModel.setPlaybackSpeed(multiplier.toFloat()) },
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                                    ) {
-                                        Text(
-                                            text = "${multiplier}x",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Slider(
-                            value = playbackState.progress,
-                            onValueChange = { viewModel.seekPlaybackProgress(it) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${tr("İlerleme", "Progress")}: %${(playbackState.progress * 100).toInt()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-
-                            IconButton(
-                                onClick = {
-                                    if (playbackState.isPlaying) viewModel.pauseRoutePlayback()
-                                    else viewModel.startRoutePlayback()
-                                },
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(
-                                    imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // GEOFENCE SECTION
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = tr("Güvenli Bölgeler", "Safe Zones"),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                    MapControls(
+                        viewModel = viewModel,
+                        locations = locations,
+                        playbackState = playbackState,
+                        geofences = geofences,
+                        onAddGeofence = { showAddGeofenceDialog = true },
+                        onDeleteGeofence = { geofenceToDelete = it }
                     )
-                    TextButton(onClick = { showAddGeofenceDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(tr("Bölge Ekle", "Add Zone"), style = MaterialTheme.typography.labelLarge)
-                    }
                 }
-
-                geofences.forEach { zone ->
-                    GeofenceItem(
-                        zoneName = zone.name,
-                        details = "${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
-                        isActive = zone.isActive,
-                        onToggle = { active -> viewModel.toggleGeofenceActive(zone.id, active) },
-                        onDelete = { geofenceToDelete = zone.id }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                
-                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
@@ -298,6 +171,195 @@ fun MapTrackingScreen(
                 showAddGeofenceDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun MapArea(
+    locations: List<LocationEntity>,
+    latestLoc: LocationEntity?,
+    geofences: List<com.example.data.local.entity.GeofenceZoneEntity>,
+    playbackState: com.example.ui.viewmodel.PlaybackState
+) {
+    CustomMapView(
+        locations = locations,
+        currentLocation = latestLoc,
+        playbackLocation = playbackState.currentLocation,
+        geofences = geofences
+    )
+
+    // Premium Top Badge
+    Card(
+        modifier = Modifier
+            .padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(StatusGreen, shape = CircleShape)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${tr("Rota Takibi", "Route Tracking")}: ${locations.size} pts",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@SuppressLint("DefaultLocale")
+@Composable
+private fun MapControls(
+    viewModel: MainViewModel,
+    locations: List<LocationEntity>,
+    playbackState: com.example.ui.viewmodel.PlaybackState,
+    geofences: List<com.example.data.local.entity.GeofenceZoneEntity>,
+    onAddGeofence: () -> Unit,
+    onDeleteGeofence: (Long) -> Unit
+) {
+    // QUICK TELEMETRY ROW
+    val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
+    val avgSpeed = remember(locations) {
+        if (locations.isNotEmpty()) locations.map { it.speed }.average() else 0.0
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TelemetryCard(
+            modifier = Modifier.weight(1f),
+            label = tr("Mesafe", "Distance"),
+            value = "${String.format("%.1f", totalDistKm)} km",
+            icon = Icons.Default.Route,
+            color = MaterialTheme.colorScheme.primary
+        )
+        TelemetryCard(
+            modifier = Modifier.weight(1f),
+            label = tr("Ort. Hız", "Avg Speed"),
+            value = "${avgSpeed.toInt()} km/h",
+            icon = Icons.Default.Speed,
+            color = MaterialTheme.colorScheme.secondary
+        )
+    }
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    // COMPACT PLAYBACK CONTROLS
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    tr("Güzergah Oynat", "Route Playback"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    listOf(1, 2, 4).forEach { multiplier ->
+                        val isSelected = playbackState.speedMultiplier == multiplier.toFloat()
+                        Surface(
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .clickable { viewModel.setPlaybackSpeed(multiplier.toFloat()) },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                        ) {
+                            Text(
+                                text = "${multiplier}x",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Slider(
+                value = playbackState.progress,
+                onValueChange = { viewModel.seekPlaybackProgress(it) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${tr("İlerleme", "Progress")}: %${(playbackState.progress * 100).toInt()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+
+                IconButton(
+                    onClick = {
+                        if (playbackState.isPlaying) viewModel.pauseRoutePlayback()
+                        else viewModel.startRoutePlayback()
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(
+                        imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    // GEOFENCE SECTION
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = tr("Güvenli Bölgeler", "Safe Zones"),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
+        )
+        TextButton(onClick = onAddGeofence) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(tr("Bölge Ekle", "Add Zone"), style = MaterialTheme.typography.labelLarge)
+        }
+    }
+
+    geofences.forEach { zone ->
+        GeofenceItem(
+            zoneName = zone.name,
+            details = "${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
+            isActive = zone.isActive,
+            onToggle = { active -> viewModel.toggleGeofenceActive(zone.id, active) },
+            onDelete = { onDeleteGeofence(zone.id) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 

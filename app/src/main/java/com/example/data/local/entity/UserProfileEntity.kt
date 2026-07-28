@@ -6,12 +6,17 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "user_profile")
 data class UserProfileEntity(
     @PrimaryKey val id: Int = 1,
+    val firstName: String = "",
+    val lastName: String = "",
     val fullName: String = "",
+    val position: String = "Saha Personeli",
+    val gender: String = "Belirtilmemiş",
     val tcNo: String = "",
     val roleTitle: String = "Saha Saha Personeli",
     val activationCode: String = "",
     val isActivated: Boolean = false,
     val isBiometricEnabled: Boolean = true,
+    val isCheckedIn: Boolean = false,
     val registeredAt: Long = System.currentTimeMillis(),
     val lastLoginAt: Long = System.currentTimeMillis()
 )

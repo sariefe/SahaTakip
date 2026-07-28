@@ -9,6 +9,7 @@ data class ScannedIdCardResult(
     val serialNo: String = "A12B34567",
     val birthDate: String = "15.04.1992",
     val validUntil: String = "15.04.2032",
+    val gender: String = "Belirtilmemiş",
     val confidenceScore: Float = 0.98f,
     val rawExtractedText: String = ""
 )
@@ -31,36 +32,48 @@ object OcrCardScanner {
     )
 
     fun parseTextFromIdCard(rawText: String): ScannedIdCardResult? {
-        val lines = rawText.lines().map { it.trim() }
+        val lines = rawText.lines().map { it.trim() }.filter { it.isNotBlank() }
         
-        // Regex for 11-digit TC No
+        // Regex for 11-digit TC No (more robust, might contain OCR errors like 0/O, 1/I)
+        val cleanedText = rawText.replace(Regex("[OI]"), "0") // Basic OCR error correction
         val tcRegex = Regex("\\b[1-9][0-9]{10}\\b")
-        val tcNo = tcRegex.find(rawText)?.value ?: return null
+        val tcNo = tcRegex.find(rawText)?.value ?: tcRegex.find(cleanedText)?.value ?: return null
 
         var surname = ""
         var names = ""
 
         lines.forEachIndexed { index, line ->
-            // Use ignoreCase = true to handle Turkish 'i/İ' and 'ı/I' issues correctly during matching
             if (line.contains("SOYADI", ignoreCase = true) || line.contains("SURNAME", ignoreCase = true)) {
                 surname = if (line.substringAfter(":", "").isNotBlank()) {
                     line.substringAfter(":").trim()
                 } else if (index + 1 < lines.size) {
-                    lines[index + 1]
+                    lines[index + 1].substringBefore(" ").trim()
                 } else ""
             }
             if (line.contains("ADI", ignoreCase = true) || line.contains("GIVEN NAMES", ignoreCase = true)) {
                 names = if (line.substringAfter(":", "").isNotBlank()) {
                     line.substringAfter(":").trim()
                 } else if (index + 1 < lines.size) {
-                    lines[index + 1]
+                    lines[index + 1].trim()
                 } else ""
             }
+        }
+
+        val genderRaw = if (rawText.contains("CINSIYET", ignoreCase = true) || rawText.contains("GENDER", ignoreCase = true)) {
+            val afterLabel = rawText.split(Regex("CINSIYET|GENDER", RegexOption.IGNORE_CASE)).lastOrNull()?.trim()
+            afterLabel?.take(3)?.split("/")?.firstOrNull()?.trim() ?: ""
+        } else ""
+
+        val gender = when {
+            genderRaw.startsWith("E", ignoreCase = true) || genderRaw.startsWith("M", ignoreCase = true) -> "Erkek"
+            genderRaw.startsWith("K", ignoreCase = true) || genderRaw.startsWith("F", ignoreCase = true) -> "Kadın"
+            else -> "Belirtilmemiş"
         }
 
         return ScannedIdCardResult(
             fullName = "${names.trim()} ${surname.trim()}".trim().ifBlank { "BİLİNMEYEN PERSONEL" },
             tcNo = tcNo,
+            gender = gender,
             confidenceScore = 0.95f,
             rawExtractedText = rawText
         )
@@ -95,6 +108,7 @@ object OcrCardScanner {
                 serialNo = preset.serialNo,
                 birthDate = "12.08.1990",
                 validUntil = "12.08.2030",
+                gender = if (preset.fullName.contains("AYŞE") || preset.fullName.contains("ZEHRA")) "Kadın" else "Erkek",
                 confidenceScore = 0.985f,
                 rawExtractedText = rawText
             )
@@ -123,6 +137,7 @@ object OcrCardScanner {
                 serialNo = serial,
                 birthDate = "15.04.1992",
                 validUntil = "15.04.2032",
+                gender = "Erkek", // Default for fallback
                 confidenceScore = 0.978f,
                 rawExtractedText = rawText
             )

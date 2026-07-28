@@ -20,4 +20,7 @@ interface UserDao {
 
     @Query("UPDATE user_profile SET isBiometricEnabled = :enabled WHERE id = 1")
     suspend fun updateBiometricPreference(enabled: Boolean)
+
+    @Query("UPDATE user_profile SET isActivated = 0 WHERE id = 1")
+    suspend fun deactivateUser()
 }

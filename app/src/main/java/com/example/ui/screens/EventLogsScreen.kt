@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,7 +62,8 @@ import java.util.Locale
 
 @Composable
 fun EventLogsScreen(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val eventLogs by viewModel.allEventLogs.collectAsState()
     var selectedLogForNote by remember { mutableStateOf<EventLogEntity?>(null) }
@@ -103,19 +108,39 @@ fun EventLogsScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(eventLogs) { log ->
-                        EventLogCard(
-                            log = log,
-                            dateFormat = dateFormat,
-                            onAddNote = {
-                                selectedLogForNote = log
-                                noteInputText = log.note
-                            }
-                        )
+                if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(eventLogs) { log ->
+                            EventLogCard(
+                                log = log,
+                                dateFormat = dateFormat,
+                                onAddNote = {
+                                    selectedLogForNote = log
+                                    noteInputText = log.note
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(eventLogs) { log ->
+                            EventLogCard(
+                                log = log,
+                                dateFormat = dateFormat,
+                                onAddNote = {
+                                    selectedLogForNote = log
+                                    noteInputText = log.note
+                                }
+                            )
+                        }
                     }
                 }
             }
