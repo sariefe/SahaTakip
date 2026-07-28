@@ -42,7 +42,7 @@ class SahaRepository(private val context: Context) {
     val allGeofences: Flow<List<GeofenceZoneEntity>> = geofenceDao.getAllGeofences()
     val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
 
-    suspend fun initializeDefaultDataIfEmpty() = withContext(Dispatchers.IO) {
+    suspend fun initializeAndSyncDefaultData() = withContext(Dispatchers.IO) {
         val currentUser = userDao.getUserProfile().firstOrNull()
         if (currentUser == null) {
             userDao.insertOrUpdateUser(
@@ -59,35 +59,39 @@ class SahaRepository(private val context: Context) {
         }
 
 
+        // Geofence Senkronizasyonu: Liste boş olmasa bile varsayılan bölgeleri kontrol et
         val geofenceList = geofenceDao.getActiveGeofences()
-        if (geofenceList.isEmpty()) {
-            geofenceDao.insertGeofence(
-                GeofenceZoneEntity(
-                    name = "Merkez Bölge (Genel Müdürlük)",
-                    centerLat = 41.0082,
-                    centerLng = 28.9784,
-                    radiusMeters = 800.0,
-                    isActive = true
-                )
+        val existingNames = geofenceList.map { it.name }
+
+        val defaultZones = listOf(
+            GeofenceZoneEntity(
+                name = "Merkez Bölge (Genel Müdürlük)",
+                centerLat = 41.0082,
+                centerLng = 28.9784,
+                radiusMeters = 800.0,
+                isActive = true
+            ),
+            GeofenceZoneEntity(
+                name = "Saha Şantiye A2 Bölgesi",
+                centerLat = 41.0150,
+                centerLng = 28.9850,
+                radiusMeters = 500.0,
+                isActive = true
+            ),
+            GeofenceZoneEntity(
+                name = "Sirket Ana Kampüs",
+                centerLat = 40.0201,
+                centerLng = 29.1111,
+                radiusMeters = 600.0,
+                isActive = true
             )
-            geofenceDao.insertGeofence(
-                GeofenceZoneEntity(
-                    name = "Saha Şantiye A2 Bölgesi",
-                    centerLat = 41.0150,
-                    centerLng = 28.9850,
-                    radiusMeters = 500.0,
-                    isActive = true
-                )
-            )
-            geofenceDao.insertGeofence(
-                GeofenceZoneEntity(
-                    name = "Sirket Ana Kampüs",
-                    centerLat = 40.0201,
-                    centerLng = 29.1111,
-                    radiusMeters = 600.0,
-                    isActive = true
-                )
-            )
+        )
+
+        defaultZones.forEach { zone ->
+            if (!existingNames.contains(zone.name)) {
+                geofenceDao.insertGeofence(zone)
+                android.util.Log.d("SahaRepository", "Yeni geofence eklendi: ${zone.name}")
+            }
         }
 
         val locations = locationDao.getUnsyncedLocations()

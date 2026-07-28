@@ -101,7 +101,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            repository.initializeDefaultDataIfEmpty()
+            repository.initializeAndSyncDefaultData()
             updateDeviceStatus()
         }
     }
