@@ -34,29 +34,48 @@ object OcrCardScanner {
     fun parseTextFromIdCard(rawText: String): ScannedIdCardResult? {
         val lines = rawText.lines().map { it.trim() }.filter { it.isNotBlank() }
         
-        // Regex for 11-digit TC No (more robust, might contain OCR errors like 0/O, 1/I)
-        val cleanedText = rawText.replace(Regex("[OI]"), "0") // Basic OCR error correction
+        // Better OCR correction for TC No
+        val cleanedTextForTc = rawText.replace("O", "0").replace("I", "1").replace("İ", "1").replace("l", "1")
         val tcRegex = Regex("\\b[1-9][0-9]{10}\\b")
-        val tcNo = tcRegex.find(rawText)?.value ?: tcRegex.find(cleanedText)?.value ?: return null
+        val tcNo = tcRegex.find(cleanedTextForTc)?.value ?: return null
 
         var surname = ""
         var names = ""
 
         lines.forEachIndexed { index, line ->
-            if (line.contains("SOYADI", ignoreCase = true) || line.contains("SURNAME", ignoreCase = true)) {
-                surname = if (line.substringAfter(":", "").isNotBlank()) {
-                    line.substringAfter(":").trim()
+            val upperLine = line.uppercase(java.util.Locale.forLanguageTag("tr"))
+            
+            if (upperLine.contains("SOYADI") || upperLine.contains("SURNAME")) {
+                val extracted = line.substringAfter(":").trim()
+                surname = if (extracted.isNotBlank() && extracted.length > 1) {
+                    extracted
                 } else if (index + 1 < lines.size) {
-                    lines[index + 1].substringBefore(" ").trim()
+                    lines[index + 1].split(" ").first().trim()
                 } else ""
             }
-            if (line.contains("ADI", ignoreCase = true) || line.contains("GIVEN NAMES", ignoreCase = true)) {
-                names = if (line.substringAfter(":", "").isNotBlank()) {
-                    line.substringAfter(":").trim()
+            
+            if (upperLine.contains("ADI") || upperLine.contains("GIVEN NAMES")) {
+                val extracted = line.substringAfter(":").trim()
+                names = if (extracted.isNotBlank() && extracted.length > 1) {
+                    extracted
                 } else if (index + 1 < lines.size) {
                     lines[index + 1].trim()
                 } else ""
             }
+        }
+
+        // Fallback for names if not found by labels (Common OCR issue)
+        if (names.isBlank() && surname.isBlank() && lines.size > 3) {
+             // Often name/surname are in the first few lines in larger font
+             // This is a very basic heuristic
+             val potentialLine = lines.find { it.length > 5 && !it.contains("TÜRKİYE", ignoreCase = true) && !it.contains("KİMLİK", ignoreCase = true) }
+             if (potentialLine != null) {
+                 val parts = potentialLine.split(" ")
+                 if (parts.size >= 2) {
+                     surname = parts.last()
+                     names = parts.dropLast(1).joinToString(" ")
+                 }
+             }
         }
 
         val genderRaw = if (rawText.contains("CINSIYET", ignoreCase = true) || rawText.contains("GENDER", ignoreCase = true)) {
@@ -71,7 +90,7 @@ object OcrCardScanner {
         }
 
         return ScannedIdCardResult(
-            fullName = "${names.trim()} ${surname.trim()}".trim().ifBlank { "BİLİNMEYEN PERSONEL" },
+            fullName = "${names.trim()} ${surname.trim()}".trim().ifBlank { "BİLİNMEYEN PERSONEL" }.uppercase(java.util.Locale.forLanguageTag("tr")),
             tcNo = tcNo,
             gender = gender,
             confidenceScore = 0.95f,

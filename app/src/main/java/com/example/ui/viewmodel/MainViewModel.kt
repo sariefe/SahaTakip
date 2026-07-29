@@ -1,7 +1,9 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -46,8 +48,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val allLocations: StateFlow<List<LocationEntity>> = repository.allLocations
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val locationsLast24h: StateFlow<List<LocationEntity>> = repository.locationDao.getLocationsSince(
+        System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val latestLocation: StateFlow<LocationEntity?> = repository.latestLocation
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -104,6 +107,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.initializeAndSyncDefaultData()
             updateDeviceStatus()
         }
+        
+        // Continuous connectivity monitoring
+        viewModelScope.launch {
+            com.example.util.ConnectivityObserver(getApplication()).observe().collect { status ->
+                val isOnline = status == com.example.util.ConnectivityStatus.Available
+                _deviceStatus.value = _deviceStatus.value.copy(isInternetConnected = isOnline)
+                
+                if (isOnline) {
+                    triggerOfflineSync()
+                }
+            }
+        }
+
+        // Monitor GPS / Provider changes
+        val gpsReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                updateDeviceStatus()
+            }
+        }
+        getApplication<Application>().registerReceiver(
+            gpsReceiver,
+            IntentFilter(android.location.LocationManager.PROVIDERS_CHANGED_ACTION)
+        )
+
+        // Monitor Power Save Mode
+        val powerReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                updateDeviceStatus()
+                val isPowerSave = PermissionUtils.isPowerSaveMode(context)
+                viewModelScope.launch {
+                    repository.addEventLog(
+                        type = "POWER_MODE_CHANGED",
+                        title = if (isPowerSave) "Düşük Güç Modu Aktif" else "Normal Güç Moduna Geçildi",
+                        detail = if (isPowerSave) 
+                            "Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir."
+                        else 
+                            "Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.",
+                        status = if (isPowerSave) "UYARI" else "BİLGİ"
+                    )
+                }
+            }
+        }
+        getApplication<Application>().registerReceiver(
+            powerReceiver,
+            IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+        )
     }
 
     fun updateDeviceStatus() {
@@ -135,6 +184,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
                 isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
                 isBatteryOptimizationIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context),
+                isPowerSaveModeActive = PermissionUtils.isPowerSaveMode(context),
                 batteryLevel = batteryPct,
                 isBatteryCharging = isCharging,
                 isRooted = isRooted,
@@ -298,7 +348,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startRoutePlayback() {
-        val points = allLocations.value.reversed()
+        val points = locationsLast24h.value
         if (points.isEmpty()) return
 
         playbackJob?.cancel()
@@ -336,7 +386,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun seekPlaybackProgress(progress: Float) {
-        val points = allLocations.value.reversed()
+        val points = locationsLast24h.value
         if (points.isEmpty()) return
         val targetIdx = (progress * (points.size - 1)).toInt().coerceIn(0, points.size - 1)
         _playbackState.value = _playbackState.value.copy(

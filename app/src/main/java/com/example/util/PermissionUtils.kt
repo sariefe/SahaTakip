@@ -52,6 +52,11 @@ object PermissionUtils {
         return powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 
+    fun isPowerSaveMode(context: Context): Boolean {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        return powerManager.isPowerSaveMode
+    }
+
     fun getRequiredPermissions(): List<String> {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,

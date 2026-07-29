@@ -315,7 +315,7 @@ class SahaRepository(private val context: Context) {
                 if (logIds.isNotEmpty()) eventLogDao.markAsSynced(logIds)
                 if (reportIds.isNotEmpty()) offlineReportDao.markAsSynced(reportIds)
 
-                // Add log for successful sync
+
                 eventLogDao.insertEventLog(
                     EventLogEntity(
                         type = "SYNC_SUCCESS",

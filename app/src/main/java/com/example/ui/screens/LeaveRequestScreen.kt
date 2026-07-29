@@ -45,10 +45,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,16 +63,9 @@ import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
-// Data model for local state storage
-data class LocalLeaveRequestItem(
-    val id: String = UUID.randomUUID().toString(),
-    val date: String,
-    val description: String,
-    val status: String,
-    val type: String
-)
+// Data model for local state storage - DEPRECATED: Using Room exclusively
+// data class LocalLeaveRequestItem(...)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,26 +74,9 @@ fun LeaveRequestScreen(
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsState()
-    val localLeaveList = remember { mutableStateListOf<LocalLeaveRequestItem>() }
-    
-    val currentLang by viewModel.language.collectAsState()
-    
-    // Seed initial demo data if empty
-    LaunchedEffect(Unit) {
-        if (localLeaveList.isEmpty()) {
-            val sickLeave = if (currentLang == "en") "Sick Leave" else "Sağlık İzni"
-            val excuseLeave = if (currentLang == "en") "Excuse Leave" else "Mazeret İzni"
-            val desc1 = if (currentLang == "en") "Periodic health checkup." else "Periyodik sağlık kontrolü."
-            val desc2 = if (currentLang == "en") "Field excuse leave request." else "Saha mazeret izni talebi."
-            
-            // Use static IDs for demo data to avoid issues with delete logic
-            localLeaveList.add(LocalLeaveRequestItem(id = "demo1", date = "22.07.2026", description = desc1, status = "ONAYLANDI", type = sickLeave))
-            localLeaveList.add(LocalLeaveRequestItem(id = "demo2", date = "25.07.2026", description = desc2, status = "BEKLEMEDE", type = excuseLeave))
-        }
-    }
 
     var showForm by remember { mutableStateOf(false) }
-    var itemToDelete by remember { mutableStateOf<LocalLeaveRequestItem?>(null) }
+    var itemToDelete by remember { mutableStateOf<com.example.data.local.entity.LeaveRequestEntity?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -150,8 +124,7 @@ fun LeaveRequestScreen(
                 // Form Section (Compact)
                 AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
                     LeaveSubmitFormComponent(
-                        onSubmit = { newDate, newDesc, newStatus, newType ->
-                            localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
+                        onSubmit = { newDate, newDesc, _, newType ->
                             viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
                             showForm = false
                         },
@@ -160,30 +133,27 @@ fun LeaveRequestScreen(
                 }
 
                 if (!showForm) {
-                    val combinedList = getCombinedList(localLeaveList, dbRequests)
-                    if (combinedList.isEmpty()) {
+                    if (dbRequests.isEmpty()) {
                         EmptyListMessage()
                     } else {
-                        RequestList(combinedList) { itemToDelete = it }
+                        RequestList(dbRequests) { itemToDelete = it }
                     }
                 }
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         LeaveSubmitFormComponent(
-                            onSubmit = { newDate, newDesc, newStatus, newType ->
-                                localLeaveList.add(0, LocalLeaveRequestItem(date = newDate, description = newDesc, status = newStatus, type = newType))
+                            onSubmit = { newDate, newDesc, _, newType ->
                                 viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
                             },
                             onCancel = { /* No cancel needed in side-by-side */ }
                         )
                     }
                     Column(modifier = Modifier.weight(1.2f)) {
-                        val combinedList = getCombinedList(localLeaveList, dbRequests)
-                        if (combinedList.isEmpty()) {
+                        if (dbRequests.isEmpty()) {
                             EmptyListMessage()
                         } else {
-                            RequestList(combinedList) { itemToDelete = it }
+                            RequestList(dbRequests) { itemToDelete = it }
                         }
                     }
                 }
@@ -201,11 +171,7 @@ fun LeaveRequestScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        // Handle removal from both local and DB
-                        localLeaveList.removeIf { it.id == item.id }
-                        item.id.toLongOrNull()?.let { dbId ->
-                            viewModel.deleteLeaveRequest(dbId)
-                        }
+                        viewModel.deleteLeaveRequest(item.id)
                         itemToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = StatusRed),
@@ -224,19 +190,6 @@ fun LeaveRequestScreen(
 }
 
 @Composable
-private fun getCombinedList(
-    localLeaveList: List<LocalLeaveRequestItem>,
-    dbRequests: List<com.example.data.local.entity.LeaveRequestEntity>
-): List<LocalLeaveRequestItem> {
-    return remember(localLeaveList.size, dbRequests.size) {
-        val dbMapped = dbRequests.map { req ->
-            LocalLeaveRequestItem(id = req.id.toString(), date = req.startDate, description = req.reason, status = req.status, type = req.requestType)
-        }
-        (localLeaveList + dbMapped).distinctBy { it.id }.sortedByDescending { it.date }
-    }
-}
-
-@Composable
 private fun EmptyListMessage() {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Text(tr("Talep bulunamadı.", "No requests found."), color = MaterialTheme.colorScheme.secondary)
@@ -245,14 +198,14 @@ private fun EmptyListMessage() {
 
 @Composable
 private fun RequestList(
-    combinedList: List<LocalLeaveRequestItem>,
-    onDeleteItem: (LocalLeaveRequestItem) -> Unit
+    requests: List<com.example.data.local.entity.LeaveRequestEntity>,
+    onDeleteItem: (com.example.data.local.entity.LeaveRequestEntity) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(combinedList, key = { it.id }) { item ->
+        items(requests, key = { it.id }) { item ->
             LeaveRequestCardItem(
                 item = item,
                 onDelete = { onDeleteItem(item) }
@@ -340,7 +293,7 @@ fun LeaveSubmitFormComponent(
 }
 
 @Composable
-fun LeaveRequestCardItem(item: LocalLeaveRequestItem, onDelete: () -> Unit) {
+fun LeaveRequestCardItem(item: com.example.data.local.entity.LeaveRequestEntity, onDelete: () -> Unit) {
     val (color, icon) = when (item.status.uppercase(Locale.ROOT)) {
         "ONAYLANDI" -> StatusGreen to Icons.Default.Verified
         "REDDEDİLDİ" -> StatusRed to Icons.Default.Error
@@ -356,8 +309,8 @@ fun LeaveRequestCardItem(item: LocalLeaveRequestItem, onDelete: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text(text = item.type, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(text = item.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                    Text(text = item.requestType, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(text = item.startDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 }
                 
                 Surface(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
@@ -370,7 +323,7 @@ fun LeaveRequestCardItem(item: LocalLeaveRequestItem, onDelete: () -> Unit) {
             }
             
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = item.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = item.reason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onDelete) {

@@ -59,7 +59,7 @@ fun MapTrackingScreen(
     viewModel: MainViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
-    val locations by viewModel.allLocations.collectAsState()
+    val locations by viewModel.locationsLast24h.collectAsState()
     val latestLoc by viewModel.latestLocation.collectAsState()
     val geofences by viewModel.allGeofences.collectAsState()
     val playbackState by viewModel.playbackState.collectAsState()

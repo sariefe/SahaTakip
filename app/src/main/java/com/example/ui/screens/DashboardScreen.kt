@@ -139,7 +139,45 @@ fun DashboardScreen(
             // CRITICAL WARNINGS
             if (deviceStatus.isRooted || deviceStatus.hasMissingCriticalPermissions) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        .clickable {
+                            when {
+                                !deviceStatus.isGpsEnabled -> {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                    } catch (_: Exception) {}
+                                }
+                                !deviceStatus.isNotificationGranted -> {
+                                    try {
+                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            }
+                                            context.startActivity(intent)
+                                        } else {
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = android.net.Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            context.startActivity(intent)
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                                !deviceStatus.isBackgroundLocationGranted -> {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = android.net.Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
+                                !deviceStatus.isBatteryOptimizationIgnored -> {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                        },
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = StatusRed.copy(alpha = 0.1f))
                 ) {
@@ -147,12 +185,17 @@ fun DashboardScreen(
                         Icon(Icons.Default.GppBad, contentDescription = null, tint = StatusRed)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            val title = if (deviceStatus.isRooted) tr("Güvenlik Riski", "Security Risk") else tr("Eksik İzinler", "Missing Permissions")
+                            val title = when {
+                                deviceStatus.isRooted -> tr("Güvenlik Riski", "Security Risk")
+                                deviceStatus.isPowerSaveModeActive -> tr("Düşük Güç Modu", "Power Save Mode")
+                                else -> tr("Eksik İzinler", "Missing Permissions")
+                            }
                             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = StatusRed)
-                            Text(
-                                tr("Sistem güvenliği veya takibi için aksiyon almanız gerekiyor.", "Action required for system security or tracking."),
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            val desc = when {
+                                deviceStatus.isPowerSaveModeActive -> tr("Cihaz tasarruf modunda. Takip hassasiyeti azalabilir. Kapatmak için dokunun.", "Device in save mode. Tracking accuracy may decrease. Tap to disable.")
+                                else -> tr("Sistem güvenliği veya takibi için aksiyon almanız gerekiyor. Ayarlara gitmek için dokunun.", "Action required for system security or tracking. Tap to go to settings.")
+                            }
+                            Text(desc, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -181,7 +224,17 @@ fun DashboardScreen(
                         title = tr("GPS", "GPS"),
                         isOk = deviceStatus.isGpsEnabled,
                         icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                        onClick = { viewModel.toggleGpsSimulation() }
+                        onClick = {
+                            if (!deviceStatus.isGpsEnabled) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                } catch (_: Exception) {
+                                    viewModel.toggleGpsSimulation()
+                                }
+                            } else {
+                                viewModel.toggleGpsSimulation()
+                            }
+                        }
                     )
                 }
                 
@@ -191,27 +244,42 @@ fun DashboardScreen(
                     StatusGridItem(
                         modifier = Modifier.weight(1f),
                         title = tr("Arka Plan", "Background"),
-                        isOk = deviceStatus.isBackgroundLocationGranted,
+                        isOk = deviceStatus.isBackgroundExecutionOk,
                         icon = Icons.Default.LocationOn,
                         onClick = {
-                            try {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
+                            if (!deviceStatus.isBackgroundLocationGranted) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            } else if (!deviceStatus.isBatteryOptimizationIgnored || deviceStatus.isPowerSaveModeActive) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+                                } catch (_: Exception) {}
+                            }
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     StatusGridItem(
                         modifier = Modifier.weight(1f),
-                        title = tr("Pil Tasarruf", "Battery Opt"),
-                        isOk = deviceStatus.isBatteryOptimizationIgnored,
-                        icon = Icons.Default.BatteryFull,
+                        title = tr("Bildirimler", "Notifications"),
+                        isOk = deviceStatus.isNotificationGranted,
+                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Info else Icons.Default.Info, // Should ideally be Notifications icon
                         onClick = {
                             try {
-                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                context.startActivity(intent)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                } else {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                }
                             } catch (_: Exception) {}
                         }
                     )
@@ -231,33 +299,58 @@ fun DashboardScreen(
                         title = tr("GPS", "GPS"),
                         isOk = deviceStatus.isGpsEnabled,
                         icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                        onClick = { viewModel.toggleGpsSimulation() }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("Arka Plan", "Background"),
-                        isOk = deviceStatus.isBackgroundLocationGranted,
-                        icon = Icons.Default.LocationOn,
                         onClick = {
-                            try {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                            if (!deviceStatus.isGpsEnabled) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                } catch (_: Exception) {
+                                    viewModel.toggleGpsSimulation()
                                 }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
+                            } else {
+                                viewModel.toggleGpsSimulation()
+                            }
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     StatusGridItem(
                         modifier = Modifier.weight(1f),
-                        title = tr("Pil Tasarruf", "Battery Opt"),
-                        isOk = deviceStatus.isBatteryOptimizationIgnored,
-                        icon = Icons.Default.BatteryFull,
+                        title = tr("Arka Plan", "Background"),
+                        isOk = deviceStatus.isBackgroundExecutionOk,
+                        icon = Icons.Default.LocationOn,
+                        onClick = {
+                            if (!deviceStatus.isBackgroundLocationGranted) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            } else if (!deviceStatus.isBatteryOptimizationIgnored || deviceStatus.isPowerSaveModeActive) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+                                } catch (_: Exception) {}
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    StatusGridItem(
+                        modifier = Modifier.weight(1f),
+                        title = tr("Bildirimler", "Notifications"),
+                        isOk = deviceStatus.isNotificationGranted,
+                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Info else Icons.Default.Info, // Should ideally be Notifications icon
                         onClick = {
                             try {
-                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                context.startActivity(intent)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                } else {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                }
                             } catch (_: Exception) {}
                         }
                     )
