@@ -68,7 +68,7 @@ app/src/main/java/com/example/
 <img width="200" height="500" alt="Screenshot_20260729_150826" src="https://github.com/user-attachments/assets/a6135da0-5ecf-42ef-84a4-53db81ea8c97" />
 
 ## Video Önizleme
-
+<video src="https://github.com/sariefe/SahaTakip/releases/download/video/SahaTakip.webm" width="100%" controls></video>
 
 ---
 *Bu proje, modern Android standartları gözetilerek geliştirilmiştir.*
