@@ -10,6 +10,19 @@ import androidx.core.content.edit
 class PreferencesManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("saha_preferences", Context.MODE_PRIVATE)
 
+    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+        when (key) {
+            KEY_LANGUAGE -> _language.value = sharedPreferences.getString(KEY_LANGUAGE, "tr") ?: "tr"
+            KEY_UPDATE_INTERVAL -> _updateInterval.value = sharedPreferences.getInt(KEY_UPDATE_INTERVAL, 60)
+            KEY_THEME -> _theme.value = sharedPreferences.getString(KEY_THEME, "system") ?: "system"
+            KEY_SERVER_URL -> _mockServerUrl.value = sharedPreferences.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync") ?: ""
+        }
+    }
+
+    init {
+        prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
+
     private val _language = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "tr") ?: "tr")
     val language: StateFlow<String> = _language.asStateFlow()
 

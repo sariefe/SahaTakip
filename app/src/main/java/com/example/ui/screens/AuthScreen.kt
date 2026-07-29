@@ -55,7 +55,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -274,11 +273,10 @@ fun AuthScreen(
                 // BIOMETRIC FALLBACK
                 TextButton(
                     onClick = {
-                        val activity = context as? FragmentActivity
                         val biometricManager = BiometricPromptManager(context)
-                        if (activity != null && biometricManager.checkBiometricAvailability() is BiometricStatus.Available) {
+                        if (biometricManager.checkBiometricAvailability() is BiometricStatus.Available) {
                             biometricManager.showBiometricPrompt(
-                                activity = activity,
+                                context = context,
                                 title = bioTitle,
                                 subtitle = bioSub,
                                 description = bioDesc,

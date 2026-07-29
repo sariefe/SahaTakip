@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -102,7 +103,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val ocrResultBuffer = mutableListOf<String>()
     private var lastOcrTop = -1
     private var lastOcrLeft = -1
-    private val stabilitityThreshold = 5 // Increased for higher reliability
+    private val stabilitityThreshold = 5 
 
     private val _ocrScanSuggested = MutableStateFlow(false)
     val ocrScanSuggested: StateFlow<Boolean> = _ocrScanSuggested.asStateFlow()
@@ -121,6 +122,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val ocrAuthError: StateFlow<String?> = _ocrAuthError.asStateFlow()
 
     private var playbackJob: Job? = null
+
+    private val gpsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            updateDeviceStatus()
+        }
+    }
+
+    private val powerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            updateDeviceStatus()
+            val isPowerSave = PermissionUtils.isPowerSaveMode(context)
+            viewModelScope.launch {
+                repository.addEventLog(
+                    type = "POWER_MODE_CHANGED",
+                    title = if (isPowerSave) "Düşük Güç Modu Aktif" else "Normal Güç Moduna Geçildi",
+                    detail = if (isPowerSave) 
+                        "Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir."
+                    else 
+                        "Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.",
+                    status = if (isPowerSave) "UYARI" else "BİLGİ"
+                )
+            }
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -141,38 +166,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Monitor GPS / Provider changes
-        val gpsReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                updateDeviceStatus()
-            }
-        }
         getApplication<Application>().registerReceiver(
             gpsReceiver,
             IntentFilter(android.location.LocationManager.PROVIDERS_CHANGED_ACTION)
         )
 
         // Monitor Power Save Mode
-        val powerReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                updateDeviceStatus()
-                val isPowerSave = PermissionUtils.isPowerSaveMode(context)
-                viewModelScope.launch {
-                    repository.addEventLog(
-                        type = "POWER_MODE_CHANGED",
-                        title = if (isPowerSave) "Düşük Güç Modu Aktif" else "Normal Güç Moduna Geçildi",
-                        detail = if (isPowerSave) 
-                            "Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir."
-                        else 
-                            "Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.",
-                        status = if (isPowerSave) "UYARI" else "BİLGİ"
-                    )
-                }
-            }
-        }
         getApplication<Application>().registerReceiver(
             powerReceiver,
             IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
         )
+    }
+
+    @SuppressLint("EmptySuperCall")
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            getApplication<Application>().unregisterReceiver(gpsReceiver)
+            getApplication<Application>().unregisterReceiver(powerReceiver)
+        } catch (e: Exception) {
+            android.util.Log.e("MainViewModel", "Error unregistering receivers", e)
+        }
     }
 
     fun updateDeviceStatus() {
@@ -393,13 +407,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
-    fun authenticateWithOcr(scannedStaffId: String): Boolean {
-        val registeredStaffId = userProfile.value?.staffId
+    fun authenticateWithOcr(scannedStaffId: String, ocrResult: ScannedStaffCardResult? = null): Boolean {
+        val currentProfile = userProfile.value
+        val registeredStaffId = currentProfile?.staffId
         return if (scannedStaffId == registeredStaffId) {
             _isAuthenticated.value = true
             _ocrAuthError.value = null
             viewModelScope.launch {
                 repository.userDao.updateLastLogin()
+                
+                // Sync profile with latest OCR scan if available
+                if (ocrResult != null) {
+                    repository.userDao.insertOrUpdateUser(
+                        currentProfile.copy(
+                            firstName = ocrResult.firstName,
+                            lastName = ocrResult.lastName,
+                            fullName = ocrResult.fullName,
+                            department = ocrResult.department
+                        )
+                    )
+                }
+
                 repository.addEventLog(
                     type = "OCR_AUTH_SUCCESS",
                     title = "Personel Doğrulama Başarılı",

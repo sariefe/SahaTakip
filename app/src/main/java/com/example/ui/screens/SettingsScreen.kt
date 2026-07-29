@@ -229,7 +229,7 @@ private fun SecuritySettings(bioAvailability: BiometricStatus, bioManager: Biome
                     val activity = context as? FragmentActivity
                     if (activity != null && bioAvailability is BiometricStatus.Available) {
                         bioManager.showBiometricPrompt(
-                            activity = activity,
+                            context = activity,
                             title = sensorTestTitle,
                             onSuccess = { biometricTestResult = "✓ $authSuccessMsg" },
                             onError = { _, err -> biometricTestResult = "Hata: $err" },

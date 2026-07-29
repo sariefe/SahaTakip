@@ -3,13 +3,38 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,13 +46,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.fragment.app.FragmentActivity
+import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.MainViewModel
-import com.example.ui.components.OcrCameraScannerModal
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
+import com.example.util.ScannedStaffCardResult
 import com.example.util.tr
 
 @Composable
@@ -55,10 +80,9 @@ fun BiometricLockScreen(
     val matchFailedTr = tr("Biyometrik eşleşme başarısız.", "Biometric match failed.")
 
     val triggerBiometricAuth = {
-        val activity = context as? FragmentActivity
-        if (activity != null && bioAvailability is BiometricStatus.Available) {
+        if (bioAvailability is BiometricStatus.Available) {
             biometricManager.showBiometricPrompt(
-                activity = activity,
+                context = context,
                 title = promptTitle,
                 subtitle = promptSubtitle,
                 description = promptDesc,
@@ -218,12 +242,24 @@ fun BiometricLockScreen(
     }
 
     if (showOcrModal) {
+        val currentOcrResult by viewModel.ocrScanningState.collectAsState()
+        
         OcrCameraScannerModal(
             viewModel = viewModel,
             onDismiss = { showOcrModal = false },
             onScanStart = { preset ->
-                if (preset != null) {
-                    if (viewModel.authenticateWithOcr(preset.staffId)) {
+                val idToAuth = preset?.staffId ?: currentOcrResult?.staffId
+                if (idToAuth != null) {
+                    val ocrData = currentOcrResult ?: if (preset != null) {
+                        ScannedStaffCardResult(
+                            firstName = preset.firstName,
+                            lastName = preset.lastName,
+                            staffId = preset.staffId,
+                            department = preset.department
+                        )
+                    } else null
+
+                    if (viewModel.authenticateWithOcr(idToAuth, ocrData)) {
                         showOcrModal = false
                         onLoginSuccess()
                     }

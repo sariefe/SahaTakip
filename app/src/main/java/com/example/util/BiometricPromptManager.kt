@@ -1,7 +1,7 @@
 package com.example.util
 
 import android.content.Context
-import android.os.Build
+import android.content.ContextWrapper
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -38,7 +38,7 @@ class BiometricPromptManager(private val context: Context) {
     }
 
     fun showBiometricPrompt(
-        activity: FragmentActivity,
+        context: Context,
         title: String = "Biyometrik Kimlik Doğrulama",
         subtitle: String = "Saha personeli güvenli giriş doğrulaması",
         description: String = "Devam etmek için parmak izi veya yüz tanıma sensörünü kullanın",
@@ -47,6 +47,7 @@ class BiometricPromptManager(private val context: Context) {
         onError: (errorCode: Int, errString: String) -> Unit,
         onFailed: () -> Unit
     ) {
+        val activity = findActivity(context) ?: return
         val executor = ContextCompat.getMainExecutor(activity)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
@@ -77,5 +78,16 @@ class BiometricPromptManager(private val context: Context) {
             .build()
 
         biometricPrompt.authenticate(promptInfo)
+    }
+
+    private fun findActivity(context: Context): FragmentActivity? {
+        var currentContext = context
+        while (currentContext is ContextWrapper) {
+            if (currentContext is FragmentActivity) {
+                return currentContext
+            }
+            currentContext = currentContext.baseContext
+        }
+        return null
     }
 }

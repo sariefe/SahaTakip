@@ -64,16 +64,6 @@ class MainActivity : FragmentActivity() {
             checkAndRequestPermissions()
         }
 
-        // Automatic Sync on Connectivity
-        lifecycleScope.launch {
-            val observer = com.example.util.ConnectivityObserver(this@MainActivity)
-            observer.observe().collect { status ->
-                if (status == com.example.util.ConnectivityStatus.Available) {
-                    viewModel.triggerOfflineSync()
-                }
-            }
-        }
-
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             val themeMode by viewModel.theme.collectAsState()
