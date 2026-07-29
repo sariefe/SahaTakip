@@ -11,10 +11,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,8 +50,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,9 +66,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.ui.viewmodel.MainViewModel
-import com.example.util.IdCardPreset
 import com.example.util.OcrAnalyzer
 import com.example.util.OcrCardScanner
+import com.example.util.StaffCardPreset
 import com.example.util.tr
 import java.util.concurrent.Executors
 
@@ -68,13 +77,30 @@ import java.util.concurrent.Executors
 fun OcrCameraScannerModal(
     viewModel: MainViewModel,
     onDismiss: () -> Unit,
-    onScanStart: (preset: IdCardPreset?) -> Unit
+    onScanStart: (preset: StaffCardPreset?) -> Unit
 ) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val haptic = LocalHapticFeedback.current
     
-    var selectedPreset by remember { mutableStateOf<IdCardPreset?>(null) }
+    var selectedPreset by remember { mutableStateOf<StaffCardPreset?>(null) }
     val liveOcrResult by viewModel.ocrScanningState.collectAsState()
+    val stability by viewModel.ocrStability.collectAsState()
+    val detectedLines by viewModel.detectedLines.collectAsState()
+    val imgWidth by viewModel.ocrImageWidth.collectAsState()
+    val imgHeight by viewModel.ocrImageHeight.collectAsState()
+
+    LaunchedEffect(stability) {
+        if (stability >= 1.0f) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
+    val frameColor = when {
+        stability < 0.2f -> Color.Red.copy(alpha = 0.5f)
+        stability < 0.7f -> Color.Yellow.copy(alpha = 0.6f)
+        else -> Color.Green.copy(alpha = 0.8f)
+    }
 
     val infiniteTransition = rememberInfiniteTransition()
     val scanLineY by infiniteTransition.animateFloat(
@@ -150,8 +176,8 @@ fun OcrCameraScannerModal(
                                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                         .build()
                                         .also {
-                                            it.setAnalyzer(cameraExecutor, OcrAnalyzer { text ->
-                                                viewModel.onRealOcrDetected(text)
+                                            it.setAnalyzer(cameraExecutor, OcrAnalyzer { lines, w, h ->
+                                                viewModel.onRealOcrDetected(lines, w, h)
                                             })
                                         }
 
@@ -159,12 +185,21 @@ fun OcrCameraScannerModal(
 
                                     try {
                                         cameraProvider.unbindAll()
-                                        cameraProvider.bindToLifecycle(
+                                        val camera = cameraProvider.bindToLifecycle(
                                             lifecycleOwner,
                                             cameraSelector,
                                             preview,
                                             imageAnalysis
                                         )
+
+                                        // Set autofocus on the central ROI
+                                        val factory = previewView.meteringPointFactory
+                                        val centerPoint = factory.createPoint(previewView.width / 2f, previewView.height / 2f)
+                                        val action = androidx.camera.core.FocusMeteringAction.Builder(centerPoint)
+                                            .setAutoCancelDuration(3, java.util.concurrent.TimeUnit.SECONDS)
+                                            .build()
+                                        camera.cameraControl.startFocusAndMetering(action)
+
                                     } catch (e: Exception) {
                                         android.util.Log.e("OcrCamera", "Camera binding failed", e)
                                     }
@@ -174,6 +209,35 @@ fun OcrCameraScannerModal(
                             modifier = Modifier.fillMaxSize()
                         )
 
+                        // Live Bounding Box Overlays
+                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                            val canvasWidth = constraints.maxWidth.toFloat()
+                            val canvasHeight = constraints.maxHeight.toFloat()
+
+                            if (imgWidth > 0 && imgHeight > 0) {
+                                val scaleX = canvasWidth / imgWidth
+                                val scaleY = canvasHeight / imgHeight
+
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    detectedLines.forEach { line ->
+                                        drawRoundRect(
+                                            color = frameColor.copy(alpha = 0.3f),
+                                            topLeft = Offset(line.left * scaleX, line.top * scaleY),
+                                            size = Size(line.width * scaleX, line.height * scaleY),
+                                            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                        )
+                                        drawRoundRect(
+                                            color = frameColor,
+                                            topLeft = Offset(line.left * scaleX, line.top * scaleY),
+                                            size = Size(line.width * scaleX, line.height * scaleY),
+                                            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
+                                            style = Stroke(width = 1.dp.toPx())
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // ID Card Mockup Frame in Center (Semi-transparent overlay)
                         Box(
                             modifier = Modifier
@@ -181,8 +245,8 @@ fun OcrCameraScannerModal(
                                 .height(220.dp)
                                 .align(Alignment.Center)
                                 .border(
-                                    width = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                    width = 3.dp,
+                                    color = frameColor,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                         ) {
@@ -239,7 +303,7 @@ fun OcrCameraScannerModal(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "${result.fullName} (${result.tcNo})",
+                                            text = "${result.fullName} (${result.staffId})",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color.Green,
                                             fontWeight = FontWeight.Bold
@@ -275,7 +339,7 @@ fun OcrCameraScannerModal(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { selectedPreset = preset },
-                                    label = { Text("${preset.title} (${preset.fullName.substringBefore(" ")})", fontSize = 11.sp) },
+                                    label = { Text("${preset.title} (${preset.firstName})", fontSize = 11.sp) },
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -306,6 +370,18 @@ fun OcrCameraScannerModal(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
+                }
+
+                if (liveOcrResult != null && selectedPreset == null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = { viewModel.clearOcrResult() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(tr("Sonucu Temizle ve Yeniden Tara", "Clear Result and Rescan"), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

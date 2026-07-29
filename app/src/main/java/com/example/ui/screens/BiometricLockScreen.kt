@@ -223,7 +223,7 @@ fun BiometricLockScreen(
             onDismiss = { showOcrModal = false },
             onScanStart = { preset ->
                 if (preset != null) {
-                    if (viewModel.authenticateWithOcr(preset.tcNo)) {
+                    if (viewModel.authenticateWithOcr(preset.staffId)) {
                         showOcrModal = false
                         onLoginSuccess()
                     }

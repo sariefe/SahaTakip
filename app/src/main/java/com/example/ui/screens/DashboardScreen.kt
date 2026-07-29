@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Transgender
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
@@ -518,8 +517,8 @@ fun ProfileInfoModal(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ProfileDetailRow(Icons.Default.Person, tr("Ad Soyad", "Full Name"), user?.fullName ?: "-")
-                ProfileDetailRow(Icons.Default.Badge, tr("Pozisyon", "Position"), user?.position ?: "-")
-                ProfileDetailRow(Icons.Default.Transgender, tr("Cinsiyet", "Gender"), user?.gender ?: "-")
+                ProfileDetailRow(Icons.Default.Badge, tr("Personel ID", "Staff ID"), user?.staffId ?: "-")
+                ProfileDetailRow(Icons.Default.Info, tr("Departman", "Department"), user?.department ?: "-")
                 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 

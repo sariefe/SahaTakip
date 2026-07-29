@@ -168,8 +168,8 @@ fun AuthScreen(
             // STEP 1: OCR SECTION
             AuthStepHeader(
                 number = "1",
-                title = tr("Kimlik Kartı Tarama", "ID Card Scanning"),
-                subtitle = tr("T.C. Kimlik Kartınızı kameraya gösterin", "Scan your T.C. Identity Card")
+                title = tr("Personel Kartı Tarama", "Staff Card Scanning"),
+                subtitle = tr("Kurum personel kartınızı kameraya gösterin", "Scan your organization staff card")
             )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -195,7 +195,8 @@ fun AuthScreen(
                             Icon(Icons.Default.Verified, contentDescription = null, tint = StatusGreen, modifier = Modifier.size(40.dp))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(ocrResult!!.fullName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(tr("Kimlik Doğrulandı", "Identity Verified"), style = MaterialTheme.typography.labelSmall, color = StatusGreen)
+                            Text("${ocrResult!!.department} | ${ocrResult!!.staffId}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                            Text(tr("Kart Doğrulandı", "Card Verified"), style = MaterialTheme.typography.labelSmall, color = StatusGreen)
                         }
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -307,7 +308,7 @@ fun AuthScreen(
             viewModel = viewModel,
             onDismiss = { showCameraModal = false },
             onScanStart = { preset ->
-                viewModel.startIdCardOcrScan(fullNameInput = nameInput, preset = preset)
+                viewModel.startIdCardOcrScan(preset = preset)
                 showCameraModal = false
             }
         )

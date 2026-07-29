@@ -1,169 +1,191 @@
 package com.example.util
 
 import kotlinx.coroutines.delay
+import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
-data class ScannedIdCardResult(
-    val fullName: String,
-    val tcNo: String,
-    val serialNo: String = "A12B34567",
-    val birthDate: String = "15.04.1992",
-    val validUntil: String = "15.04.2032",
-    val gender: String = "Belirtilmemiş",
+data class ScannedStaffCardResult(
+    val firstName: String,
+    val lastName: String,
+    val staffId: String,
+    val department: String,
     val confidenceScore: Float = 0.98f,
     val rawExtractedText: String = ""
-)
+) {
+    val fullName: String get() = "$firstName $lastName"
+}
 
-data class IdCardPreset(
+data class StaffCardPreset(
     val title: String,
-    val fullName: String,
-    val tcNo: String,
-    val serialNo: String,
+    val firstName: String,
+    val lastName: String,
+    val staffId: String,
+    val department: String,
     val role: String
 )
 
 object OcrCardScanner {
 
+    private val DEPARTMENTS = listOf("SAHA", "TEKNİK", "GÜVENLİK", "LOJİSTİK", "YÖNETİM", "BİLGİ İŞLEM")
+
     val availablePresets = listOf(
-        IdCardPreset("Saha Şefi", "AHMET CAN YILMAZ", "10293847562", "A14X98231", "Saha Operasyon Şefi"),
-        IdCardPreset("Saha Teknisyeni", "MEHMET ALİ DEMİR", "28374910284", "B22K48192", "Kıdemli Saha Teknisyeni"),
-        IdCardPreset("Güvenlik Uzmanı", "AYŞE SULTAN KAYA", "39201847361", "C99M10293", "İSG & Güvenlik Uzmanı"),
-        IdCardPreset("Sistem Operatörü", "ZEHRA ELİF ÇELİK", "48102938472", "D33P59102", "Sistem & Tesis Operatörü")
+        StaffCardPreset("Saha Şefi", "AHMET CAN", "YILMAZ", "ID-2026-001", "SAHA", "Saha Operasyon Şefi"),
+        StaffCardPreset("Saha Teknisyeni", "MEHMET ALİ", "DEMİR", "ID-2026-142", "TEKNİK", "Kıdemli Saha Teknisyeni"),
+        StaffCardPreset("Güvenlik Uzmanı", "AYŞE SULTAN", "KAYA", "ID-2026-088", "GÜVENLİK", "İSG & Güvenlik Uzmanı"),
+        StaffCardPreset("Sistem Operatörü", "ZEHRA ELİF", "ÇELİK", "ID-2026-305", "YÖNETİM", "Sistem & Tesis Operatörü")
     )
 
-    fun parseTextFromIdCard(rawText: String): ScannedIdCardResult? {
-        val lines = rawText.lines().map { it.trim() }.filter { it.isNotBlank() }
+    fun parseStaffCardText(ocrLines: List<OcrLine>): ScannedStaffCardResult? {
+        if (ocrLines.isEmpty()) return null
+
+        val upperLines = ocrLines.map { it.copy(text = it.text.uppercase(Locale.forLanguageTag("tr"))) }
         
-        // Better OCR correction for TC No
-        val cleanedTextForTc = rawText.replace("O", "0").replace("I", "1").replace("İ", "1").replace("l", "1")
-        val tcRegex = Regex("\\b[1-9][0-9]{10}\\b")
-        val tcNo = tcRegex.find(cleanedTextForTc)?.value ?: return null
+        val avgHeight = ocrLines.map { it.height }.average()
+        
+        var staffId = ""
+        var firstName = ""
+        var lastName = ""
+        var department = ""
+        
+        val idRegex = Regex("\\b(ID-)?\\d{3,10}\\b")
+        val noiseHeaders = listOf(
+            "KARTI", "PERSONEL", "KURUM", "SİSTEM", "TAKİP", "HOŞGELDİNİZ", 
+            "T.C.", "KİMLİK", "REPUBLİC", "TURKEY", "CARD", "IDENTITY"
+        )
+        val deptKeywords = listOf("MÜDÜRLÜĞÜ", "MÜDÜRLÜK", "DEPARTMANI", "BÖLÜMÜ", "BİRİMİ", "AMİRLİĞİ")
 
-        var surname = ""
-        var names = ""
+        // 1. ANCHOR SEARCH: Find the ID line first regardless of position
+        // Only look at lines that don't contain noise headers and are large enough
+        val potentialIdLines = upperLines.filter { line ->
+            !noiseHeaders.any { line.text.contains(it) } && 
+            (line.height > avgHeight * 0.85) // Slightly more relaxed height constraint
+        }
 
-        lines.forEachIndexed { index, line ->
-            val upperLine = line.uppercase(java.util.Locale.forLanguageTag("tr"))
+        val idLine = potentialIdLines.find { idRegex.containsMatchIn(it.text) }
+            ?: upperLines.find { idRegex.containsMatchIn(it.text) } // Fallback to any line
+
+        if (idLine != null) {
+            staffId = OcrCleaner.cleanText(idRegex.find(idLine.text)?.value ?: idLine.text, isNumeric = true)
             
-            if (upperLine.contains("SOYADI") || upperLine.contains("SURNAME")) {
-                val extracted = line.substringAfter(":").trim()
-                surname = if (extracted.isNotBlank() && extracted.length > 1) {
-                    extracted
-                } else if (index + 1 < lines.size) {
-                    lines[index + 1].split(" ").first().trim()
-                } else ""
+            // 2. RELATIVE SEARCH: Look for Name, Surname and Dept BELOW the ID line
+            // Only consider lines that are below the ID line vertically
+            val linesBelowId = upperLines.filter { it.top > idLine.top + (idLine.height / 2) }
+                .filter { !noiseHeaders.any { noise -> it.text.contains(noise) } }
+                .sortedBy { it.top }
+
+            if (linesBelowId.isNotEmpty()) {
+                // Heuristic: First line after ID is Name
+                firstName = OcrCleaner.cleanText(linesBelowId[0].text, isNumeric = false)
+                
+                if (linesBelowId.size >= 2) {
+                    // Second line after ID is Surname
+                    lastName = OcrCleaner.cleanText(linesBelowId[1].text, isNumeric = false)
+                }
+                
+                // Search all lines below ID for Department (not just the 3rd line)
+                val deptLine = linesBelowId.drop(1).find { candidate ->
+                    deptKeywords.any { candidate.text.contains(it) } || 
+                    DEPARTMENTS.any { candidate.text.contains(it) }
+                }
+                if (deptLine != null) {
+                    department = deptLine.text
+                } else if (linesBelowId.size >= 3 && department.isBlank()) {
+                    department = linesBelowId[2].text
+                }
             }
-            
-            if (upperLine.contains("ADI") || upperLine.contains("GIVEN NAMES")) {
-                val extracted = line.substringAfter(":").trim()
-                names = if (extracted.isNotBlank() && extracted.length > 1) {
-                    extracted
-                } else if (index + 1 < lines.size) {
-                    lines[index + 1].trim()
-                } else ""
+        }
+
+        // 3. FALLBACK: If positional search failed, try old label-based search
+        if (firstName.isBlank() || staffId.isBlank()) {
+            upperLines.forEachIndexed { index, line ->
+                val text = line.text
+                when {
+                    (text.contains("ID") || text.contains("NO")) && staffId.isBlank() -> {
+                        staffId = OcrCleaner.cleanText(extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else "", isNumeric = true)
+                    }
+                    (text.contains("İSİM") || text.contains("ADI") || text.contains("NAME")) && firstName.isBlank() -> {
+                        firstName = OcrCleaner.cleanText(extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else "", isNumeric = false)
+                    }
+                    (text.contains("SOYAD") || text.contains("SURNAME")) && lastName.isBlank() -> {
+                        lastName = OcrCleaner.cleanText(extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else "", isNumeric = false)
+                    }
+                    (text.contains("DEPARTMAN") || text.contains("BÖLÜM") || text.contains("MÜDÜRLÜK")) && department.isBlank() -> {
+                        department = extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else ""
+                    }
+                }
             }
         }
 
-        // Fallback for names if not found by labels (Common OCR issue)
-        if (names.isBlank() && surname.isBlank() && lines.size > 3) {
-             // Often name/surname are in the first few lines in larger font
-             // This is a very basic heuristic
-             val potentialLine = lines.find { it.length > 5 && !it.contains("TÜRKİYE", ignoreCase = true) && !it.contains("KİMLİK", ignoreCase = true) }
-             if (potentialLine != null) {
-                 val parts = potentialLine.split(" ")
-                 if (parts.size >= 2) {
-                     surname = parts.last()
-                     names = parts.dropLast(1).joinToString(" ")
-                 }
-             }
+        // 4. Department match refinement (if still blank)
+        if (department.isBlank()) {
+            department = DEPARTMENTS.find { dept -> upperLines.any { it.text.contains(dept) } } 
+                ?: upperLines.find { line -> deptKeywords.any { line.text.contains(it) } }?.text 
+                ?: ""
         }
 
-        val genderRaw = if (rawText.contains("CINSIYET", ignoreCase = true) || rawText.contains("GENDER", ignoreCase = true)) {
-            val afterLabel = rawText.split(Regex("CINSIYET|GENDER", RegexOption.IGNORE_CASE)).lastOrNull()?.trim()
-            afterLabel?.take(3)?.split("/")?.firstOrNull()?.trim() ?: ""
-        } else ""
+        if (firstName.isBlank() && staffId.isBlank()) return null
 
-        val gender = when {
-            genderRaw.startsWith("E", ignoreCase = true) || genderRaw.startsWith("M", ignoreCase = true) -> "Erkek"
-            genderRaw.startsWith("K", ignoreCase = true) || genderRaw.startsWith("F", ignoreCase = true) -> "Kadın"
-            else -> "Belirtilmemiş"
-        }
+        val foundFieldsCount = listOf(staffId, firstName, lastName, department).count { it.isNotBlank() }
+        val confidence = 0.85f + (foundFieldsCount * 0.03f)
 
-        return ScannedIdCardResult(
-            fullName = "${names.trim()} ${surname.trim()}".trim().ifBlank { "BİLİNMEYEN PERSONEL" }.uppercase(java.util.Locale.forLanguageTag("tr")),
-            tcNo = tcNo,
-            gender = gender,
-            confidenceScore = 0.95f,
-            rawExtractedText = rawText
+        return ScannedStaffCardResult(
+            firstName = firstName.trim().uppercase(Locale.forLanguageTag("tr")),
+            lastName = lastName.trim().uppercase(Locale.forLanguageTag("tr")),
+            staffId = staffId.trim(),
+            department = department.trim().uppercase(Locale.forLanguageTag("tr")),
+            confidenceScore = confidence.coerceAtMost(0.99f),
+            rawExtractedText = ocrLines.joinToString("\n") { it.text }
         )
     }
 
-    /**
-     * Simulates scanning/OCR extraction from an ID Card image.
-     */
-    suspend fun processIdCardScan(
-        fallbackNameInput: String = "",
-        preset: IdCardPreset? = null
-    ): ScannedIdCardResult {
+    fun parseStaffCardText(rawText: String): ScannedStaffCardResult? {
+        val lines = rawText.lines().map { OcrLine(it, 20, 0, 0, 0) }
+        return parseStaffCardText(lines)
+    }
+
+    private fun extractValue(line: String): String? {
+        val parts = line.split(":")
+        return if (parts.size > 1 && parts[1].trim().isNotBlank()) parts[1].trim() else null
+    }
+
+    suspend fun processStaffCardScan(
+        preset: StaffCardPreset? = null
+    ): ScannedStaffCardResult {
         delay(1200.milliseconds) 
 
         if (preset != null) {
             val rawText = """
-                TÜRKİYE CUMHURİYETİ KİMLİK KARTI / IDENTITY CARD
-                TC KIMLIK NO / ID NO: ${preset.tcNo}
-                SOYADI / SURNAME: ${preset.fullName.substringAfterLast(" ", "YILMAZ")}
-                ADI / GIVEN NAMES: ${preset.fullName.substringBeforeLast(" ", "AHMET")}
-                DOGUM TARIHI / DATE OF BIRTH: 12.08.1990
-                SERI NO / DOCUMENT NO: ${preset.serialNo}
-                SON GEÇERLİLİK / EXPIRY DATE: 12.08.2030
-                CINSIYET / GENDER: E/M
-                UYRUGU / NATIONALITY: T.C./TUR
-                MRZ: I<TUR10293847562<<<<<<<<<<<<<<<9008124M3008122TUR<<<<<<<<<<<0
+                KURUM PERSONEL KARTI
+                İSİM: ${preset.firstName}
+                SOYİSİM: ${preset.lastName}
+                DEPARTMAN: ${preset.department}
+                PERSONEL ID: ${preset.staffId}
             """.trimIndent()
 
-            return ScannedIdCardResult(
-                fullName = preset.fullName,
-                tcNo = preset.tcNo,
-                serialNo = preset.serialNo,
-                birthDate = "12.08.1990",
-                validUntil = "12.08.2030",
-                gender = if (preset.fullName.contains("AYŞE") || preset.fullName.contains("ZEHRA")) "Kadın" else "Erkek",
-                confidenceScore = 0.985f,
-                rawExtractedText = rawText
-            )
+            return scannedStaffStaffCardResult(preset, rawText)
         }
 
-        if (fallbackNameInput.isNotBlank()) {
-            val randomTc = (10000000000L..99999999999L).random().toString()
-            val serial = "A${(10..99).random()}B${(10000..99999).random()}"
-            val surname = fallbackNameInput.trim().substringAfterLast(" ", "CAN")
-            val name = fallbackNameInput.trim().substringBeforeLast(" ", "AHMET")
+        // Simulate a "No Keyword" card for fallback
+        val randomId = (10000..99999).random().toString()
+        val randomDept = DEPARTMENTS.random()
+        val rawNoLabels = """
+            PERSONEL TAKİP SİSTEMİ
+            MUSTAFA
+            ÖZTÜRK
+            $randomDept
+            $randomId
+        """.trimIndent()
 
-            val rawText = """
-                TÜRKİYE CUMHURİYETİ KİMLİK KARTI
-                T.C. KN: $randomTc
-                SOYADI: $surname
-                ADI: $name
-                SERI NO: $serial
-                DOGUM TARIHI: 15.04.1992
-                GEÇERLİLİK: 15.04.2032
-                MRZ: I<TUR$randomTc<<<<<<<<<<<<<<<9204158M3204159TUR<<<<<<<<<<<4
-            """.trimIndent()
-
-            return ScannedIdCardResult(
-                fullName = fallbackNameInput.trim().uppercase(java.util.Locale.forLanguageTag("tr")),
-                tcNo = randomTc,
-                serialNo = serial,
-                birthDate = "15.04.1992",
-                validUntil = "15.04.2032",
-                gender = "Erkek", // Default for fallback
-                confidenceScore = 0.978f,
-                rawExtractedText = rawText
-            )
-        }
-
-        val sample = availablePresets.random()
-        return processIdCardScan(preset = sample)
+        return parseStaffCardText(rawNoLabels) ?: ScannedStaffCardResult("BİLİNMEYEN", "PERSONEL", randomId, "SAHA")
     }
+
+    private fun scannedStaffStaffCardResult(preset: StaffCardPreset, rawText: String) = ScannedStaffCardResult(
+        firstName = preset.firstName,
+        lastName = preset.lastName,
+        staffId = preset.staffId,
+        department = preset.department,
+        confidenceScore = 0.99f,
+        rawExtractedText = rawText
+    )
 }
 

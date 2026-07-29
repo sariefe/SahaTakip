@@ -20,8 +20,9 @@ import com.example.data.repository.SahaRepository
 import com.example.util.SecurityUtils
 import com.example.domain.model.DeviceStatus
 import com.example.util.OcrCardScanner
+import com.example.util.OcrLine
 import com.example.util.PermissionUtils
-import com.example.util.ScannedIdCardResult
+import com.example.util.ScannedStaffCardResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,6 +32,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.math.pow
+import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
 
 data class PlaybackState(
@@ -78,11 +81,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
-    private val _ocrScanningState = MutableStateFlow<ScannedIdCardResult?>(null)
-    val ocrScanningState: StateFlow<ScannedIdCardResult?> = _ocrScanningState.asStateFlow()
+    private val _ocrScanningState = MutableStateFlow<ScannedStaffCardResult?>(null)
+    val ocrScanningState: StateFlow<ScannedStaffCardResult?> = _ocrScanningState.asStateFlow()
 
     private val _ocrIsLoading = MutableStateFlow(false)
     val ocrIsLoading: StateFlow<Boolean> = _ocrIsLoading.asStateFlow()
+
+    private val _ocrStability = MutableStateFlow(0f)
+    val ocrStability: StateFlow<Float> = _ocrStability.asStateFlow()
+
+    private val _detectedLines = MutableStateFlow<List<OcrLine>>(emptyList())
+    val detectedLines: StateFlow<List<OcrLine>> = _detectedLines.asStateFlow()
+
+    private val _ocrImageWidth = MutableStateFlow(0)
+    val ocrImageWidth: StateFlow<Int> = _ocrImageWidth.asStateFlow()
+
+    private val _ocrImageHeight = MutableStateFlow(0)
+    val ocrImageHeight: StateFlow<Int> = _ocrImageHeight.asStateFlow()
+
+    private val ocrResultBuffer = mutableListOf<String>()
+    private var lastOcrTop = -1
+    private var lastOcrLeft = -1
+    private val stabilitityThreshold = 5 // Increased for higher reliability
 
     private val _ocrScanSuggested = MutableStateFlow(false)
     val ocrScanSuggested: StateFlow<Boolean> = _ocrScanSuggested.asStateFlow()
@@ -240,7 +260,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startIdCardOcrScan(fullNameInput: String = "", preset: com.example.util.IdCardPreset? = null) {
+    fun startIdCardOcrScan(preset: com.example.util.StaffCardPreset? = null) {
         viewModelScope.launch {
             _ocrIsLoading.value = true
             
@@ -250,7 +270,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 delay(500.milliseconds) // Small UX delay
                 existingResult
             } else {
-                OcrCardScanner.processIdCardScan(fallbackNameInput = fullNameInput, preset = preset)
+                OcrCardScanner.processStaffCardScan(preset = preset)
             }
             
             _ocrScanningState.value = result
@@ -258,42 +278,97 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             repository.addEventLog(
                 type = "OCR_SCAN_SUCCESS",
-                title = "Kimlik Kartı OCR Taraması Yapıldı",
-                detail = "Personel: ${result.fullName} (TC: ${result.tcNo}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
+                title = "Personel Kartı OCR Taraması Yapıldı",
+                detail = "Personel: ${result.fullName} (ID: ${result.staffId}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
                 status = "BAŞARILI"
             )
         }
     }
 
-    fun onRealOcrDetected(rawText: String) {
-        val result = OcrCardScanner.parseTextFromIdCard(rawText)
-        if (result != null && result.tcNo != _ocrScanningState.value?.tcNo) {
-            _ocrScanningState.value = result
-            viewModelScope.launch {
-                repository.addEventLog(
-                    type = "REAL_OCR_DETECTION",
-                    title = "Canlı OCR Tespiti",
-                    detail = "Kamera üzerinden gerçek zamanlı kimlik tespiti yapıldı: ${result.fullName}",
-                    status = "BİLGİ"
+    fun onRealOcrDetected(ocrLines: List<OcrLine>, imgWidth: Int, imgHeight: Int) {
+        _detectedLines.value = ocrLines
+        _ocrImageWidth.value = imgWidth
+        _ocrImageHeight.value = imgHeight
+
+        val result = OcrCardScanner.parseStaffCardText(ocrLines)
+        if (result != null) {
+            // Find the representative line for spatial tracking (usually the ID line)
+            val idLine = ocrLines.find { it.text.contains(result.staffId) }
+            
+            // Spatial Stability: Check if text is moving too much
+            var spatialWeight = 1.0f
+            if (idLine != null && lastOcrTop != -1) {
+                val dist = sqrt(
+                    (idLine.top - lastOcrTop).toDouble().pow(2.0) +
+                            (idLine.left - lastOcrLeft).toDouble().pow(2.0)
                 )
+                // If it moved more than 40 pixels between frames, reduce stability
+                if (dist > 40) spatialWeight = 0.4f
             }
+            
+            if (idLine != null) {
+                lastOcrTop = idLine.top
+                lastOcrLeft = idLine.left
+            }
+
+            ocrResultBuffer.add(result.staffId)
+            if (ocrResultBuffer.size > 15) ocrResultBuffer.removeAt(0)
+
+            val frequency = ocrResultBuffer.count { it == result.staffId }
+            val stability = ((frequency.toFloat() / stabilitityThreshold) * spatialWeight).coerceAtMost(1f)
+            _ocrStability.value = stability
+
+            // Allow update if ID is same but result is more complete (Consensus)
+            if (frequency >= stabilitityThreshold) {
+                val current = _ocrScanningState.value
+                val isMoreComplete = current == null || 
+                        (result.fullName.length > current.fullName.length && result.staffId == current.staffId) ||
+                        (result.department.length > current.department.length && result.staffId == current.staffId)
+                
+                if (isMoreComplete || result.staffId != current.staffId) {
+                    _ocrScanningState.value = result
+                    viewModelScope.launch {
+                        repository.addEventLog(
+                            type = "REAL_OCR_DETECTION",
+                            title = "Canlı Personel Kartı Tespiti",
+                            detail = "Kamera üzerinden kararlı bir şekilde kart tespiti yapıldı: ${result.fullName}",
+                            status = "BİLGİ"
+                        )
+                    }
+                }
+            }
+        } else {
+            // Decay stability if nothing found
+            _ocrStability.value = (_ocrStability.value - 0.1f).coerceAtLeast(0f)
         }
+    }
+
+    fun clearOcrResult() {
+        _ocrScanningState.value = null
+        _ocrStability.value = 0f
+        _detectedLines.value = emptyList()
+        ocrResultBuffer.clear()
+        lastOcrTop = -1
+        lastOcrLeft = -1
     }
 
     fun activateWithCode(code: String): Boolean {
         if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE || code.trim() == "123456") {
             viewModelScope.launch {
                 val ocrResult = _ocrScanningState.value
-                val scannedName = ocrResult?.fullName ?: "AHMET CAN YILMAZ"
-                val scannedTc = ocrResult?.tcNo ?: "10293847562"
-                val scannedGender = ocrResult?.gender ?: "Belirtilmemiş"
+                val scannedFirstName = ocrResult?.firstName ?: "AHMET CAN"
+                val scannedLastName = ocrResult?.lastName ?: "YILMAZ"
+                val scannedStaffId = ocrResult?.staffId ?: "ID-2026-999"
+                val scannedDept = ocrResult?.department ?: "SAHA"
 
                 repository.userDao.insertOrUpdateUser(
                     UserProfileEntity(
                         id = 1,
-                        fullName = scannedName,
-                        tcNo = scannedTc,
-                        gender = scannedGender,
+                        firstName = scannedFirstName,
+                        lastName = scannedLastName,
+                        fullName = "$scannedFirstName $scannedLastName",
+                        staffId = scannedStaffId,
+                        department = scannedDept,
                         activationCode = code.trim(),
                         isActivated = true,
                         isBiometricEnabled = true,
@@ -318,28 +393,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
-    fun authenticateWithOcr(scannedTc: String): Boolean {
-        val registeredTc = userProfile.value?.tcNo
-        return if (scannedTc == registeredTc) {
+    fun authenticateWithOcr(scannedStaffId: String): Boolean {
+        val registeredStaffId = userProfile.value?.staffId
+        return if (scannedStaffId == registeredStaffId) {
             _isAuthenticated.value = true
             _ocrAuthError.value = null
             viewModelScope.launch {
                 repository.userDao.updateLastLogin()
                 repository.addEventLog(
                     type = "OCR_AUTH_SUCCESS",
-                    title = "Kimlik Doğrulama Başarılı",
-                    detail = "Personel kimlik kartı OCR ile doğrulandı ve giriş yapıldı.",
+                    title = "Personel Doğrulama Başarılı",
+                    detail = "Personel kartı OCR ile doğrulandı ve giriş yapıldı.",
                     status = "BAŞARILI"
                 )
             }
             true
         } else {
-            _ocrAuthError.value = "Kimlik kartı kayıtlı personel ile eşleşmiyor!"
+            _ocrAuthError.value = "Personel kartı kayıtlı personel ile eşleşmiyor!"
             viewModelScope.launch {
                 repository.addEventLog(
                     type = "OCR_AUTH_FAILED",
-                    title = "Kimlik Doğrulama Başarısız",
-                    detail = "Farklı bir kimlik kartı ile giriş denemesi yapıldı (Tespit edilen TC: $scannedTc).",
+                    title = "Personel Doğrulama Başarısız",
+                    detail = "Farklı bir personel kartı ile giriş denemesi yapıldı (Tespit edilen ID: $scannedStaffId).",
                     status = "TEHLİKE"
                 )
             }
