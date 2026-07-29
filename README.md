@@ -61,6 +61,11 @@ app/src/main/java/com/example/
 2.  Android Studio'da projeyi açın.
 3.  `google-services.json` dosyasını `app/` dizinine ekleyin (Firebase özellikleri için).
 4.  Projeyi Build edin ve bir cihazda/emülatörde çalıştırın.
+<img width="200" height="500" alt="Screenshot_20260729_150832" src="https://github.com/user-attachments/assets/2b061095-494d-4964-92f7-50b33d3c4b20" />
+<img width="200" height="500" alt="Screenshot_20260729_150808" src="https://github.com/user-attachments/assets/1dbeec91-7bb7-4105-bc9f-fe4950370320" />
+<img width="200" height="500" alt="Screenshot_20260729_150815" src="https://github.com/user-attachments/assets/8aa1b0ca-13db-4c67-9fa0-4b3bc77d019c" />
+<img width="200" height="500" alt="Screenshot_20260729_150821" src="https://github.com/user-attachments/assets/04f64d43-2355-4b33-8947-35768ceac736" />
+<img width="200" height="500" alt="Screenshot_20260729_150826" src="https://github.com/user-attachments/assets/a6135da0-5ecf-42ef-84a4-53db81ea8c97" />
 
 ---
 *Bu proje, modern Android standartları gözetilerek geliştirilmiştir.*
