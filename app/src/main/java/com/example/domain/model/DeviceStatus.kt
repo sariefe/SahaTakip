@@ -18,13 +18,4 @@ data class DeviceStatus(
     val isBackgroundExecutionOk: Boolean
         get() = isBackgroundLocationGranted && isBatteryOptimizationIgnored && !isPowerSaveModeActive
 
-    val missingPermissionsCount: Int
-        get() {
-            var count = 0
-            if (!isGpsEnabled) count++
-            if (!isBackgroundLocationGranted) count++
-            if (!isNotificationGranted) count++
-            if (!isInternetConnected) count++
-            return count
-        }
 }

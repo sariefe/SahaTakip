@@ -35,7 +35,6 @@ class SahaRepository(private val context: Context) {
     val preferencesManager = PreferencesManager(context)
     private val mockSyncApi = MockSyncApi()
 
-    val allLocations: Flow<List<LocationEntity>> = locationDao.getAllLocations()
     val latestLocation: Flow<LocationEntity?> = locationDao.getLatestLocation()
     val allEventLogs: Flow<List<EventLogEntity>> = eventLogDao.getAllEventLogs()
     val allLeaveRequests: Flow<List<LeaveRequestEntity>> = leaveRequestDao.getAllLeaveRequests()

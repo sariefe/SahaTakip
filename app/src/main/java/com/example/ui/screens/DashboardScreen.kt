@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Transgender
 import androidx.compose.material.icons.filled.Wifi
@@ -266,7 +268,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         title = tr("Bildirimler", "Notifications"),
                         isOk = deviceStatus.isNotificationGranted,
-                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Info else Icons.Default.Info, // Should ideally be Notifications icon
+                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
                         onClick = {
                             try {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -337,7 +339,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         title = tr("Bildirimler", "Notifications"),
                         isOk = deviceStatus.isNotificationGranted,
-                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Info else Icons.Default.Info, // Should ideally be Notifications icon
+                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
                         onClick = {
                             try {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
