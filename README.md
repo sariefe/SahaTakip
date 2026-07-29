@@ -67,5 +67,8 @@ app/src/main/java/com/example/
 <img width="200" height="500" alt="Screenshot_20260729_150821" src="https://github.com/user-attachments/assets/04f64d43-2355-4b33-8947-35768ceac736" />
 <img width="200" height="500" alt="Screenshot_20260729_150826" src="https://github.com/user-attachments/assets/a6135da0-5ecf-42ef-84a4-53db81ea8c97" />
 
+## Video Önizleme
+
+
 ---
 *Bu proje, modern Android standartları gözetilerek geliştirilmiştir.*
