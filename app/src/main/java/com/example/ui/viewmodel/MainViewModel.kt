@@ -47,8 +47,10 @@ data class PlaybackState(
 
 class MainViewModel(
     application: Application,
-    val repository: SahaRepository = SahaRepository(application)
+    val repository: SahaRepository
 ) : AndroidViewModel(application) {
+
+    constructor(application: Application) : this(application, SahaRepository(application))
 
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -395,7 +397,7 @@ class MainViewModel(
             }
             return true
         } else {
-            _authErrorMessage.value = "Geçersiz aktivasyon kodu! Lütfen 'SAHA2026' veya '123456' kodunu giriniz."
+            _authErrorMessage.value = "Geçersiz aktivasyon kodu! Lütfen doğru şifre kodunu giriniz."
             return false
         }
     }

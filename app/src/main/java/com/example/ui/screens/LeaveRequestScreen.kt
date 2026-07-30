@@ -124,8 +124,8 @@ fun LeaveRequestScreen(
                 // Form Section (Compact)
                 AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
                     LeaveSubmitFormComponent(
-                        onSubmit = { newDate, newDesc, _, newType ->
-                            viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
+                        onSubmit = { start, end, newDesc, _, newType ->
+                            viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
                             showForm = false
                         },
                         onCancel = { showForm = false }
@@ -143,8 +143,8 @@ fun LeaveRequestScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         LeaveSubmitFormComponent(
-                            onSubmit = { newDate, newDesc, _, newType ->
-                                viewModel.submitLeaveRequest(type = newType, startDate = newDate, endDate = newDate, reason = newDesc)
+                            onSubmit = { start, end, newDesc, _, newType ->
+                                viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
                             },
                             onCancel = { /* No cancel needed in side-by-side */ }
                         )
@@ -217,11 +217,12 @@ private fun RequestList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveSubmitFormComponent(
-    onSubmit: (date: String, description: String, status: String, type: String) -> Unit,
+    onSubmit: (startDate: String, endDate: String, description: String, status: String, type: String) -> Unit,
     onCancel: () -> Unit
 ) {
     val currentDateStr = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()) }
-    var dateInput by remember { mutableStateOf(currentDateStr) }
+    var startDateInput by remember { mutableStateOf(currentDateStr) }
+    var endDateInput by remember { mutableStateOf(currentDateStr) }
     var descriptionInput by remember { mutableStateOf("") }
     
     val leaveTypes = listOf(tr("Mazeret İzni", "Excuse Leave"), tr("Yıllık İzin", "Annual Leave"), tr("Sağlık İzni", "Sick Leave"))
@@ -257,13 +258,22 @@ fun LeaveSubmitFormComponent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = dateInput,
-                onValueChange = { dateInput = it },
-                label = { Text(tr("Tarih", "Date")) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = startDateInput,
+                    onValueChange = { startDateInput = it },
+                    label = { Text(tr("Başlangıç", "Start Date")) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = endDateInput,
+                    onValueChange = { endDateInput = it },
+                    label = { Text(tr("Bitiş", "End Date")) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -282,7 +292,7 @@ fun LeaveSubmitFormComponent(
                 TextButton(onClick = onCancel) { Text(tr("İptal", "Cancel")) }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { if (descriptionInput.isNotBlank()) onSubmit(dateInput, descriptionInput, "BEKLEMEDE", selectedType) },
+                    onClick = { if (descriptionInput.isNotBlank()) onSubmit(startDateInput, endDateInput, descriptionInput, "BEKLEMEDE", selectedType) },
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(tr("Kaydet", "Save"))
@@ -310,7 +320,8 @@ fun LeaveRequestCardItem(item: com.example.data.local.entity.LeaveRequestEntity,
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(text = item.requestType, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(text = item.startDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                    val dateText = if (item.startDate == item.endDate) item.startDate else "${item.startDate} - ${item.endDate}"
+                    Text(text = dateText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 }
                 
                 Surface(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
