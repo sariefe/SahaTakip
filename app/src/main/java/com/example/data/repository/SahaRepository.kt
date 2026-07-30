@@ -17,14 +17,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import java.util.UUID
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
-class SahaRepository(private val context: Context) {
+class SahaRepository(
+    private val context: Context,
+    db: AppDatabase = AppDatabase.getDatabase(context)
+) {
 
-    private val db = AppDatabase.getDatabase(context)
     val locationDao = db.locationDao()
     val eventLogDao = db.eventLogDao()
     val leaveRequestDao = db.leaveRequestDao()
@@ -335,13 +333,6 @@ class SahaRepository(private val context: Context) {
     }
 
     fun calculateDistanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371000.0 // Earth's radius in meters
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
+        return com.example.util.LocationUtils.calculateDistanceInMeters(lat1, lon1, lat2, lon2)
     }
 }

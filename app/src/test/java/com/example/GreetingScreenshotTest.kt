@@ -1,6 +1,7 @@
 package com.example
 
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.material3.Text
 import com.example.ui.theme.SahaTakipTheme
@@ -18,7 +19,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [35])
 class GreetingScreenshotTest {
 
-  @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   @Test
   fun greeting_screenshot() {

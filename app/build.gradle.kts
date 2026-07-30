@@ -6,6 +6,7 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.google.services)
+  id("jacoco")
 }
 
 android {
@@ -39,17 +40,26 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug { }
+    debug { 
+      enableUnitTestCoverage = true
+    }
   }
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
   }
   buildFeatures {
     compose = true
     buildConfig = true
   }
-  testOptions { unitTests { isIncludeAndroidResources = true } }
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      all {
+        it.jvmArgs("-noverify")
+      }
+    }
+  }
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
@@ -66,7 +76,7 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.junit.ktx)
+  androidTestImplementation(libs.androidx.junit.ktx)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -92,11 +102,12 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.retrofit)
   testImplementation(platform(libs.androidx.compose.bom))
-  testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
-  testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.mockito.core)
+  testImplementation(libs.mockk)
+  testImplementation(libs.androidx.compose.ui.test.junit4)
 
   androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.junit)
@@ -108,6 +119,7 @@ dependencies {
   testImplementation(libs.roborazzi.compose)
   testImplementation(libs.roborazzi.junit.rule)
   testImplementation(libs.conscrypt.openjdk.uber)
+  debugImplementation(platform(libs.androidx.compose.bom))
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
@@ -116,6 +128,7 @@ dependencies {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   compilerOptions {
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     freeCompilerArgs.add("-Xannotation-default-target=param-property")
   }
 }

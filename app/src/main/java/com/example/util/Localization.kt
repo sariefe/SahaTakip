@@ -7,6 +7,9 @@ val LocalLanguage = compositionLocalOf { "tr" }
 
 @Composable
 fun tr(trText: String, enText: String): String {
-    return if (LocalLanguage.current == "en") enText else trText
+    return getTranslation(trText, enText, LocalLanguage.current)
 }
 
+fun getTranslation(trText: String, enText: String, language: String): String {
+    return if (language == "en") enText else trText
+}

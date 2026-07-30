@@ -45,9 +45,10 @@ data class PlaybackState(
     val currentLocation: LocationEntity? = null
 )
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    val repository = SahaRepository(application)
+class MainViewModel(
+    application: Application,
+    val repository: SahaRepository = SahaRepository(application)
+) : AndroidViewModel(application) {
 
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)

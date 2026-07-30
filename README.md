@@ -26,7 +26,7 @@ Uygulama, modern Android geliştirme ekosisteminin en güncel ve performanslı a
 *   **AI & Vision:** Firebase AI, ML Kit Text Recognition
 *   **Test:** JUnit, Robolectric, Roborazzi (Screenshot Testing)
 
-## 🏗 Mimari Yapı ve Gerekçesi
+## 🏗 Mimari Yapı ve Mimari Tercihler
 
 Proje, **Clean Architecture** prensipleri üzerine inşa edilmiştir. Kod tabanı üç ana katmana ayrılmıştır:
 
@@ -34,12 +34,21 @@ Proje, **Clean Architecture** prensipleri üzerine inşa edilmiştir. Kod taban�
 2.  **Domain Layer:** İş mantığı (Business Logic), Use Case'ler ve Domain modelleri.
 3.  **UI (Presentation) Layer:** ViewModel'ler ve Jetpack Compose ekranları.
 
-### Neden Bu Mimari?
+### Neden Clean Architecture?
 
 *   **Sürdürülebilirlik:** Katmanlar arasındaki düşük bağımlılık (Decoupling), projenin uzun vadede bakımını kolaylaştırır.
 *   **Test Edilebilirlik:** İş mantığı (Domain) Android framework'ünden bağımsız olduğu için kolayca Unit Test yazılabilir.
 *   **Esneklik:** Örneğin, veritabanı kütüphanesini değiştirmek veya yeni bir API eklemek diğer katmanları etkilemez.
 *   **Ekip Çalışması:** Farklı geliştiriciler aynı anda UI ve Data katmanlarında çakışma yaşamadan çalışabilir.
+
+### Neden MVVM?
+
+Sunum katmanında **Model-View-ViewModel (MVVM)** mimarisi tercih edilmiştir:
+
+*   **Yaşam Döngüsü Yönetimi:** `ViewModel` kullanımı sayesinde ekran döndürme gibi yapılandırma değişikliklerinde verilerin korunması sağlanır.
+*   **Durum Yönetimi (State Management):** `StateFlow` ve `Flow` API'leri ile UI durumunun (UI State) merkezi ve reaktif bir noktadan yönetilmesi kolaylaşır.
+*   **UI ve Mantık Ayrımı:** Jetpack Compose (View) sadece veriyi göstermekten sorumludur; iş mantığı ve durum dönüşümleri ViewModel'de tutulur.
+*   **Tek Yönlü Veri Akışı (UDF):** Verinin ViewModel'den UI'ya akması, eventlerin ise UI'dan ViewModel'e iletilmesi sayesinde öngörülebilir ve kolay hata ayıklanabilir bir yapı kurulur.
 
 ## 📁 Proje Yapısı
 
