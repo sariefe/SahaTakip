@@ -43,6 +43,7 @@ android {
     }
     debug {
       enableUnitTestCoverage = true
+      enableAndroidTestCoverage = true
     }
   }
   compileOptions {
@@ -54,12 +55,7 @@ android {
     buildConfig = true
   }
   testOptions {
-    unitTests {
-      isIncludeAndroidResources = true
-      all {
-        (this as Test).jvmArgs("-noverify")
-      }
-    }
+    unitTests.isIncludeAndroidResources = true
   }
 }
 
@@ -129,4 +125,70 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     freeCompilerArgs.add("-Xannotation-default-target=param-property")
   }
+}
+
+tasks.withType<Test>().configureEach {
+  jvmArgs("-noverify")
+}
+
+val fileFilter = mutableSetOf(
+  "**/R.class",
+  "**/R$*.class",
+  "**/BuildConfig.*",
+  "**/Manifest*.*",
+  "**/*Test*.*",
+  "android/**/*.*",
+  "**/*$[0-9]*.*",
+  "**/*Component*.*",
+  "**/*BR*.*",
+  "**/Manifest*.*",
+  "**/*\$Lambda$*.*",
+  "**/*Companion*.*",
+  "**/*Module*.*",
+  "**/*Dagger*.*",
+  "**/*Hilt*.*",
+  "**/*MembersInjector*.*",
+  "**/*_Factory*.*",
+  "**/*_Provide*.*",
+  "**/*_ViewBinding*.*",
+  "**/AutoValue_*.*",
+  "**/R2.class",
+  "**/R2$*.class",
+  "**/*Directions$*",
+  "**/*Directions.*",
+  "**/*Args$*",
+  "**/*Args.*"
+)
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+  dependsOn("testDebugUnitTest", "connectedDebugAndroidTest")
+  group = "Reporting"
+  description = "Generate Jacoco coverage reports"
+
+  reports {
+    xml.required.set(true)
+    html.required.set(true)
+  }
+
+  val javaClasses = fileTree("${layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
+    exclude(fileFilter)
+  }
+  val kotlinClasses = fileTree("${layout.buildDirectory.get().asFile}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
+    exclude(fileFilter)
+  }
+
+  classDirectories.setFrom(files(javaClasses, kotlinClasses))
+
+  sourceDirectories.setFrom(files(
+    "${project.projectDir}/src/main/java",
+    "${project.projectDir}/src/main/kotlin"
+  ))
+
+  executionData.setFrom(fileTree(layout.buildDirectory.get().asFile) {
+    include(
+      "jacoco/testDebugUnitTest.exec",
+      "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+      "outputs/code_coverage/debugAndroidTest/connected/*coverage.ec"
+    )
+  })
 }

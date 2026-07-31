@@ -18,12 +18,12 @@ import com.example.data.local.entity.LeaveRequestEntity
 import com.example.data.local.entity.LocationEntity
 import com.example.data.local.entity.UserProfileEntity
 import com.example.data.repository.SahaRepository
-import com.example.util.SecurityUtils
 import com.example.domain.model.DeviceStatus
 import com.example.util.OcrCardScanner
 import com.example.util.OcrLine
 import com.example.util.PermissionUtils
 import com.example.util.ScannedStaffCardResult
+import com.example.util.SecurityUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -53,23 +53,23 @@ class MainViewModel(
     constructor(application: Application) : this(application, SahaRepository(application))
 
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val locationsLast24h: StateFlow<List<LocationEntity>> = repository.locationDao.getLocationsSince(
         System.currentTimeMillis() - 24 * 60 * 60 * 1000L
-    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val latestLocation: StateFlow<LocationEntity?> = repository.latestLocation
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val allEventLogs: StateFlow<List<EventLogEntity>> = repository.allEventLogs
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val allLeaveRequests: StateFlow<List<LeaveRequestEntity>> = repository.allLeaveRequests
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val allGeofences: StateFlow<List<GeofenceZoneEntity>> = repository.allGeofences
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val language = repository.preferencesManager.language
     val updateInterval = repository.preferencesManager.updateInterval
@@ -183,13 +183,13 @@ class MainViewModel(
 
     @SuppressLint("EmptySuperCall")
     override fun onCleared() {
-        super.onCleared()
         try {
             getApplication<Application>().unregisterReceiver(gpsReceiver)
             getApplication<Application>().unregisterReceiver(powerReceiver)
         } catch (e: Exception) {
             android.util.Log.e("MainViewModel", "Error unregistering receivers", e)
         }
+        super.onCleared()
     }
 
     fun updateDeviceStatus() {
@@ -342,7 +342,7 @@ class MainViewModel(
                         (result.fullName.length > current.fullName.length && result.staffId == current.staffId) ||
                         (result.department.length > current.department.length && result.staffId == current.staffId)
                 
-                if (isMoreComplete || result.staffId != current.staffId) {
+                if (isMoreComplete || (result.staffId != current.staffId)) {
                     _ocrScanningState.value = result
                     viewModelScope.launch {
                         repository.addEventLog(
@@ -421,14 +421,16 @@ class MainViewModel(
                 
                 // Sync profile with latest OCR scan if available
                 if (ocrResult != null) {
-                    repository.userDao.insertOrUpdateUser(
-                        currentProfile.copy(
-                            firstName = ocrResult.firstName,
-                            lastName = ocrResult.lastName,
-                            fullName = ocrResult.fullName,
-                            department = ocrResult.department
+                    currentProfile.let { profile ->
+                        repository.userDao.insertOrUpdateUser(
+                            profile.copy(
+                                firstName = ocrResult.firstName,
+                                lastName = ocrResult.lastName,
+                                fullName = ocrResult.fullName,
+                                department = ocrResult.department
+                            )
                         )
-                    )
+                    }
                 }
 
                 repository.addEventLog(
