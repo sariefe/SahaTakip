@@ -18,7 +18,6 @@ Uygulama, modern Android geliştirme ekosisteminin en güncel ve performanslı a
 *   **Dil:** Kotlin & Coroutines / Flow
 *   **UI Framework:** Jetpack Compose (Material 3)
 *   **Mimari:** Clean Architecture + MVVM (Model-View-ViewModel)
-*   **Dependency Injection:** Hilt / Koin (Manuel DI adaptasyonu)
 *   **Local Database:** Room Persistence Library
 *   **Network:** Retrofit & OkHttp & Moshi
 *   **Image Loading:** Coil
