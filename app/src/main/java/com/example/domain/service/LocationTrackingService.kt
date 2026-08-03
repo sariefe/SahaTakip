@@ -8,25 +8,33 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Build
+import android.location.Location
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.data.repository.SahaRepository
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 class LocationTrackingService : Service() {
 
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private lateinit var repository: SahaRepository
+    
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
 
     private fun startForegroundServiceNotification() {
         val channelId = "saha_tracking_service"
@@ -88,36 +96,55 @@ class LocationTrackingService : Service() {
         startForegroundServiceNotification()
         
         repository = SahaRepository(applicationContext)
-        startTrackingLoop()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        
+        setupLocationCallback()
+        startLocationUpdates()
     }
 
-    @SuppressLint("DefaultLocale")
-    private fun startTrackingLoop() {
-        serviceScope.launch {
-            var currentLat = 41.0082
-            var currentLng = 28.9784
-
-            while (isActive) {
-                val intervalSeconds = repository.preferencesManager.updateInterval.first()
-                val latDelta = ((-10..10).random()) * 0.0005
-                val lngDelta = ((-10..10).random()) * 0.0005
-                currentLat += latDelta
-                currentLng += lngDelta
-
-                val speed = (10..30).random().toFloat()
-                val battery = (30..100).random()
-
-                repository.recordNewLocation(
-                    lat = currentLat,
-                    lng = currentLng,
-                    speed = speed,
-                    accuracy = 4.2f,
-                    batteryLevel = battery,
-                    address = "Saha Bölgesi (${String.format("%.4f", currentLat)}, ${String.format("%.4f", currentLng)})"
-                )
-
-                delay((intervalSeconds * 1000L).milliseconds)
+    private fun setupLocationCallback() {
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let { location ->
+                    saveLocationToRepository(location)
+                }
             }
+        }
+    }
+
+    private fun saveLocationToRepository(location: Location) {
+        serviceScope.launch {
+            val batteryStatus = getBatteryLevel()
+            repository.recordNewLocation(
+                lat = location.latitude,
+                lng = location.longitude,
+                speed = location.speed,
+                accuracy = location.accuracy,
+                batteryLevel = batteryStatus,
+                address = "Saha Konumu" // Gerçek adresi repository veya Geocoder ile çözebiliriz
+            )
+        }
+    }
+
+    private fun getBatteryLevel(): Int {
+        val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
+        return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startLocationUpdates() {
+        serviceScope.launch {
+            val intervalSeconds = repository.preferencesManager.updateInterval.first()
+            
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalSeconds * 1000L)
+                .setMinUpdateIntervalMillis(intervalSeconds * 500L)
+                .build()
+
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
         }
     }
 
@@ -129,6 +156,7 @@ class LocationTrackingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        fusedLocationClient.removeLocationUpdates(locationCallback)
         serviceJob.cancel()
     }
 
