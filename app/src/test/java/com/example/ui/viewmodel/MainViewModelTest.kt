@@ -331,4 +331,44 @@ class MainViewModelTest {
         
         coVerify { mockRepository.deleteGeofence(1L) }
     }
+
+    @Test
+    fun `addGeofenceZone prevents duplicates by name`() = runTest {
+        val existing = GeofenceZoneEntity(id = 1, name = "ZONE1", centerLat = 41.0, centerLng = 29.0)
+        allGeofencesFlow.value = listOf(existing)
+        
+        viewModel.addGeofenceZone("ZONE1", 42.0, 30.0, 500.0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        coVerify(exactly = 0) { mockGeofenceDao.insertGeofence(any()) }
+    }
+
+    @Test
+    fun `addGeofenceZone prevents duplicates by proximity`() = runTest {
+        val existing = GeofenceZoneEntity(id = 1, name = "ZONE1", centerLat = 41.0, centerLng = 29.0)
+        allGeofencesFlow.value = listOf(existing)
+        
+        // Mock distance calculation - 5 meters apart
+        every { mockRepository.calculateDistanceInMeters(any(), any(), any(), any()) } returns 5.0
+        
+        viewModel.addGeofenceZone("NEW ZONE", 41.00001, 29.00001, 500.0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        coVerify(exactly = 0) { mockGeofenceDao.insertGeofence(any()) }
+    }
+
+    @Test
+    fun `updateGeofenceZone updates existing zone`() = runTest {
+        val existing = GeofenceZoneEntity(id = 10, name = "OLD", centerLat = 41.0, centerLng = 29.0)
+        allGeofencesFlow.value = listOf(existing)
+        
+        viewModel.updateGeofenceZone(10L, "NEW NAME", 800.0)
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        coVerify { 
+            mockGeofenceDao.insertGeofence(match { 
+                it.id == 10L && it.name == "NEW NAME" && it.radiusMeters == 800.0 
+            }) 
+        }
+    }
 }

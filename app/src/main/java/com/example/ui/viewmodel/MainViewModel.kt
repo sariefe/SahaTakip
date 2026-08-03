@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.pow
@@ -538,21 +539,42 @@ class MainViewModel(
 
     fun addGeofenceZone(name: String, lat: Double, lng: Double, radiusMeters: Double) {
         viewModelScope.launch {
-            repository.geofenceDao.insertGeofence(
-                GeofenceZoneEntity(
-                    name = name,
-                    centerLat = lat,
-                    centerLng = lng,
-                    radiusMeters = radiusMeters,
-                    isActive = true
+            val existingZones = repository.geofenceDao.getAllGeofences().firstOrNull() ?: emptyList()
+
+            val isDuplicate = existingZones.any { 
+                it.name.equals(name, ignoreCase = true) || 
+                (repository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 10.0) 
+            }
+
+            if (!isDuplicate) {
+                repository.geofenceDao.insertGeofence(
+                    GeofenceZoneEntity(
+                        name = name,
+                        centerLat = lat,
+                        centerLng = lng,
+                        radiusMeters = radiusMeters,
+                        isActive = true
+                    )
                 )
-            )
+            }
         }
     }
 
     fun toggleGeofenceActive(id: Long, isActive: Boolean) {
         viewModelScope.launch {
             repository.geofenceDao.setGeofenceActive(id, isActive)
+        }
+    }
+
+    fun updateGeofenceZone(id: Long, name: String, radiusMeters: Double) {
+        viewModelScope.launch {
+            val zones = repository.geofenceDao.getAllGeofences().firstOrNull()
+            val existing = zones?.find { it.id == id }
+            existing?.let {
+                repository.geofenceDao.insertGeofence(
+                    it.copy(name = name, radiusMeters = radiusMeters)
+                )
+            }
         }
     }
 
