@@ -279,11 +279,26 @@ fun LeaveSubmitFormComponent(
 
             OutlinedTextField(
                 value = descriptionInput,
-                onValueChange = { descriptionInput = it },
+                onValueChange = { 
+                    val lineCount = it.count { char -> char == '\n' } + 1
+                    if (it.length <= 100 && lineCount <= 4) {
+                        descriptionInput = it
+                    }
+                },
                 label = { Text(tr("Açıklama", "Description")) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                minLines = 3
+                minLines = 3,
+                maxLines = 5,
+                supportingText = {
+                    Text(
+                        text = "${descriptionInput.length}/100",
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                        color = if (descriptionInput.length >= 100) StatusRed else MaterialTheme.colorScheme.secondary
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(20.dp))

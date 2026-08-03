@@ -159,11 +159,26 @@ fun EventLogsScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = noteInputText,
-                        onValueChange = { noteInputText = it },
+                        onValueChange = { 
+                            val lineCount = it.count { char -> char == '\n' } + 1
+                            if (it.length <= 100 && lineCount <= 4) {
+                                noteInputText = it
+                            }
+                        },
                         label = { Text(tr("Açıklama", "Explanation")) },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
+                        minLines = 3,
+                        maxLines = 5,
+                        supportingText = {
+                            Text(
+                                text = "${noteInputText.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                                color = if (noteInputText.length >= 100) StatusRed else MaterialTheme.colorScheme.secondary
+                            )
+                        }
                     )
                 }
             },
