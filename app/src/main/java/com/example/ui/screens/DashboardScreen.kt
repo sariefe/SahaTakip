@@ -217,7 +217,15 @@ fun DashboardScreen(
                         title = tr("İnternet", "Internet"),
                         isOk = deviceStatus.isInternetConnected,
                         icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                        onClick = { viewModel.toggleInternetSimulation() }
+                        onClick = {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                            } catch (_: Exception) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                } catch (_: Exception) {}
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     StatusGridItem(
@@ -226,15 +234,9 @@ fun DashboardScreen(
                         isOk = deviceStatus.isGpsEnabled,
                         icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
                         onClick = {
-                            if (!deviceStatus.isGpsEnabled) {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                } catch (_: Exception) {
-                                    viewModel.toggleGpsSimulation()
-                                }
-                            } else {
-                                viewModel.toggleGpsSimulation()
-                            }
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                            } catch (_: Exception) {}
                         }
                     )
                 }
@@ -248,18 +250,12 @@ fun DashboardScreen(
                         isOk = deviceStatus.isBackgroundExecutionOk,
                         icon = Icons.Default.LocationOn,
                         onClick = {
-                            if (!deviceStatus.isBackgroundLocationGranted) {
-                                try {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            } else if (!deviceStatus.isBatteryOptimizationIgnored || deviceStatus.isPowerSaveModeActive) {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
-                                } catch (_: Exception) {}
-                            }
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -292,7 +288,15 @@ fun DashboardScreen(
                         title = tr("İnternet", "Internet"),
                         isOk = deviceStatus.isInternetConnected,
                         icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                        onClick = { viewModel.toggleInternetSimulation() }
+                        onClick = {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                            } catch (_: Exception) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                } catch (_: Exception) {}
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     StatusGridItem(
@@ -301,15 +305,9 @@ fun DashboardScreen(
                         isOk = deviceStatus.isGpsEnabled,
                         icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
                         onClick = {
-                            if (!deviceStatus.isGpsEnabled) {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                } catch (_: Exception) {
-                                    viewModel.toggleGpsSimulation()
-                                }
-                            } else {
-                                viewModel.toggleGpsSimulation()
-                            }
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                            } catch (_: Exception) {}
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -319,18 +317,12 @@ fun DashboardScreen(
                         isOk = deviceStatus.isBackgroundExecutionOk,
                         icon = Icons.Default.LocationOn,
                         onClick = {
-                            if (!deviceStatus.isBackgroundLocationGranted) {
-                                try {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            } else if (!deviceStatus.isBatteryOptimizationIgnored || deviceStatus.isPowerSaveModeActive) {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
-                                } catch (_: Exception) {}
-                            }
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))

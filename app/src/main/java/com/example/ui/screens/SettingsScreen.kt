@@ -140,23 +140,31 @@ private fun TrackingSettings(viewModel: MainViewModel, currentInterval: Int, ser
             title = tr("Kontrol Sıklığı", "Control Interval"),
             icon = Icons.Default.Timer
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(30, 60, 120).forEach { sec ->
-                    val isSelected = currentInterval == sec
-                    Surface(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { viewModel.setUpdateInterval(sec) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = Color.Transparent
+            Column(horizontalAlignment = Alignment.End) {
+                val intervals = listOf(30, 60, 120, 300)
+                intervals.chunked(2).forEach { rowIntervals ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        Text(
-                            "${sec}s",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        rowIntervals.forEach { sec ->
+                            val isSelected = currentInterval == sec
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { viewModel.setUpdateInterval(sec) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                color = Color.Transparent
+                            ) {
+                                Text(
+                                    "${sec}s",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }

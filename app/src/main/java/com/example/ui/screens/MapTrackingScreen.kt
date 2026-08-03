@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Route
@@ -66,6 +67,7 @@ fun MapTrackingScreen(
 
     var showAddGeofenceDialog by remember { mutableStateOf(false) }
     var geofenceToDelete by remember { mutableStateOf<Long?>(null) }
+    var geofenceToEdit by remember { mutableStateOf<com.example.data.local.entity.GeofenceZoneEntity?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -98,7 +100,8 @@ fun MapTrackingScreen(
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it }
+                        onDeleteGeofence = { geofenceToDelete = it },
+                        onEditGeofence = { geofenceToEdit = it }
                     )
                     
                     Spacer(modifier = Modifier.height(100.dp))
@@ -128,7 +131,8 @@ fun MapTrackingScreen(
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it }
+                        onDeleteGeofence = { geofenceToDelete = it },
+                        onEditGeofence = { geofenceToEdit = it }
                     )
                 }
             }
@@ -169,6 +173,21 @@ fun MapTrackingScreen(
                 val lng = latestLoc?.longitude ?: 28.9784
                 viewModel.addGeofenceZone(name, lat, lng, radius)
                 showAddGeofenceDialog = false
+            }
+        )
+    }
+
+    if (geofenceToEdit != null) {
+        AddGeofenceDialog(
+            isEdit = true,
+            initialName = geofenceToEdit?.name ?: "",
+            initialRadius = geofenceToEdit?.radiusMeters?.toInt()?.toString() ?: "500",
+            onDismiss = { geofenceToEdit = null },
+            onConfirm = { name, radius ->
+                geofenceToEdit?.let {
+                    viewModel.updateGeofenceZone(it.id, name, radius)
+                }
+                geofenceToEdit = null
             }
         )
     }
@@ -223,7 +242,8 @@ private fun MapControls(
     playbackState: com.example.ui.viewmodel.PlaybackState,
     geofences: List<com.example.data.local.entity.GeofenceZoneEntity>,
     onAddGeofence: () -> Unit,
-    onDeleteGeofence: (Long) -> Unit
+    onDeleteGeofence: (Long) -> Unit,
+    onEditGeofence: (com.example.data.local.entity.GeofenceZoneEntity) -> Unit
 ) {
     // QUICK TELEMETRY ROW
     val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
@@ -357,7 +377,8 @@ private fun MapControls(
             details = "${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
             isActive = zone.isActive,
             onToggle = { active -> viewModel.toggleGeofenceActive(zone.id, active) },
-            onDelete = { onDeleteGeofence(zone.id) }
+            onDelete = { onDeleteGeofence(zone.id) },
+            onEdit = { onEditGeofence(zone) }
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -392,7 +413,8 @@ fun GeofenceItem(
     details: String,
     isActive: Boolean,
     onToggle: (Boolean) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -424,6 +446,15 @@ fun GeofenceItem(
                 Text(text = details, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
             }
             
+            IconButton(onClick = onEdit) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
@@ -444,16 +475,24 @@ fun GeofenceItem(
 
 @Composable
 fun AddGeofenceDialog(
+    isEdit: Boolean = false,
+    initialName: String = "",
+    initialRadius: String = "500",
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var radius by remember { mutableStateOf("500") }
+    var name by remember { mutableStateOf(initialName) }
+    var radius by remember { mutableStateOf(initialRadius) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
-        title = { Text(tr("Yeni Güvenli Bölge", "New Safe Zone"), fontWeight = FontWeight.Bold) },
+        title = { 
+            Text(
+                if (isEdit) tr("Bölgeyi Düzenle", "Edit Safe Zone") else tr("Yeni Güvenli Bölge", "New Safe Zone"), 
+                fontWeight = FontWeight.Bold
+            ) 
+        },
         text = {
             Column {
                 OutlinedTextField(
@@ -475,7 +514,7 @@ fun AddGeofenceDialog(
         },
         confirmButton = {
             Button(onClick = { onConfirm(name, radius.toDoubleOrNull() ?: 500.0) }) {
-                Text(tr("Ekle", "Add"))
+                Text(if (isEdit) tr("Güncelle", "Update") else tr("Ekle", "Add"))
             }
         },
         dismissButton = {
