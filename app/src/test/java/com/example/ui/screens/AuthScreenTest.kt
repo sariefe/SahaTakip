@@ -1,11 +1,10 @@
 package com.example.ui.screens
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
-import com.example.ui.viewmodel.MainViewModel
 import com.example.domain.model.DeviceStatus
+import com.example.ui.viewmodel.MainViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -14,7 +14,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowApplication
 import org.robolectric.shadows.ShadowLocationManager
 import org.robolectric.shadows.ShadowPowerManager
 
@@ -82,7 +81,7 @@ class PermissionUtilsTest {
     fun testIsPowerSaveMode() {
         val powerManager = app.getSystemService(Context.POWER_SERVICE) as PowerManager
         val shadowPowerManager: ShadowPowerManager = shadowOf(powerManager)
-        
+
         shadowPowerManager.setIsPowerSaveMode(false)
         assertFalse(PermissionUtils.isPowerSaveMode(app))
 

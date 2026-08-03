@@ -1,12 +1,11 @@
 package com.example.ui.screens
 
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import com.example.ui.viewmodel.MainViewModel
-import com.example.domain.model.DeviceStatus
 import com.example.data.local.entity.UserProfileEntity
+import com.example.domain.model.DeviceStatus
+import com.example.ui.viewmodel.MainViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
