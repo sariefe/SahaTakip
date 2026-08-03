@@ -18,7 +18,6 @@ roomCompiler = "2.8.4"
 kotlinxCoroutinesTest = "1.11.0"
 core = "1.7.0"
 runner = "1.7.0"
-coilCompose = "3.5.0"
 retrofit = "3.0.0"
 kotlinxCoroutinesAndroid = "1.11.0"
 kotlinxCoroutinesCore = "1.11.0"
@@ -30,9 +29,6 @@ moshiKotlinCodegen = "1.15.2"
 robolectric = "4.16.1"
 roborazzi = "1.70.0"
 conscrypt = "2.6.1"
-firebaseBom = "34.17.0"
-secretsGradlePlugin = "2.0.1"
-googleServices = "4.5.0"
 biometric = "1.1.0"
 junitKtx = "1.3.0"
 mockito = "5.23.0"
@@ -70,7 +66,6 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 material3-windowsize = { group = "androidx.compose.material3", name = "material3-window-size-class" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
@@ -84,9 +79,6 @@ roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", versi
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 conscrypt-openjdk-uber = { group = "org.conscrypt", name = "conscrypt-openjdk-uber", version.ref = "conscrypt" }
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
-firebase-appcheck-recaptcha = { group = "com.google.firebase", name = "firebase-appcheck-recaptcha" }
 androidx-junit-ktx = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "junitKtx" }
 
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
@@ -102,5 +94,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
-secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
-google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

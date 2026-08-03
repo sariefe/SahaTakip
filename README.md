@@ -16,14 +16,14 @@ SahaTakip, saha personelinin verimliliğini artırmak, güvenlik süreçlerini o
 Uygulama, modern Android geliştirme ekosisteminin en güncel ve performanslı araçlarını kullanır:
 
 *   **Dil:** Kotlin & Coroutines / Flow
-*   **UI Framework:** Jetpack Compose (Material 3)
+*   **UI Framework:** Jetpack Compose (Material 3) & Navigation Compose
 *   **Mimari:** Clean Architecture + MVVM (Model-View-ViewModel)
-*   **Local Database:** Room Persistence Library
+*   **Local Database:** Room Persistence Library (KSP ile)
 *   **Network:** Retrofit & OkHttp & Moshi
-*   **Image Loading:** Coil
-*   **Service & Security:** Foreground Services, BiometricPrompt
-*   **AI & Vision:** Firebase AI, ML Kit Text Recognition
-*   **Test:** JUnit, Robolectric, Roborazzi (Screenshot Testing)
+*   **Location:** Google Play Services Location (Arka Plan Konum Takibi)
+*   **Camera & Vision:** CameraX & ML Kit Text Recognition (Kimlik Kartı Tarama için)
+*   **Service & Security:** Foreground Services (Kesintisiz Takip), BiometricPrompt (Parmak İzi/Yüz Tanıma)
+*   **Test & Analiz:** JUnit, MockK, Robolectric, Roborazzi (Ekran Görüntüsü Testleri)
 
 ## 🏗 Mimari Yapı ve Mimari Tercihler
 

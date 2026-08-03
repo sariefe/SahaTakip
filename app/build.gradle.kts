@@ -1,4 +1,3 @@
-import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import org.gradle.api.tasks.testing.Test
 
 plugins {
@@ -6,8 +5,6 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
-  alias(libs.plugins.google.services)
-  id("jacoco")
 }
 
 android {
@@ -59,11 +56,8 @@ android {
   }
 }
 
-googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
-
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  implementation(platform(libs.firebase.bom))
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
@@ -80,10 +74,8 @@ dependencies {
   implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
-  implementation(libs.coil.compose)
   implementation(libs.play.services.location)
   implementation(libs.androidx.biometric)
-  implementation(libs.firebase.ai)
 
   implementation(libs.androidx.camera.camera2)
   implementation(libs.androidx.camera.lifecycle)
@@ -91,7 +83,6 @@ dependencies {
   implementation(libs.androidx.camera.mlkit.vision)
   implementation(libs.mlkit.text.recognition)
 
-  implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
@@ -129,66 +120,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 tasks.withType<Test>().configureEach {
   jvmArgs("-noverify")
-}
-
-val fileFilter = mutableSetOf(
-  "**/R.class",
-  "**/R$*.class",
-  "**/BuildConfig.*",
-  "**/Manifest*.*",
-  "**/*Test*.*",
-  "android/**/*.*",
-  "**/*$[0-9]*.*",
-  "**/*Component*.*",
-  "**/*BR*.*",
-  "**/Manifest*.*",
-  "**/*\$Lambda$*.*",
-  "**/*Companion*.*",
-  "**/*Module*.*",
-  "**/*Dagger*.*",
-  "**/*Hilt*.*",
-  "**/*MembersInjector*.*",
-  "**/*_Factory*.*",
-  "**/*_Provide*.*",
-  "**/*_ViewBinding*.*",
-  "**/AutoValue_*.*",
-  "**/R2.class",
-  "**/R2$*.class",
-  "**/*Directions$*",
-  "**/*Directions.*",
-  "**/*Args$*",
-  "**/*Args.*"
-)
-
-tasks.register<JacocoReport>("jacocoTestReport") {
-  dependsOn("testDebugUnitTest", "connectedDebugAndroidTest")
-  group = "Reporting"
-  description = "Generate Jacoco coverage reports"
-
-  reports {
-    xml.required.set(true)
-    html.required.set(true)
-  }
-
-  val javaClasses = fileTree("${layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
-    exclude(fileFilter)
-  }
-  val kotlinClasses = fileTree("${layout.buildDirectory.get().asFile}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
-    exclude(fileFilter)
-  }
-
-  classDirectories.setFrom(files(javaClasses, kotlinClasses))
-
-  sourceDirectories.setFrom(files(
-    "${project.projectDir}/src/main/java",
-    "${project.projectDir}/src/main/kotlin"
-  ))
-
-  executionData.setFrom(fileTree(layout.buildDirectory.get().asFile) {
-    include(
-      "jacoco/testDebugUnitTest.exec",
-      "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
-      "outputs/code_coverage/debugAndroidTest/connected/*coverage.ec"
-    )
-  })
 }
