@@ -1,5 +1,9 @@
 package com.example.util
 
+import android.content.Context
+import android.location.Address
+import android.location.Geocoder
+import java.util.Locale
 import kotlin.math.*
 
 object LocationUtils {
@@ -15,5 +19,31 @@ object LocationUtils {
                 sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return r * c
+    }
+
+    @Suppress("DEPRECATION")
+    fun getAddressFromLocation(context: Context, lat: Double, lng: Double): String {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+
+            val addresses = geocoder.getFromLocation(lat, lng, 1)
+            
+            if (!addresses.isNullOrEmpty()) {
+                formatAddress(addresses[0])
+            } else {
+                "Bilinmeyen Konum ($lat, $lng)"
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("LocationUtils", "Geocoder error: ${e.message}")
+            "Konum Çözülemedi ($lat, $lng)"
+        }
+    }
+
+    private fun formatAddress(address: Address): String {
+        val addressParts = mutableListOf<String>()
+        for (i in 0..address.maxAddressLineIndex) {
+            addressParts.add(address.getAddressLine(i))
+        }
+        return addressParts.joinToString(", ")
     }
 }

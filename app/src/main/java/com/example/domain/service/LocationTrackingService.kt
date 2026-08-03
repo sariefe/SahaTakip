@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.data.repository.SahaRepository
+import com.example.util.LocationUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -115,13 +116,18 @@ class LocationTrackingService : Service() {
     private fun saveLocationToRepository(location: Location) {
         serviceScope.launch {
             val batteryStatus = getBatteryLevel()
+            val address = LocationUtils.getAddressFromLocation(
+                applicationContext,
+                location.latitude,
+                location.longitude
+            )
             repository.recordNewLocation(
                 lat = location.latitude,
                 lng = location.longitude,
                 speed = location.speed,
                 accuracy = location.accuracy,
                 batteryLevel = batteryStatus,
-                address = "Saha Konumu" // Gerçek adresi repository veya Geocoder ile çözebiliriz
+                address = address //Geocoder ile gerçek veri alınması başarılı
             )
         }
     }
