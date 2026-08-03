@@ -2,7 +2,7 @@
 
 SahaTakip, saha personelinin verimliliğini artırmak, güvenlik süreçlerini optimize etmek ve gerçek zamanlı konum takibi sağlamak amacıyla geliştirilmiş modern bir Android uygulamasıdır. Uygulama, arka plan servisleri, biyometrik güvenlik ve yapay zeka entegrasyonu ile kurumsal düzeyde bir çözüm sunar.
 
-## 🚀 Temel Özellikler
+## 🚩 Temel Özellikler
 
 *   **Gerçek Zamanlı Konum Takibi:** `LocationTrackingService` ile arka planda düşük pil tüketimiyle hassas konum kaydı.
 *   **Biyometrik Güvenlik:** Hassas verilere erişim ve uygulama kilidi için parmak izi/yüz tanıma entegrasyonu.
