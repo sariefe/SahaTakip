@@ -43,11 +43,11 @@ class OcrAnalyzer(
                                 val right = box.right.toFloat() / imgWidth
                                 val top = box.top.toFloat() / imgHeight
                                 val bottom = box.bottom.toFloat() / imgHeight
-                                
+
                                 // Box-in-Frame check
                                 val centerX = (left + right) / 2f
                                 val centerY = (top + bottom) / 2f
-                                
+
                                 val isHorizontallyIn = centerX in roiXMin..roiXMax
                                 val isVerticallyIn = centerY in roiYMin..roiYMax
 
