@@ -88,9 +88,9 @@ object OcrCardScanner {
                     DEPARTMENTS.any { candidate.text.contains(it) }
                 }
                 if (deptLine != null) {
-                    department = deptLine.text
+                    department = OcrCleaner.cleanText(deptLine.text, isNumeric = false)
                 } else if (linesBelowId.size >= 3 && department.isBlank()) {
-                    department = linesBelowId[2].text
+                    department = OcrCleaner.cleanText(linesBelowId[2].text, isNumeric = false)
                 }
             }
         }
@@ -110,7 +110,8 @@ object OcrCardScanner {
                         lastName = OcrCleaner.cleanText(extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else "", isNumeric = false)
                     }
                     (text.contains("DEPARTMAN") || text.contains("BÖLÜM") || text.contains("MÜDÜRLÜK")) && department.isBlank() -> {
-                        department = extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else ""
+                        val rawValue = extractValue(text) ?: if (index + 1 < upperLines.size) upperLines[index + 1].text else ""
+                        department = OcrCleaner.cleanText(rawValue, isNumeric = false)
                     }
                 }
             }
@@ -119,7 +120,7 @@ object OcrCardScanner {
         // 4. Department match refinement (if still blank)
         if (department.isBlank()) {
             department = DEPARTMENTS.find { dept -> upperLines.any { it.text.contains(dept) } } 
-                ?: upperLines.find { line -> deptKeywords.any { line.text.contains(it) } }?.text 
+                ?: upperLines.find { line -> deptKeywords.any { line.text.contains(it) } }?.let { OcrCleaner.cleanText(it.text, isNumeric = false) }
                 ?: ""
         }
 

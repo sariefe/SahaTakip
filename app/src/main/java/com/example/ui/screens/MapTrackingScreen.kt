@@ -497,10 +497,12 @@ fun AddGeofenceDialog(
             Column {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { if (it.length <= 8) name = it },
                     label = { Text(tr("Bölge İsmi", "Zone Name")) },
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(

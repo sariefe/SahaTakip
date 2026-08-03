@@ -229,11 +229,13 @@ fun AuthScreen(
 
                 OutlinedTextField(
                     value = codeInput,
-                    onValueChange = { codeInput = it },
+                    onValueChange = { if (it.length <= 8) codeInput = it },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                     placeholder = { Text("SAHA2026") },
+                    singleLine = true,
+                    maxLines = 1,
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedContainerColor = MaterialTheme.colorScheme.surface

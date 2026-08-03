@@ -377,7 +377,7 @@ class MainViewModel(
                 val scannedFirstName = ocrResult?.firstName ?: "AHMET CAN"
                 val scannedLastName = ocrResult?.lastName ?: "YILMAZ"
                 val scannedStaffId = ocrResult?.staffId ?: "ID-2026-999"
-                val scannedDept = ocrResult?.department ?: "SAHA"
+                val scannedDept = ocrResult?.department?.takeIf { it.isNotBlank() } ?: "SAHA"
 
                 repository.userDao.insertOrUpdateUser(
                     UserProfileEntity(
@@ -428,7 +428,7 @@ class MainViewModel(
                                 firstName = ocrResult.firstName,
                                 lastName = ocrResult.lastName,
                                 fullName = ocrResult.fullName,
-                                department = ocrResult.department
+                                department = ocrResult.department.takeIf { it.isNotBlank() } ?: profile.department
                             )
                         )
                     }
