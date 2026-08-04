@@ -58,20 +58,20 @@ import kotlin.math.sqrt
 @Composable
 fun MapTrackingScreen(
     viewModel: TrackingViewModel,
-    windowWidthSizeClass: WindowWidthSizeClass
+    windowWidthSizeClass: WindowWidthSizeClass,
 ) {
     val locations by viewModel.locationsLast24h.collectAsState()
     val latestLoc by viewModel.latestLocation.collectAsState()
     val geofences by viewModel.allGeofences.collectAsState()
     val playbackState by viewModel.playbackState.collectAsState()
 
-    var showAddGeofenceDialog by remember { mutableStateOf(false) }
+    var showAddGeofenceDialog by remember { mutableStateOf(value = false) }
     var geofenceToDelete by remember { mutableStateOf<Long?>(null) }
     var geofenceToEdit by remember { mutableStateOf<com.example.data.local.entity.GeofenceZoneEntity?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background,
     ) {
         if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -100,9 +100,8 @@ fun MapTrackingScreen(
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it }
-                    )
+                        onDeleteGeofence = { geofenceToDelete = it }
+                    ) { geofenceToEdit = it }
                     
                     Spacer(modifier = Modifier.height(100.dp))
                 }
@@ -131,9 +130,8 @@ fun MapTrackingScreen(
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it }
-                    )
+                        onDeleteGeofence = { geofenceToDelete = it }
+                    ) { geofenceToEdit = it }
                 }
             }
         }
@@ -167,14 +165,13 @@ fun MapTrackingScreen(
 
     if (showAddGeofenceDialog) {
         AddGeofenceDialog(
-            onDismiss = { showAddGeofenceDialog = false },
-            onConfirm = { name, radius ->
-                val lat = latestLoc?.latitude ?: 41.0082
-                val lng = latestLoc?.longitude ?: 28.9784
-                viewModel.addGeofenceZone(name, lat, lng, radius)
-                showAddGeofenceDialog = false
-            }
-        )
+            onDismiss = { showAddGeofenceDialog = false }
+        ) { name, radius ->
+            val lat = latestLoc?.latitude ?: 41.0082
+            val lng = latestLoc?.longitude ?: 28.9784
+            viewModel.addGeofenceZone(name, lat, lng, radius)
+            showAddGeofenceDialog = false
+        }
     }
 
     if (geofenceToEdit != null) {
@@ -198,7 +195,7 @@ private fun MapArea(
     locations: List<LocationEntity>,
     latestLoc: LocationEntity?,
     geofences: List<com.example.data.local.entity.GeofenceZoneEntity>,
-    playbackState: com.example.ui.viewmodel.PlaybackState
+    playbackState: com.example.ui.viewmodel.PlaybackState,
 ) {
     CustomMapView(
         locations = locations,
@@ -248,7 +245,7 @@ private fun MapControls(
     // QUICK TELEMETRY ROW
     val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
     val avgSpeed = remember(locations) {
-        if (locations.isNotEmpty()) locations.map { it.speed }.average() else 0.0
+        if (locations.isNotEmpty()) locations.asSequence().map { it.speed }.average() else 0.0
     }
 
     Row(
@@ -530,14 +527,14 @@ fun AddGeofenceDialog(
 fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
     if (locations.size < 2) return 0.0
     var totalMeters = 0.0
-    for (i in 0 until locations.size - 1) {
+    for (i in 0 until (locations.size - 1)) {
         val l1 = locations[i]
         val l2 = locations[i + 1]
         val lat1 = Math.toRadians(l1.latitude)
         val lat2 = Math.toRadians(l2.latitude)
         val dLat = Math.toRadians(l2.latitude - l1.latitude)
         val dLng = Math.toRadians(l2.longitude - l1.longitude)
-        val a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2)
+        val a = (sin(dLat / 2) * sin(dLat / 2)) + (cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2))
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         totalMeters += 6371000.0 * c
     }

@@ -115,7 +115,7 @@ class TrackingViewModel @Inject constructor(
             if (!isDuplicate) {
                 repository.geofenceDao.insertGeofence(
                     GeofenceZoneEntity(
-                        name = name,
+                        name = name.trim(),
                         centerLat = lat,
                         centerLng = lng,
                         radiusMeters = radiusMeters,

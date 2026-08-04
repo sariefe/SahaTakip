@@ -175,9 +175,10 @@ fun CustomMapView(
 
         val poiStations = remember {
             listOf(
-                PoiStation("Merkez Saha Deposu", 41.0125, 28.9810, "HQ"),
-                PoiStation("Güvenlik Kontrol Noktası Alpha", 41.0060, 28.9740, "CHECKPOINT"),
-                PoiStation("Tesis Araç Şarj İstasyonu", 41.0180, 28.9890, "STATION")
+                PoiStation("Lojistik Dağıtım Merkezi", 41.0125, 28.9810, "HQ"),
+                PoiStation("Güvenlik Kontrol Noktası - Kuzey", 41.0145, 28.9840, "CHECKPOINT"),
+                PoiStation("Araç Bakım & Şarj İstasyonu", 41.0110, 28.9790, "STATION"),
+                PoiStation("Şantiye Ofisi", 41.0135, 28.9825, "OFFICE")
             )
         }
 

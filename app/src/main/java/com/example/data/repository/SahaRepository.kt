@@ -35,7 +35,7 @@ class SahaRepository @Inject constructor(
     val userDao: UserDao,
     val offlineReportDao: OfflineActivityReportDao,
     val preferencesManager: PreferencesManager,
-    private val mockSyncApi: MockSyncApi
+    private val mockSyncApi: MockSyncApi,
 ) {
 
     val latestLocation: Flow<LocationEntity?> = locationDao.getLatestLocation()
@@ -50,9 +50,9 @@ class SahaRepository @Inject constructor(
             userDao.insertOrUpdateUser(
                 UserProfileEntity(
                     id = 1,
-                    firstName = "Örnek",
-                    lastName = "Personel",
-                    fullName = "Örnek Personel",
+                    firstName = "Ömer",
+                    lastName = "Saha",
+                    fullName = "Ömer Saha",
                     position = "Saha Teknisyeni",
                     department = "SAHA",
                     staffId = "ID-2026-DEMO",
@@ -60,7 +60,20 @@ class SahaRepository @Inject constructor(
                     activationCode = PreferencesManager.DEFAULT_ACTIVATION_CODE,
                     isActivated = false,
                     isBiometricEnabled = true,
-                    isCheckedIn = false
+                    isCheckedIn = false,
+                )
+            )
+        }
+
+        val currentGeofences = geofenceDao.getAllGeofences().firstOrNull()
+        if (currentGeofences.isNullOrEmpty()) {
+            geofenceDao.insertGeofence(
+                GeofenceZoneEntity(
+                    name = "Merkez Şantiye Alanı",
+                    centerLat = 41.0125,
+                    centerLng = 28.9810,
+                    radiusMeters = 1000.0,
+                    isActive = true
                 )
             )
         }
@@ -103,7 +116,7 @@ class SahaRepository @Inject constructor(
         }
 
         if (!isInsideAny) {
-            if (now - lastGeofenceAlertTimestamp > 120_000L) {
+            if ((now - lastGeofenceAlertTimestamp) > 120_000L) {
                 lastGeofenceAlertTimestamp = now
 
                 val log = EventLogEntity(
