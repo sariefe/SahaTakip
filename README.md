@@ -1,83 +1,88 @@
-# SahaTakip - Akıllı Saha Operasyon Yönetimi
+# SahaTakip - Profesyonel Saha Personel Takip Sistemi
 
-SahaTakip, saha personelinin verimliliğini artırmak, güvenlik süreçlerini optimize etmek ve gerçek zamanlı konum takibi sağlamak amacıyla geliştirilmiş modern bir Android uygulamasıdır. Uygulama, arka plan servisleri, biyometrik güvenlik ve yapay zeka entegrasyonu ile kurumsal düzeyde bir çözüm sunar.
+SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını ve görev bölgelerini (Geofence) gerçek zamanlı olarak izleyen, gizlilik odaklı, modern ve kurumsal bir Android uygulamasıdır.
 
-## 🚩 Temel Özellikler
+## 🚀 Öne Çıkan Özellikler
 
-*   **Gerçek Zamanlı Konum Takibi:** `LocationTrackingService` ile arka planda düşük pil tüketimiyle hassas konum kaydı.
-*   **Biyometrik Güvenlik:** Hassas verilere erişim ve uygulama kilidi için parmak izi/yüz tanıma entegrasyonu.
-*   **AI Destekli İşlemler:** Firebase AI ve Google ML Kit (Text Recognition) ile akıllı veri işleme ve analiz.
-*   **Çevrimdışı Çalışma Desteği:** Room veritabanı ile verilerin yerel olarak saklanması ve senkronizasyonu.
-*   **Modern UI/UX:** Jetpack Compose ve Material 3 ile tamamen deklaratif ve kullanıcı dostu arayüz.
-*   **Olay Günlüğü (Event Logging):** Personel hareketlerinin ve sistem uyarılarının detaylı takibi.
+### 📍 Takip ve İzleme
+- **Kesintisiz Arka Plan Konumu:** Cihaz uykuda veya uygulama kapalıyken bile düşük güç tüketimiyle hassas konum kaydı.
+- **Akıllı Rota Oynatma:** Geçmiş konum verilerini harita üzerinde farklı hızlarda (1x, 2x, 4x) görselleştirme.
+- **Dinamik Geofencing:** Harita üzerinden güvenli bölgeler tanımlama; bölge ihlali durumunda anlık sistem bildirimi ve olay günlüğü oluşturma (Türkçe karakter desteği ile).
 
-## 🛠 Kullanılan Teknolojiler
+### 🛡️ Güvenlik ve Gizlilik
+- **Biyometrik Giriş:** Parmak izi veya yüz tanıma desteği ile verilerin güvenliğini sağlayan ekran kilidi.
+- **Cihaz Güvenlik Analizi:** Root erişimi tespiti ve kritik güvenlik risklerinin raporlanması.
+- **Gizlilik Bildirimleri:** Arka plan aktiviteleri hakkında kullanıcıyı bilgilendiren şeffaf bildirim sistemi.
 
-Uygulama, modern Android geliştirme ekosisteminin en güncel ve performanslı araçlarını kullanır:
+### 📊 Telemetri ve Senkronizasyon
+- **Dinamik Cihaz Durumu:** Pil yüzdesi, şarj durumu, internet bağlantısı ve GPS aktifliğinin anlık izlenmesi.
+- **Çevrimdışı Çalışma (Offline-First):** İnternet bağlantısı koptuğunda verileri Room DB'de saklama; bağlantı sağlandığında otomatik senkronizasyon.
+- **Olay Günlüğü (Event Logs):** Cihazın durum değişikliklerini (Düşük pil, GPS kapanması, Bölge ihlali) zaman damgalı olarak kaydetme.
 
-*   **Dil:** Kotlin & Coroutines / Flow
-*   **UI Framework:** Jetpack Compose (Material 3) & Navigation Compose
-*   **Mimari:** Clean Architecture + MVVM (Model-View-ViewModel)
-*   **Local Database:** Room Persistence Library (KSP ile)
-*   **Network:** Retrofit & OkHttp & Moshi
-*   **Location:** Google Play Services Location (Arka Plan Konum Takibi)
-*   **Camera & Vision:** CameraX & ML Kit Text Recognition (Kimlik Kartı Tarama için)
-*   **Service & Security:** Foreground Services (Kesintisiz Takip), BiometricPrompt (Parmak İzi/Yüz Tanıma)
-*   **Test & Analiz:** JUnit, MockK, Robolectric, Roborazzi (Ekran Görüntüsü Testleri)
+### 📱 Modern Kullanıcı Deneyimi
+- **Adaptif Tasarım:** Tabletlerde Navigation Rail, telefonlarda Bottom Navigation kullanan, ekran boyutuna duyarlı arayüz.
+- **Material 3:** Modern, temiz ve göz yormayan "Dynamic Color" destekli tasarım.
+- **Çift Dil Desteği:** Türkçe ve İngilizce dilleri arasında dinamik geçiş.
 
-## 🏗 Mimari Yapı ve Mimari Tercihler
+## 🛠 Teknik Yığın (Tech Stack)
 
-Proje, **Clean Architecture** prensipleri üzerine inşa edilmiştir. Kod tabanı üç ana katmana ayrılmıştır:
+- **UI:** Jetpack Compose & Material 3
+- **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
+- **Bağımlılık Enjeksiyonu:** Hilt (Dagger)
+- **Yerel Veritabanı:** Room Persistence Library
+- **Ağ:** Retrofit & OkHttp & Moshi
+- **Asenkron Akış:** Kotlin Coroutines & Flow
+- **Konum:** Google Play Services Location
+- **Test:** JUnit 4, MockK, Robolectric, Roborazzi
 
-1.  **Data Layer:** Veri kaynakları (Local Room DB, Remote API) ve Repository implementasyonları.
-2.  **Domain Layer:** İş mantığı (Business Logic), Use Case'ler ve Domain modelleri.
-3.  **UI (Presentation) Layer:** ViewModel'ler ve Jetpack Compose ekranları.
-
-### Neden Clean Architecture?
-
-*   **Sürdürülebilirlik:** Katmanlar arasındaki düşük bağımlılık (Decoupling), projenin uzun vadede bakımını kolaylaştırır.
-*   **Test Edilebilirlik:** İş mantığı (Domain) Android framework'ünden bağımsız olduğu için kolayca Unit Test yazılabilir.
-*   **Esneklik:** Örneğin, veritabanı kütüphanesini değiştirmek veya yeni bir API eklemek diğer katmanları etkilemez.
-*   **Ekip Çalışması:** Farklı geliştiriciler aynı anda UI ve Data katmanlarında çakışma yaşamadan çalışabilir.
-
-### Neden MVVM?
-
-Sunum katmanında **Model-View-ViewModel (MVVM)** mimarisi tercih edilmiştir:
-
-*   **Yaşam Döngüsü Yönetimi:** `ViewModel` kullanımı sayesinde ekran döndürme gibi yapılandırma değişikliklerinde verilerin korunması sağlanır.
-*   **Durum Yönetimi (State Management):** `StateFlow` ve `Flow` API'leri ile UI durumunun (UI State) merkezi ve reaktif bir noktadan yönetilmesi kolaylaşır.
-*   **UI ve Mantık Ayrımı:** Jetpack Compose (View) sadece veriyi göstermekten sorumludur; iş mantığı ve durum dönüşümleri ViewModel'de tutulur.
-*   **Tek Yönlü Veri Akışı (UDF):** Verinin ViewModel'den UI'ya akması, eventlerin ise UI'dan ViewModel'e iletilmesi sayesinde öngörülebilir ve kolay hata ayıklanabilir bir yapı kurulur.
-
-## 📁 Proje Yapısı
+## 🏗 Proje Yapısı
 
 ```text
-app/src/main/java/com/example/
-├── data/           # Veri erişim katmanı (Local, Remote, Repository)
-├── domain/         # İş mantığı ve servisler (LocationTrackingService, Modeller)
-├── ui/             # Arayüz katmanı
-│   ├── screens/    # Compose Ekranları (Auth, Map, Settings vb.)
-│   ├── viewmodel/  # UI Durum Yönetimi
-│   ├── theme/      # Tasarım sistemi ve Renkler
-│   └── components/ # Yeniden kullanılabilir UI bileşenleri
-└── MainActivity.kt # Uygulama giriş noktası
+com.example
+├── di/             # Bağımlılık Enjeksiyonu (Hilt Modülleri)
+│   ├── AppModule.kt       # Genel uygulama bağımlılıkları
+│   ├── DatabaseModule.kt  # Room DB ve DAO tanımları
+│   └── NetworkModule.kt   # Retrofit ve API servisleri
+├── data/           # Veri Katmanı
+│   ├── local/      # Room DB, DAO'lar, Preferences
+│   ├── remote/     # Mock API tanımları
+│   └── repository/ # Tek gerçek veri kaynağı (Single Source of Truth)
+├── domain/         # İş Mantığı
+│   ├── model/      # UI'dan bağımsız veri modelleri
+│   └── service/    # Arka plan servisleri (LocationTrackingService)
+├── ui/             # Sunum Katmanı
+│   ├── components/ # Özelleştirilmiş Harita ve UI bileşenleri
+│   ├── navigation/ # AppNavGraph ve Ekran rotaları
+│   ├── screens/    # Dashboard, Harita, Ayarlar, Olay Günlükleri
+│   ├── theme/      # Renk paleti, Tipografi, Material 3 Teması
+│   └── viewmodel/  # Durum yönetimi (State Management)
+├── util/           # Yardımcı Araçlar (İzinler, Güvenlik, Konum hesaplama)
+├── MainActivity.kt # Ana giriş noktası (Hilt Entry Point)
+└── SahaApplication.kt # Hilt Android App sınıfı
 ```
 
-## ⚙️ Kurulum ve Çalıştırma
+## 📋 Kurulum ve Çalıştırma
 
-1.  Projeyi klonlayın: `git clone <repo-url>`
-2.  Android Studio'da projeyi açın.
-3.  `google-services.json` dosyasını `app/` dizinine ekleyin (Firebase özellikleri için).
-4.  Projeyi Build edin ve bir cihazda/emülatörde çalıştırın.
-<img width="200" height="500" alt="Screenshot_20260729_150832" src="https://github.com/user-attachments/assets/2b061095-494d-4964-92f7-50b33d3c4b20" />
-<img width="200" height="500" alt="Screenshot_20260729_150808" src="https://github.com/user-attachments/assets/1dbeec91-7bb7-4105-bc9f-fe4950370320" />
-<img width="200" height="500" alt="Screenshot_20260729_150815" src="https://github.com/user-attachments/assets/8aa1b0ca-13db-4c67-9fa0-4b3bc77d019c" />
-<img width="200" height="500" alt="Screenshot_20260729_150821" src="https://github.com/user-attachments/assets/04f64d43-2355-4b33-8947-35768ceac736" />
-<img width="200" height="500" alt="Screenshot_20260729_150826" src="https://github.com/user-attachments/assets/a6135da0-5ecf-42ef-84a4-53db81ea8c97" />
+1. **Projeyi Klonlayın:**
+   ```bash
+   git clone https://github.com/efe-sari/staj-testing.git
+   ```
+2. **Derleme:** Android Studio (Ladybug 2026.1.3+) ile projeyi açın ve Gradle senkronizasyonunu başlatın.
+3. **İzinler:** Uygulama açılışında konum, bildirim ve kamera izinlerini onaylayın.
+4. **Arka Plan Takibi:** Kesintisiz izleme için cihazın "Pil Tasarrufu" modunu kapatın ve konum iznini "Her zaman izin ver" olarak ayarlayın.
 
-## 🎥 Tanıtım Videosu
+## 🧪 Testler ve Kalite
 
-Uygulamanın kullanımını ve özelliklerini detaylı olarak görmek için [buraya tıklayarak demo videomuzu izleyebilirsiniz/indirebilirsiniz](https://github.com/sariefe/SahaTakip/releases/tag/video).
+Proje, yüksek kod kapsamı (code coverage) hedefiyle geliştirilmiştir:
+- **Unit Tests:** ViewModel ve Repository mantığının doğrulanması.
+- **Robolectric:** Android framework bileşenlerinin (Intent, Context) simülasyonu.
+- **Screenshot Testing:** Arayüz bileşenlerinin farklı çözünürlüklerdeki görsel kontrolü.
 
----
-*Bu proje, modern Android standartları gözetilerek geliştirilmiştir.*
+Testleri çalıştırmak için:
+```bash
+./gradlew test
+```
+
+## 📜 Lisans
+
+Bu proje, staj ve profesyonel gelişim kapsamında geliştirilmiştir. Tüm hakları saklıdır.
