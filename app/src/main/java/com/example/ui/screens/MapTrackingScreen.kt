@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -42,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.data.local.entity.LocationEntity
 import com.example.ui.components.CustomMapView
@@ -504,10 +506,13 @@ fun AddGeofenceDialog(
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = radius,
-                    onValueChange = { radius = it },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) radius = it },
                     label = { Text(tr("Yarıçap (Metre)", "Radius (Meters)")) },
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    maxLines = 1,
                 )
             }
         },
