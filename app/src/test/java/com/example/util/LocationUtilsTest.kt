@@ -7,7 +7,6 @@ class LocationUtilsTest {
 
     @Test
     fun `calculateDistanceInMeters returns correct distance for known coordinates`() {
-        // Istanbul (Sultanahmet) to Ankara (Anitkabir) roughly
         val lat1 = 41.0054
         val lon1 = 28.9768
         val lat2 = 39.9251
@@ -29,9 +28,7 @@ class LocationUtilsTest {
 
     @Test
     fun `calculateDistanceInMeters handles antipodal points`() {
-        // North Pole to South Pole
         val distance = LocationUtils.calculateDistanceInMeters(90.0, 0.0, -90.0, 0.0)
-        // Roughly half the circumference of Earth: PI * R
         assertEquals(Math.PI * 6371000.0, distance, 100.0)
     }
 

@@ -5,7 +5,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.example.data.local.entity.UserProfileEntity
 import com.example.domain.model.DeviceStatus
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
+import com.example.ui.viewmodel.DeviceViewModel
+import com.example.ui.viewmodel.TrackingViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,17 +27,21 @@ class DashboardScreenTest {
 
     @Test
     fun testDashboardScreenContent() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockDeviceViewModel = mockk<DeviceViewModel>(relaxed = true)
+        val mockTrackingViewModel = mockk<TrackingViewModel>(relaxed = true)
+        val mockAuthViewModel = mockk<AuthViewModel>(relaxed = true)
         val userProfile = UserProfileEntity(fullName = "Test User", staffId = "ID-123")
         
-        every { mockViewModel.deviceStatus } returns MutableStateFlow(DeviceStatus(batteryLevel = 85))
-        every { mockViewModel.userProfile } returns MutableStateFlow(userProfile)
-        every { mockViewModel.latestLocation } returns MutableStateFlow(null)
-        every { mockViewModel.isSyncing } returns MutableStateFlow(false)
+        every { mockDeviceViewModel.deviceStatus } returns MutableStateFlow(DeviceStatus(batteryLevel = 85))
+        every { mockDeviceViewModel.isSyncing } returns MutableStateFlow(false)
+        every { mockTrackingViewModel.userProfile } returns MutableStateFlow(userProfile)
+        every { mockTrackingViewModel.latestLocation } returns MutableStateFlow(null)
 
         composeTestRule.setContent {
             DashboardScreen(
-                viewModel = mockViewModel,
+                deviceViewModel = mockDeviceViewModel,
+                trackingViewModel = mockTrackingViewModel,
+                authViewModel = mockAuthViewModel,
                 onNavigateToMap = {},
                 windowWidthSizeClass = WindowWidthSizeClass.Compact
             )
