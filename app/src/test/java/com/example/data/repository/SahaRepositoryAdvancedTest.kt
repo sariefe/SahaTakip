@@ -9,6 +9,7 @@ import com.example.data.local.dao.LocationDao
 import com.example.data.local.dao.OfflineActivityReportDao
 import com.example.data.local.dao.UserDao
 import com.example.data.local.entity.GeofenceZoneEntity
+import com.example.data.remote.MockSyncApi
 import com.example.util.NotificationHelper
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -41,6 +42,10 @@ class SahaRepositoryAdvancedTest {
     lateinit var mockUserDao: UserDao
     @MockK
     lateinit var mockOfflineDao: OfflineActivityReportDao
+    @MockK
+    lateinit var mockPrefs: com.example.data.local.PreferencesManager
+    @MockK
+    lateinit var mockSyncApi: MockSyncApi
 
     private lateinit var repository: SahaRepository
 
@@ -63,7 +68,7 @@ class SahaRepositoryAdvancedTest {
         every { mockGeofenceDao.getAllGeofences() } returns kotlinx.coroutines.flow.emptyFlow()
         every { mockUserDao.getUserProfile() } returns kotlinx.coroutines.flow.emptyFlow()
         
-        // Mock methods called during SahaRepository.init -> initializeAndSyncDefaultData
+        //SahaRepository.init -> initializeAndSyncDefaultData
         coEvery { mockUserDao.insertOrUpdateUser(any()) } just Runs
         coEvery { mockLocationDao.getUnsyncedLocations() } returns emptyList()
         coEvery { mockEventLogDao.getUnsyncedLogs() } returns emptyList()
@@ -73,7 +78,17 @@ class SahaRepositoryAdvancedTest {
         mockkObject(NotificationHelper)
         every { NotificationHelper.sendPrivacySafeAlert(any(), any()) } just Runs
 
-        repository = SahaRepository(context, mockDb)
+        repository = SahaRepository(
+            context,
+            mockLocationDao,
+            mockEventLogDao,
+            mockLeaveRequestDao,
+            mockGeofenceDao,
+            mockUserDao,
+            mockOfflineDao,
+            mockPrefs,
+            mockSyncApi
+        )
     }
 
     @After

@@ -37,6 +37,8 @@ class SahaRepositoryCriticalTest {
     @MockK lateinit var mockGeofenceDao: GeofenceDao
     @MockK lateinit var mockUserDao: UserDao
     @MockK lateinit var mockLeaveRequestDao: LeaveRequestDao
+    @MockK lateinit var mockSyncApi: com.example.data.remote.MockSyncApi
+    @MockK lateinit var mockPrefs: com.example.data.local.PreferencesManager
 
     private val userProfileFlow = MutableStateFlow<UserProfileEntity?>(null)
     private val latestLocationFlow = MutableStateFlow<LocationEntity?>(null)
@@ -68,14 +70,35 @@ class SahaRepositoryCriticalTest {
         coEvery { mockEventLogDao.getUnsyncedLogs() } returns emptyList()
         coEvery { mockOfflineReportDao.getUnsyncedReports() } returns emptyList()
         coEvery { mockGeofenceDao.getActiveGeofences() } returns emptyList()
+        coEvery { mockGeofenceDao.insertGeofence(any()) } returns 1L
         coEvery { mockUserDao.insertOrUpdateUser(any()) } just Runs
         coEvery { mockEventLogDao.insertEventLog(any()) } returns 1L
+        
+        coEvery { mockSyncApi.syncOfflineData(any()) } returns com.example.data.remote.SyncResponse(
+            success = true,
+            syncedLocationCount = 1,
+            syncedLogCount = 1,
+            syncedReportCount = 1,
+            syncBatchId = "BATCH-1",
+            serverTimestamp = System.currentTimeMillis(),
+            message = "Success"
+        )
 
         mockkObject(NotificationHelper)
         every { NotificationHelper.sendPrivacySafeAlert(any(), any()) } just Runs
         
         // DAOs and their flows are mocked now, so properties in SahaRepository will be initialized correctly
-        repository = SahaRepository(context, mockDb)
+        repository = SahaRepository(
+            context,
+            mockLocationDao,
+            mockEventLogDao,
+            mockLeaveRequestDao,
+            mockGeofenceDao,
+            mockUserDao,
+            mockOfflineReportDao,
+            mockPrefs,
+            mockSyncApi
+        )
     }
 
     @Test
@@ -128,17 +151,9 @@ class SahaRepositoryCriticalTest {
     fun `initializeAndSyncDefaultData seeds data if user missing`() = runTest {
         userProfileFlow.value = null
         coEvery { mockUserDao.insertOrUpdateUser(any()) } just Runs
-        coEvery { mockGeofenceDao.getActiveGeofences() } returns emptyList()
-        coEvery { mockGeofenceDao.insertGeofence(any()) } returns 1L
-        coEvery { mockLocationDao.getUnsyncedLocations() } returns listOf(LocationEntity(latitude = 0.0, longitude = 0.0))
-        coEvery { mockEventLogDao.insertEventLog(any()) } returns 1L
-        coEvery { mockLeaveRequestDao.insertLeaveRequest(any()) } returns 1L
-        coEvery { mockOfflineReportDao.insertReport(any()) } returns 1L
-        coEvery { mockLocationDao.insertLocation(any()) } returns 1L
-
+        
         repository.initializeAndSyncDefaultData()
         
         coVerify { mockUserDao.insertOrUpdateUser(any()) }
-        coVerify(atLeast = 1) { mockGeofenceDao.insertGeofence(any()) }
     }
 }

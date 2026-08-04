@@ -3,7 +3,7 @@ package com.example.ui.screens
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.RequestLogViewModel
 import com.example.data.local.entity.EventLogEntity
 import io.mockk.every
 import io.mockk.mockk
@@ -23,7 +23,7 @@ class EventLogsScreenTest {
 
     @Test
     fun testEventLogsScreenContent() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockViewModel = mockk<RequestLogViewModel>(relaxed = true)
         val logs = listOf(
             EventLogEntity(id = 1, type = "INFO", title = "Log 1", detail = "Detail 1", timestamp = System.currentTimeMillis()),
             EventLogEntity(id = 2, type = "WARNING", title = "Log 2", detail = "Detail 2", timestamp = System.currentTimeMillis())
@@ -49,7 +49,7 @@ class EventLogsScreenTest {
 
     @Test
     fun testEventLogsEmptyState() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockViewModel = mockk<RequestLogViewModel>(relaxed = true)
         every { mockViewModel.allEventLogs } returns MutableStateFlow(emptyList())
 
         composeTestRule.setContent {

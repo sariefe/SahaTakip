@@ -3,7 +3,7 @@ package com.example.ui.screens
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.SettingsViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ class SettingsScreenTest {
 
     @Test
     fun testSettingsScreenContent() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockViewModel = mockk<SettingsViewModel>(relaxed = true)
         
         every { mockViewModel.language } returns MutableStateFlow("tr")
         every { mockViewModel.updateInterval } returns MutableStateFlow(60)

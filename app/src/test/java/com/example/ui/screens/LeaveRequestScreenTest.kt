@@ -3,7 +3,7 @@ package com.example.ui.screens
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.RequestLogViewModel
 import com.example.data.local.entity.LeaveRequestEntity
 import io.mockk.every
 import io.mockk.mockk
@@ -23,7 +23,7 @@ class LeaveRequestScreenTest {
 
     @Test
     fun testLeaveRequestScreenContent() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockViewModel = mockk<RequestLogViewModel>(relaxed = true)
         val requests = listOf(
             LeaveRequestEntity(id = 1, startDate = "01.01.2026", endDate = "02.01.2026", requestType = "Annual", reason = "Holiday", status = "APPROVED"),
             LeaveRequestEntity(id = 2, startDate = "10.01.2026", endDate = "11.01.2026", requestType = "Sick", reason = "Flu", status = "PENDING")
@@ -49,7 +49,7 @@ class LeaveRequestScreenTest {
 
     @Test
     fun testLeaveRequestEmptyState() {
-        val mockViewModel = mockk<MainViewModel>(relaxed = true)
+        val mockViewModel = mockk<RequestLogViewModel>(relaxed = true)
         every { mockViewModel.allLeaveRequests } returns MutableStateFlow(emptyList())
 
         composeTestRule.setContent {

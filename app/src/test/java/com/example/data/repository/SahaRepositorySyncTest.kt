@@ -34,6 +34,7 @@ class SahaRepositorySyncTest {
     @MockK lateinit var mockUserDao: UserDao
     @MockK lateinit var mockOfflineDao: OfflineActivityReportDao
     @MockK lateinit var mockLeaveRequestDao: LeaveRequestDao
+    @MockK lateinit var mockPrefs: com.example.data.local.PreferencesManager
     @MockK lateinit var mockSyncApi: MockSyncApi
 
     private lateinit var repository: SahaRepository
@@ -63,12 +64,17 @@ class SahaRepositorySyncTest {
         coEvery { mockEventLogDao.getUnsyncedLogs() } returns emptyList()
         coEvery { mockOfflineDao.getUnsyncedReports() } returns emptyList()
 
-        repository = SahaRepository(context, mockDb)
-        
-        // Inject mock API using reflection or internal access if possible.
-        val field = SahaRepository::class.java.getDeclaredField("mockSyncApi")
-        field.isAccessible = true
-        field.set(repository, mockSyncApi)
+        repository = SahaRepository(
+            context,
+            mockLocationDao,
+            mockEventLogDao,
+            mockLeaveRequestDao,
+            mockGeofenceDao,
+            mockUserDao,
+            mockOfflineDao,
+            mockPrefs,
+            mockSyncApi
+        )
     }
 
     @After
@@ -85,7 +91,7 @@ class SahaRepositorySyncTest {
         coEvery { mockEventLogDao.getUnsyncedLogs() } returns listOf(log)
         coEvery { mockOfflineDao.getUnsyncedReports() } returns emptyList()
         
-        coEvery { mockSyncApi.syncOfflineData(any(), any()) } returns SyncResponse(
+        coEvery { mockSyncApi.syncOfflineData(any()) } returns SyncResponse(
             success = true,
             syncedLocationCount = 1,
             syncedLogCount = 1,
