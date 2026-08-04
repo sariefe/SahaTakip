@@ -36,6 +36,8 @@ mockk = "1.14.11"
 camerax = "1.6.1"
 mlkit-text-recognition = "19.0.1"
 uiTestJunit4 = "1.11.4"
+hilt = "2.60.1"
+hiltNavigationCompose = "1.2.0"
 
 
 [libraries]
@@ -88,9 +90,13 @@ androidx-camera-mlkit-vision = { group = "androidx.camera", name = "camera-mlkit
 mlkit-text-recognition = { group = "com.google.android.gms", name = "play-services-mlkit-text-recognition", version.ref = "mlkit-text-recognition" }
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
