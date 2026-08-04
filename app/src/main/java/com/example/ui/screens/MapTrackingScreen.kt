@@ -503,6 +503,7 @@ fun AddGeofenceDialog(
                     singleLine = true,
                     maxLines = 1
                 )
+
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = radius,
