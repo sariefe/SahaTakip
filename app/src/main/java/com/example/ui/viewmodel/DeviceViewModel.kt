@@ -15,7 +15,6 @@ import com.example.util.PermissionUtils
 import com.example.util.SecurityUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,6 +58,12 @@ class DeviceViewModel @Inject constructor(
         }
     }
 
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            updateDeviceStatus()
+        }
+    }
+
     init {
         updateDeviceStatus()
         
@@ -79,6 +84,11 @@ class DeviceViewModel @Inject constructor(
             powerReceiver,
             IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
         )
+
+        context.registerReceiver(
+            batteryReceiver,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        )
     }
 
     @SuppressLint("EmptySuperCall")
@@ -86,6 +96,7 @@ class DeviceViewModel @Inject constructor(
         try {
             context.unregisterReceiver(gpsReceiver)
             context.unregisterReceiver(powerReceiver)
+            context.unregisterReceiver(batteryReceiver)
         } catch (e: Exception) {
             android.util.Log.e("DeviceViewModel", "Error unregistering receivers", e)
         }
@@ -93,7 +104,7 @@ class DeviceViewModel @Inject constructor(
     }
 
     fun updateDeviceStatus() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
             val isOnline = capabilities != null &&
@@ -119,8 +130,7 @@ class DeviceViewModel @Inject constructor(
                 isPowerSaveModeActive = PermissionUtils.isPowerSaveMode(context),
                 batteryLevel = batteryPct,
                 isBatteryCharging = isCharging,
-                isRooted = isRooted,
-                lastCheckedTimestamp = System.currentTimeMillis()
+                isRooted = isRooted
             )
         }
     }
@@ -163,10 +173,17 @@ class DeviceViewModel @Inject constructor(
     }
 
     fun triggerOfflineSync() {
+        if (_isSyncing.value) return
+        
         viewModelScope.launch {
             _isSyncing.value = true
-            repository.performOfflineSync()
-            _isSyncing.value = false
+            try {
+                repository.performOfflineSync()
+            } catch (e: Exception) {
+                android.util.Log.e("DeviceViewModel", "Sync failed", e)
+            } finally {
+                _isSyncing.value = false
+            }
         }
     }
 }

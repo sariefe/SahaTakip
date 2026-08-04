@@ -9,8 +9,7 @@ data class DeviceStatus(
     val batteryLevel: Int = 90,
     val isBatteryCharging: Boolean = false,
     val isPowerSaveModeActive: Boolean = false,
-    val isRooted: Boolean = false,
-    val lastCheckedTimestamp: Long = System.currentTimeMillis()
+    val isRooted: Boolean = false
 ) {
     val hasMissingCriticalPermissions: Boolean
         get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted || !isBatteryOptimizationIgnored || isPowerSaveModeActive
