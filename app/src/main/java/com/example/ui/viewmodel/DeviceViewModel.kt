@@ -25,7 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: SahaRepository
+    private val repository: SahaRepository,
+    private val connectivityObserver: com.example.util.ConnectivityObserver
 ) : androidx.lifecycle.ViewModel() {
 
     private val _deviceStatus = MutableStateFlow(DeviceStatus())
@@ -62,7 +63,7 @@ class DeviceViewModel @Inject constructor(
         updateDeviceStatus()
         
         viewModelScope.launch {
-            com.example.util.ConnectivityObserver(context).observe().collect { status ->
+            connectivityObserver.observe().collect { status ->
                 val isOnline = status == com.example.util.ConnectivityStatus.Available
                 _deviceStatus.value = _deviceStatus.value.copy(isInternetConnected = isOnline)
                 if (isOnline) triggerOfflineSync()

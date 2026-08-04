@@ -18,22 +18,26 @@ import androidx.compose.runtime.getValue
 import com.example.domain.service.LocationTrackingService
 import com.example.ui.navigation.AppNavGraph
 import com.example.ui.theme.SahaTakipTheme
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.DeviceViewModel
+import com.example.ui.viewmodel.SettingsViewModel
 import com.example.util.NotificationHelper
 import com.example.util.PermissionUtils
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
+@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
-    private val viewModel: MainViewModel by viewModels()
+    private val deviceViewModel: DeviceViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     private val requestBackgroundPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            viewModel.updateDeviceStatus()
+            deviceViewModel.updateDeviceStatus()
         }
     }
 
@@ -50,7 +54,7 @@ class MainActivity : FragmentActivity() {
             Toast.makeText(this, "Saha takibi için konum izni gereklidir.", Toast.LENGTH_LONG).show()
         }
         
-        viewModel.updateDeviceStatus()
+        deviceViewModel.updateDeviceStatus()
     }
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -66,7 +70,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
-            val themeMode by viewModel.theme.collectAsState()
+            val themeMode by settingsViewModel.theme.collectAsState()
             val isDarkTheme = when (themeMode) {
                 "dark" -> true
                 "light" -> false
@@ -75,7 +79,6 @@ class MainActivity : FragmentActivity() {
 
             SahaTakipTheme(darkTheme = isDarkTheme) {
                 AppNavGraph(
-                    viewModel = viewModel,
                     windowSizeClass = windowSizeClass
                 )
             }
@@ -84,7 +87,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.updateDeviceStatus()
+        deviceViewModel.updateDeviceStatus()
     }
 
     private fun checkAndRequestPermissions() {

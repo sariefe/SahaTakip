@@ -49,7 +49,8 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
+import com.example.ui.viewmodel.TrackingViewModel
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
 import com.example.util.ScannedStaffCardResult
@@ -57,13 +58,14 @@ import com.example.util.tr
 
 @Composable
 fun BiometricLockScreen(
-    viewModel: MainViewModel,
+    viewModel: TrackingViewModel,
+    authViewModel: AuthViewModel,
     onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsState()
-    val ocrAuthError by viewModel.ocrAuthError.collectAsState()
-    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
+    val ocrAuthError by authViewModel.ocrAuthError.collectAsState()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
 
     var showOcrModal by remember { mutableStateOf(false) }
     var verificationSuccess by remember { mutableStateOf(false) }
@@ -89,7 +91,7 @@ fun BiometricLockScreen(
                 negativeButtonText = promptCancel,
                 onSuccess = {
                     verificationSuccess = true
-                    if (viewModel.authenticateWithBiometrics()) {
+                    if (authViewModel.authenticateWithBiometrics()) {
                         onLoginSuccess()
                     }
                 },
@@ -102,7 +104,7 @@ fun BiometricLockScreen(
             )
         } else {
             verificationSuccess = true
-            if (viewModel.authenticateWithBiometrics()) {
+            if (authViewModel.authenticateWithBiometrics()) {
                 onLoginSuccess()
             }
         }
@@ -242,10 +244,10 @@ fun BiometricLockScreen(
     }
 
     if (showOcrModal) {
-        val currentOcrResult by viewModel.ocrScanningState.collectAsState()
+        val currentOcrResult by authViewModel.ocrScanningState.collectAsState()
         
         OcrCameraScannerModal(
-            viewModel = viewModel,
+            viewModel = authViewModel,
             onDismiss = { showOcrModal = false },
             onScanStart = { preset ->
                 val idToAuth = preset?.staffId ?: currentOcrResult?.staffId
@@ -259,7 +261,7 @@ fun BiometricLockScreen(
                         )
                     } else null
 
-                    if (viewModel.authenticateWithOcr(idToAuth, ocrData)) {
+                    if (authViewModel.authenticateWithOcr(idToAuth, ocrData)) {
                         showOcrModal = false
                         onLoginSuccess()
                     }

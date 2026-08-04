@@ -58,7 +58,7 @@ import androidx.core.content.ContextCompat
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
 import com.example.util.tr
@@ -67,7 +67,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun AuthScreen(
-    viewModel: MainViewModel,
+    viewModel: AuthViewModel,
     onAuthSuccess: () -> Unit
 ) {
     val context = LocalContext.current

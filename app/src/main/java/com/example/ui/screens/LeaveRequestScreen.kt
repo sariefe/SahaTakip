@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.RequestLogViewModel
 import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,7 +70,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveRequestScreen(
-    viewModel: MainViewModel,
+    viewModel: RequestLogViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsState()

@@ -69,21 +69,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
+import com.example.ui.viewmodel.DeviceViewModel
+import com.example.ui.viewmodel.TrackingViewModel
 import com.example.util.tr
 
 @SuppressLint("BatteryLife")
 @Composable
 fun DashboardScreen(
-    viewModel: MainViewModel,
+    deviceViewModel: DeviceViewModel,
+    trackingViewModel: TrackingViewModel,
+    authViewModel: AuthViewModel,
     onNavigateToMap: () -> Unit,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val context = LocalContext.current
-    val deviceStatus by viewModel.deviceStatus.collectAsState()
-    val userProfile by viewModel.userProfile.collectAsState()
-    val latestLoc by viewModel.latestLocation.collectAsState()
-    val isSyncing by viewModel.isSyncing.collectAsState()
+    val deviceStatus by deviceViewModel.deviceStatus.collectAsState()
+    val userProfile by trackingViewModel.userProfile.collectAsState()
+    val latestLoc by trackingViewModel.latestLocation.collectAsState()
+    val isSyncing by deviceViewModel.isSyncing.collectAsState()
     
     var showProfileModal by remember { mutableStateOf(false) }
 
@@ -436,7 +440,7 @@ fun DashboardScreen(
                         }
                         
                         Button(
-                            onClick = { viewModel.triggerOfflineSync() },
+                            onClick = { deviceViewModel.triggerOfflineSync() },
                             enabled = !isSyncing,
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
@@ -470,7 +474,7 @@ fun DashboardScreen(
             user = userProfile,
             onDismiss = { showProfileModal = false },
             onLogout = { 
-                viewModel.logout()
+                authViewModel.logout()
                 showProfileModal = false
             }
         )

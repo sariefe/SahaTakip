@@ -54,7 +54,7 @@ import com.example.data.local.entity.EventLogEntity
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.RequestLogViewModel
 import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,7 +62,7 @@ import java.util.Locale
 
 @Composable
 fun EventLogsScreen(
-    viewModel: MainViewModel,
+    viewModel: RequestLogViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val eventLogs by viewModel.allEventLogs.collectAsState()

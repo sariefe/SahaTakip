@@ -25,6 +25,12 @@ class AuthViewModel @Inject constructor(
     private val repository: SahaRepository
 ) : androidx.lifecycle.ViewModel() {
 
+    init {
+        viewModelScope.launch {
+            repository.initializeAndSyncDefaultData()
+        }
+    }
+
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 

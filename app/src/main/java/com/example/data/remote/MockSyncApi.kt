@@ -5,6 +5,7 @@ import com.example.data.local.entity.LocationEntity
 import com.example.data.local.entity.OfflineActivityReportEntity
 import kotlinx.coroutines.delay
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 data class SyncPayload(
     val deviceId: String,
@@ -25,9 +26,9 @@ data class SyncResponse(
 )
 
 class MockSyncApi {
-    suspend fun syncOfflineData(endpointUrl: String, payload: SyncPayload): SyncResponse {
+    suspend fun syncOfflineData(payload: SyncPayload): SyncResponse {
         // Simulate network latency for realistic sync
-        delay(1200)
+        delay(1200.milliseconds)
         return SyncResponse(
             success = true,
             syncedLocationCount = payload.locationHistory.size,

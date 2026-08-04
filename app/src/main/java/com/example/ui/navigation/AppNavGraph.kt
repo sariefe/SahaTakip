@@ -35,6 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.BiometricLockScreen
 import com.example.ui.screens.DashboardScreen
@@ -42,19 +43,28 @@ import com.example.ui.screens.EventLogsScreen
 import com.example.ui.screens.LeaveRequestScreen
 import com.example.ui.screens.MapTrackingScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
+import com.example.ui.viewmodel.DeviceViewModel
+import com.example.ui.viewmodel.RequestLogViewModel
+import com.example.ui.viewmodel.SettingsViewModel
+import com.example.ui.viewmodel.TrackingViewModel
 import com.example.util.LocalLanguage
 import com.example.util.tr
 
 @Composable
 fun AppNavGraph(
-    viewModel: MainViewModel,
     windowSizeClass: WindowSizeClass
 ) {
+    val deviceViewModel: DeviceViewModel = hiltViewModel()
+    val trackingViewModel: TrackingViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val requestLogViewModel: RequestLogViewModel = hiltViewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
+
     val navController = rememberNavController()
-    val userProfile by viewModel.userProfile.collectAsState()
-    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
-    val currentLang by viewModel.language.collectAsState()
+    val userProfile by trackingViewModel.userProfile.collectAsState()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
+    val currentLang by settingsViewModel.language.collectAsState()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -115,7 +125,7 @@ fun AppNavGraph(
                 ) {
                     composable(Screen.Auth.route) {
                         AuthScreen(
-                            viewModel = viewModel,
+                            viewModel = authViewModel,
                             onAuthSuccess = {
                                 navController.navigate(Screen.Dashboard.route) {
                                     popUpTo(Screen.Auth.route) { inclusive = true }
@@ -126,7 +136,8 @@ fun AppNavGraph(
 
                     composable(Screen.BiometricLock.route) {
                         BiometricLockScreen(
-                            viewModel = viewModel,
+                            viewModel = trackingViewModel,
+                            authViewModel = authViewModel,
                             onLoginSuccess = {
                                 navController.navigate(Screen.Dashboard.route) {
                                     popUpTo(Screen.BiometricLock.route) { inclusive = true }
@@ -137,7 +148,9 @@ fun AppNavGraph(
 
                     composable(Screen.Dashboard.route) {
                         DashboardScreen(
-                            viewModel = viewModel,
+                            deviceViewModel = deviceViewModel,
+                            trackingViewModel = trackingViewModel,
+                            authViewModel = authViewModel,
                             onNavigateToMap = { navController.navigate(Screen.TrackingMap.route) },
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
                         )
@@ -145,28 +158,28 @@ fun AppNavGraph(
 
                     composable(Screen.TrackingMap.route) {
                         MapTrackingScreen(
-                            viewModel = viewModel,
+                            viewModel = trackingViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
                         )
                     }
 
                     composable(Screen.EventLogs.route) {
                         EventLogsScreen(
-                            viewModel = viewModel,
+                            viewModel = requestLogViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
                         )
                     }
 
                     composable(Screen.LeaveRequests.route) {
                         LeaveRequestScreen(
-                            viewModel = viewModel,
+                            viewModel = requestLogViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
                         )
                     }
 
                     composable(Screen.Settings.route) {
                         SettingsScreen(
-                            viewModel = viewModel,
+                            viewModel = settingsViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
                         )
                     }

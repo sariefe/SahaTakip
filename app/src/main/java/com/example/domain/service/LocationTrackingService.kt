@@ -22,17 +22,22 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class LocationTrackingService : Service() {
 
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
-    private lateinit var repository: SahaRepository
+    
+    @Inject
+    lateinit var repository: SahaRepository
     
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -96,7 +101,6 @@ class LocationTrackingService : Service() {
         android.util.Log.d("LocationTrackingService", "Service onCreate")
         startForegroundServiceNotification()
         
-        repository = SahaRepository(applicationContext)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
         setupLocationCallback()

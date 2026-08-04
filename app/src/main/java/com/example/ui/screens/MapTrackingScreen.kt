@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.local.entity.LocationEntity
 import com.example.ui.components.CustomMapView
 import com.example.ui.theme.StatusGreen
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.TrackingViewModel
 import com.example.util.tr
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -57,7 +57,7 @@ import kotlin.math.sqrt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapTrackingScreen(
-    viewModel: MainViewModel,
+    viewModel: TrackingViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val locations by viewModel.locationsLast24h.collectAsState()
@@ -237,7 +237,7 @@ private fun MapArea(
 @SuppressLint("DefaultLocale")
 @Composable
 private fun MapControls(
-    viewModel: MainViewModel,
+    viewModel: TrackingViewModel,
     locations: List<LocationEntity>,
     playbackState: com.example.ui.viewmodel.PlaybackState,
     geofences: List<com.example.data.local.entity.GeofenceZoneEntity>,
@@ -497,7 +497,7 @@ fun AddGeofenceDialog(
             Column {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { if (it.length <= 8) name = it },
+                    onValueChange = { if (it.length <= 25) name = it },
                     label = { Text(tr("Bölge İsmi", "Zone Name")) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),

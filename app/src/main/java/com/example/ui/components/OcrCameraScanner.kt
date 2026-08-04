@@ -65,7 +65,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.AuthViewModel
 import com.example.util.OcrAnalyzer
 import com.example.util.OcrCardScanner
 import com.example.util.StaffCardPreset
@@ -75,7 +75,7 @@ import java.util.concurrent.Executors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OcrCameraScannerModal(
-    viewModel: MainViewModel,
+    viewModel: AuthViewModel,
     onDismiss: () -> Unit,
     onScanStart: (preset: StaffCardPreset?) -> Unit
 ) {

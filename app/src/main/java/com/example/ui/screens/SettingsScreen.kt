@@ -23,14 +23,14 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.viewmodel.SettingsViewModel
 import com.example.util.BiometricPromptManager
 import com.example.util.BiometricStatus
 import com.example.util.tr
 
 @Composable
 fun SettingsScreen(
-    viewModel: MainViewModel,
+    viewModel: SettingsViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val context = LocalContext.current
@@ -88,7 +88,7 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsContent(
-    viewModel: MainViewModel,
+    viewModel: SettingsViewModel,
     currentLang: String,
     currentInterval: Int,
     currentTheme: String,
@@ -105,7 +105,7 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun AppearanceSettings(viewModel: MainViewModel, currentLang: String, currentTheme: String) {
+private fun AppearanceSettings(viewModel: SettingsViewModel, currentLang: String, currentTheme: String) {
     SettingsSectionHeader(tr("Görünüm ve Dil", "Appearance & Language"))
     SettingsCard {
         SettingsRowItem(
@@ -132,7 +132,7 @@ private fun AppearanceSettings(viewModel: MainViewModel, currentLang: String, cu
 }
 
 @Composable
-private fun TrackingSettings(viewModel: MainViewModel, currentInterval: Int, serverUrl: String) {
+private fun TrackingSettings(viewModel: SettingsViewModel, currentInterval: Int, serverUrl: String) {
     var urlInput by remember { mutableStateOf(serverUrl) }
     SettingsSectionHeader(tr("Takip Yapılandırması", "Tracking Configuration"))
     SettingsCard {
