@@ -24,7 +24,7 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 - **Material 3:** Modern, temiz ve göz yormayan "Dynamic Color" destekli tasarım.
 - **Çift Dil Desteği:** Türkçe ve İngilizce dilleri arasında dinamik geçiş.
 
-## 🛠 Teknik Yığın (Tech Stack)
+## 🛠 Kullanılan Teknolojiler (Tech Stack)
 
 - **UI:** Jetpack Compose & Material 3
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
