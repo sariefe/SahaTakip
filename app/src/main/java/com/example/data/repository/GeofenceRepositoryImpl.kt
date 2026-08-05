@@ -32,24 +32,24 @@ class GeofenceRepositoryImpl @Inject constructor(
         geofenceDao.deleteById(id)
     }
 
-    override suspend fun checkGeofenceBreach(lat: Double, lng: Double) = withContext(Dispatchers.IO) {
+    override suspend fun checkGeofenceBreach(lat: Double, lng: Double): GeofenceZoneEntity? = withContext(Dispatchers.IO) {
         val activeGeofences = geofenceDao.getActiveGeofences()
-        if (activeGeofences.isEmpty()) return@withContext
+        if (activeGeofences.isEmpty()) return@withContext null
         
         val now = System.currentTimeMillis()
 
-        val isInsideAny = activeGeofences.any { zone ->
+        val containingZone = activeGeofences.find { zone ->
             LocationUtils.calculateDistanceInMeters(lat, lng, zone.centerLat, zone.centerLng) <= zone.radiusMeters
         }
 
-        if (!isInsideAny) {
+        if (containingZone == null) {
             if ((now - lastGeofenceAlertTimestamp) > 120_000L) {
                 lastGeofenceAlertTimestamp = now
 
                 val log = EventLogEntity(
                     type = "GEOFENCE_VIOLATION",
                     title = "Bölge İhlal Kaydı",
-                    detail = "Güvenli bölge dışına çıkıldı (Demo Tespiti).",
+                    detail = "Güvenli bölgelerin dışına çıkıldı (Otomatik Tespit).",
                     isSensitive = true,
                     status = "UYARI",
                     timestamp = now,
@@ -59,6 +59,7 @@ class GeofenceRepositoryImpl @Inject constructor(
                 notificationService.sendPrivacySafeAlert(context, "Güvenlik & Bölge İhlali Uyarısı")
             }
         }
+        return@withContext containingZone
     }
 
     override suspend fun getActiveGeofences(): List<GeofenceZoneEntity> = withContext(Dispatchers.IO) {

@@ -51,20 +51,25 @@ fun CustomMapView(
     geofences: List<GeofenceZoneEntity>,
     modifier: Modifier = Modifier,
 ) {
-    val istanbul = LatLng(41.0082, 28.9784)
+    val activeLocation = playbackLocation ?: currentLocation ?: locations.lastOrNull()
+
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(istanbul, 12f)
+        val initialLocation = activeLocation ?: locations.lastOrNull()
+        position = if (initialLocation != null) {
+            CameraPosition.fromLatLngZoom(LatLng(initialLocation.latitude, initialLocation.longitude), 17f)
+        } else {
+            CameraPosition.fromLatLngZoom(LatLng(41.0082, 28.9784), 12f) // Istanbul fallback
+        }
     }
 
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
-    val activeLocation = playbackLocation ?: currentLocation ?: locations.lastOrNull()
 
     LaunchedEffect(activeLocation) {
         activeLocation?.let {
             val cameraPosition = CameraPosition.builder()
                 .target(LatLng(it.latitude, it.longitude))
-                .zoom(17f)   // Kuşbakışı detay için ideal zoom
-                .tilt(0f)    // 3D yerine tam kuşbakışı (düz) görünüm
+                .zoom(17f)
+                .tilt(0f)
                 .build()
             cameraPositionState.animate(
                 CameraUpdateFactory.newCameraPosition(cameraPosition)
@@ -78,8 +83,8 @@ fun CustomMapView(
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
                 mapType = mapType,
-                isBuildingEnabled = true, // Binaları etkinleştir
-                isIndoorEnabled = true,   // Yerleşkeleri/İç mekanları etkinleştir
+                isBuildingEnabled = true,
+                isIndoorEnabled = true,
                 isMyLocationEnabled = false,
                 isTrafficEnabled = false
             ),
@@ -101,13 +106,22 @@ fun CustomMapView(
             // Draw Geofences
             geofences.forEach { zone ->
                 if (zone.isActive) {
-                    Circle(
-                        center = LatLng(zone.centerLat, zone.centerLng),
-                        radius = zone.radiusMeters,
-                        fillColor = StatusGreen.copy(alpha = 0.2f),
-                        strokeColor = StatusGreen,
-                        strokeWidth = 2f
-                    )
+                    androidx.compose.runtime.key(zone.id) {
+                        Circle(
+                            center = LatLng(zone.centerLat, zone.centerLng),
+                            radius = zone.radiusMeters,
+                            fillColor = StatusGreen.copy(alpha = 0.35f),
+                            strokeColor = StatusGreen,
+                            strokeWidth = 5f,
+                            zIndex = 1f
+                        )
+                        Marker(
+                            state = rememberUpdatedMarkerState(position = LatLng(zone.centerLat, zone.centerLng)),
+                            title = zone.name,
+                            snippet = "${zone.radiusMeters.toInt()}m",
+                            alpha = 0.6f
+                        )
+                    }
                 }
             }
 

@@ -44,7 +44,7 @@ class TrackingViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val locationsLast24h: StateFlow<List<LocationEntity>> = locationRepository.getLocationsSince(
-        System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+        System.currentTimeMillis() - (24 * 60 * 60 * 1000L),
     ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val latestLocation: StateFlow<LocationEntity?> = locationRepository.latestLocation
@@ -67,9 +67,9 @@ class TrackingViewModel @Inject constructor(
 
         playbackJob = viewModelScope.launch {
             var idx = _playbackState.value.currentIndex
-            if (idx >= points.size - 1) idx = 0
+            if (idx >= (points.size - 1)) idx = 0
 
-            while (idx < points.size && _playbackState.value.isPlaying) {
+            while ((idx < points.size) && _playbackState.value.isPlaying) {
                 val currPoint = points[idx]
                 val prog = idx.toFloat() / (points.size - 1).coerceAtLeast(1)
 
@@ -103,16 +103,19 @@ class TrackingViewModel @Inject constructor(
         _playbackState.value = _playbackState.value.copy(
             progress = progress,
             currentIndex = targetIdx,
-            currentLocation = points[targetIdx]
+            currentLocation = points[targetIdx],
         )
     }
 
     fun addGeofenceZone(name: String, lat: Double, lng: Double, radiusMeters: Double) {
         viewModelScope.launch {
             val existingZones = geofenceRepository.getAllGeofencesOnce()
+            val collator = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("tr")).apply {
+                strength = java.text.Collator.PRIMARY
+            }
             val isDuplicate = existingZones.any { 
-                it.name.equals(name, ignoreCase = true) || 
-                (geofenceRepository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 10.0) 
+                (collator.compare(it.name.trim(), name.trim()) == 0 && 
+                 geofenceRepository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 50.0) 
             }
 
             if (!isDuplicate) {
@@ -147,7 +150,7 @@ class TrackingViewModel @Inject constructor(
             val existing = zones.find { it.id == id }
             existing?.let {
                 geofenceRepository.insertGeofence(
-                    it.copy(name = name, radiusMeters = radiusMeters)
+                    it.copy(name = name.trim(), radiusMeters = radiusMeters)
                 )
             }
         }

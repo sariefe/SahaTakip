@@ -516,7 +516,12 @@ fun AddGeofenceDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    maxLines = 1
+                    maxLines = 1,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                        keyboardType = KeyboardType.Text,
+                        autoCorrectEnabled = false
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
