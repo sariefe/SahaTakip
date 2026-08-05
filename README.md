@@ -44,11 +44,11 @@ Uygulamanın arayüzünü ve temel özelliklerini aşağıda görebilirsiniz:
 
 SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryolarını izlemek için **GitHub Releases** sayfasındaki tanıtım videosuna göz atabilirsiniz:
 
-[![Tanıtım Videosu](https://img.shields.io/badge/GitHub-Release_Video-blue?style=for-the-badge&logo=github)](https://github.com/efe-sari/staj-testing/releases)
+[![Tanıtım Videosu](https://img.shields.io/badge/GitHub-Release_Video-blue?style=for-the-badge&logo=github)](https://github.com/sariefe/SahaTakip/releases/tag/video)
 
 ---
 
-## 🛠 Teknik Yığın (Tech Stack)
+## 🛠 Kullanılan Teknolojiler (Tech Stack)
 
 - **UI:** Jetpack Compose & Material 3
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
