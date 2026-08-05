@@ -2,8 +2,10 @@ package com.example.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 @Entity(tableName = "user_profile")
+@JsonClass(generateAdapter = true)
 data class UserProfileEntity(
     @PrimaryKey val id: Int = 1,
     val firstName: String = "",

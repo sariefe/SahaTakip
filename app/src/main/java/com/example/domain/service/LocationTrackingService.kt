@@ -17,6 +17,7 @@ import com.example.R
 import com.example.data.local.PreferencesManager
 import com.example.domain.repository.LocationRepository
 import com.example.util.LocationUtils
+import com.example.util.trGlobal
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -47,8 +48,9 @@ class LocationTrackingService : Service() {
     private lateinit var locationCallback: LocationCallback
 
     private fun startForegroundServiceNotification() {
+        val lang = preferencesManager.language.value
         val channelId = "saha_tracking_service"
-        val channelName = "Saha Personeli Konum Takip Servisi"
+        val channelName = trGlobal("Saha Personeli Konum Takip Servisi", "Field Staff Location Tracking Service", lang)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -56,7 +58,7 @@ class LocationTrackingService : Service() {
                 channelName,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Arka planda periyodik konum kaydı yapılıyor."
+                description = trGlobal("Arka planda periyodik konum kaydı yapılıyor.", "Periodic location recording in the background.", lang)
             }
             val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -71,8 +73,8 @@ class LocationTrackingService : Service() {
         )
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Saha Takip Aktif")
-            .setContentText("Saha personeli konum takibi ve güvenlik kontrolü çalışıyor.")
+            .setContentTitle(trGlobal("Saha Takip Aktif", "Field Tracking Active", lang))
+            .setContentText(trGlobal("Saha personeli konum takibi ve güvenlik kontrolü çalışıyor.", "Field staff location tracking and security check is running.", lang))
             .setSmallIcon(R.drawable.ic_notification_stat)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

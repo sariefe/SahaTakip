@@ -10,6 +10,10 @@ fun tr(trText: String, enText: String): String {
     return getTranslation(trText, enText, LocalLanguage.current)
 }
 
+fun trGlobal(trText: String, enText: String, language: String): String {
+    return getTranslation(trText, enText, language)
+}
+
 fun getTranslation(trText: String, enText: String, language: String): String {
     return if (language == "en") enText else trText
 }

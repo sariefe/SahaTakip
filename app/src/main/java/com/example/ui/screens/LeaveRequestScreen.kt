@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Error
@@ -31,6 +34,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -40,9 +45,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,6 +70,7 @@ import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -218,6 +226,12 @@ fun LeaveSubmitFormComponent(
     onSubmit: (startDate: String, endDate: String, description: String, status: String, type: String) -> Unit,
     onCancel: () -> Unit
 ) {
+    val dateFormatter = remember { 
+        SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+    
     val currentDateStr = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()) }
     var startDateInput by remember { mutableStateOf(currentDateStr) }
     var endDateInput by remember { mutableStateOf(currentDateStr) }
@@ -226,6 +240,69 @@ fun LeaveSubmitFormComponent(
     val leaveTypes = listOf(tr("Mazeret İzni", "Excuse Leave"), tr("Yıllık İzin", "Annual Leave"), tr("Sağlık İzni", "Sick Leave"))
     var selectedType by remember { mutableStateOf(leaveTypes[0]) }
     var expandedType by remember { mutableStateOf(false) }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = try {
+                dateFormatter.parse(startDateInput)?.time
+            } catch (_: Exception) {
+                null
+            } ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        startDateInput = dateFormatter.format(Date(it))
+                    }
+                    showStartDatePicker = false
+                }) {
+                    Text(tr("Tamam", "OK"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) {
+                    Text(tr("İptal", "Cancel"))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = try {
+                dateFormatter.parse(endDateInput)?.time
+            } catch (_: Exception) {
+                null
+            } ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        endDateInput = dateFormatter.format(Date(it))
+                    }
+                    showEndDatePicker = false
+                }) {
+                    Text(tr("Tamam", "OK"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text(tr("İptal", "Cancel"))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -257,20 +334,42 @@ fun LeaveSubmitFormComponent(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = startDateInput,
-                    onValueChange = { startDateInput = it },
-                    label = { Text(tr("Başlangıç", "Start Date")) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = endDateInput,
-                    onValueChange = { endDateInput = it },
-                    label = { Text(tr("Bitiş", "End Date")) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Box(modifier = Modifier.weight(1f).clickable { showStartDatePicker = true }) {
+                    OutlinedTextField(
+                        value = startDateInput,
+                        onValueChange = { },
+                        readOnly = true,
+                        enabled = false,
+                        label = { Text(tr("Başlangıç", "Start Date")) },
+                        trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+                Box(modifier = Modifier.weight(1f).clickable { showEndDatePicker = true }) {
+                    OutlinedTextField(
+                        value = endDateInput,
+                        onValueChange = { },
+                        readOnly = true,
+                        enabled = false,
+                        label = { Text(tr("Bitiş", "End Date")) },
+                        trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -288,6 +387,11 @@ fun LeaveSubmitFormComponent(
                 shape = RoundedCornerShape(12.dp),
                 minLines = 3,
                 maxLines = 5,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                    autoCorrectEnabled = false,
+                    hintLocales = androidx.compose.ui.text.intl.LocaleList(androidx.compose.ui.text.intl.Locale("tr-TR"))
+                ),
                 supportingText = {
                     Text(
                         text = "${descriptionInput.length}/100",

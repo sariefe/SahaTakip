@@ -6,7 +6,8 @@ object OcrCleaner {
      * Cleans and normalizes text based on its expected type.
      */
     fun cleanText(text: String, isNumeric: Boolean = false): String {
-        var cleaned = text.trim().uppercase(java.util.Locale.forLanguageTag("tr"))
+        val trLocale = java.util.Locale.forLanguageTag("tr-TR")
+        var cleaned = text.trim().uppercase(trLocale)
         
         // Fix Turkish specific misreads before general cleaning
         cleaned = fixTurkishCharacters(cleaned)
@@ -28,7 +29,8 @@ object OcrCleaner {
                 // Common noise characters in names
                 .replace('|', 'I')
                 .replace('$', 'S')
-                .replace(Regex("[^A-ZÇĞİÖŞÜ ]"), "")
+                // Be extremely explicit with Turkish characters in regex (I = \u0049, İ = \u0130)
+                .replace(Regex("[^A-ZÇĞÖŞÜ\u0130 ]"), "")
         }
         
         return cleaned.trim()
@@ -39,15 +41,19 @@ object OcrCleaner {
      */
     private fun fixTurkishCharacters(text: String): String {
         return text
-            .replace("Ş", "Ş") // Ensure correct unicode
-            .replace("Ğ", "Ğ")
-            .replace("İ", "İ")
+            .replace("\u015E", "\u015E") // Ş
+            .replace("\u011E", "\u011E") // Ğ
+            .replace("\u0130", "\u0130") // İ
+            .replace("\u0049", "\u0049") // I
             // Heuristics for common failures
-            .replace("S,", "Ş")
-            .replace("C,", "Ç")
-            .replace("G,", "Ğ")
-            .replace("O,", "Ö")
-            .replace("U,", "Ü")
+            .replace("S,", "\u015E")
+            .replace("C,", "\u00C7")
+            .replace("G,", "\u011E")
+            .replace("O,", "\u00D6")
+            .replace("U,", "\u00DC")
+            .replace("I,", "\u0049")
+            .replace("i", "\u0130")
+            .replace("\u0131", "\u0049")
     }
 
 }

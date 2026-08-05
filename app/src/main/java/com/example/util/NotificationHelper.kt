@@ -9,17 +9,21 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.R
+import com.example.data.local.PreferencesManager
 
 object NotificationHelper {
 
     private const val CHANNEL_ID = "saha_security_alerts"
-    private const val CHANNEL_NAME = "Saha Güvenlik ve Bölge İhlal Bildirimleri"
 
     fun createNotificationChannel(context: Context) {
+        val prefs = PreferencesManager(context)
+        val lang = prefs.language.value
+        val channelName = trGlobal("Saha Güvenlik ve Bölge İhlal Bildirimleri", "Field Security and Geofence Alerts", lang)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-                description = "Saha personeli güvenlik ve konum durumu genel uyarıları"
+            val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
+                description = trGlobal("Saha personeli güvenlik ve konum durumu genel uyarıları", "General alerts for field personnel security and location status", lang)
             }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -31,6 +35,24 @@ object NotificationHelper {
      * Only general alert text is shown; details are viewed inside the app.
      */
     fun sendPrivacySafeAlert(context: Context, alertTitle: String = "Saha Takip Uyarısı") {
+        val prefs = PreferencesManager(context)
+        val lang = prefs.language.value
+
+        val finalTitle = if (alertTitle == "Saha Takip Uyarısı") {
+            trGlobal("Saha Takip Uyarısı", "Field Tracking Alert", lang)
+        } else if (alertTitle == "Güvenlik & Bölge İhlali Uyarısı") {
+            trGlobal("Güvenlik & Bölge İhlali Uyarısı", "Security & Geofence Alert", lang)
+        } else {
+            alertTitle
+        }
+
+        val contentShort = trGlobal("Saha uygulamanızda yeni bir güvenlik/durum olayı kaydedildi. Detaylar için dokunun.", "A new security/status event has been recorded. Tap for details.", lang)
+        val contentLong = trGlobal(
+            "Saha personeli takip sisteminde yeni bir durum değişikliği oluştu. Gizlilik gereği detaylar bildirim çubuğunda gösterilmez. Detayları görmek için uygulamayı açınız.",
+            "A new status change occurred in the field tracking system. For privacy, details are not shown in the notification bar. Open the app to see details.",
+            lang
+        )
+
         createNotificationChannel(context)
 
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -46,13 +68,9 @@ object NotificationHelper {
         // Privacy safe alert text: generic message without raw GPS / violation details
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_stat)
-            .setContentTitle(alertTitle)
-            .setContentText("Saha uygulamanızda yeni bir güvenlik/durum olayı kaydedildi. Detaylar için dokunun.")
-            .setStyle(
-                NotificationCompat.BigTextStyle().bigText(
-                    "Saha personeli takip sisteminde yeni bir durum değişikliği oluştu. Gizlilik gereği detaylar bildirim çubuğunda gösterilmez. Detayları görmek için uygulamayı açınız."
-                )
-            )
+            .setContentTitle(finalTitle)
+            .setContentText(contentShort)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(contentLong))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

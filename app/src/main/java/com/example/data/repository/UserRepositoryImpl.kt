@@ -7,6 +7,7 @@ import com.example.domain.repository.EventRepository
 import com.example.domain.repository.GeofenceRepository
 import com.example.domain.repository.UserRepository
 import com.example.data.local.entity.GeofenceZoneEntity
+import com.example.util.trGlobal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -19,6 +20,7 @@ class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
     private val eventRepository: EventRepository,
     private val geofenceRepository: GeofenceRepository,
+    private val preferencesManager: PreferencesManager,
 ) : UserRepository {
 
     override val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
@@ -46,9 +48,10 @@ class UserRepositoryImpl @Inject constructor(
 
         val currentGeofences = geofenceRepository.getAllGeofencesOnce()
         if (currentGeofences.isEmpty()) {
+            val lang = preferencesManager.language.value
             geofenceRepository.insertGeofence(
                 GeofenceZoneEntity(
-                    name = "Merkez Şantiye Alanı",
+                    name = trGlobal("Merkez Şantiye Alanı", "Central Construction Site", lang),
                     centerLat = 41.0125,
                     centerLng = 28.9810,
                     radiusMeters = 1000.0,
@@ -60,10 +63,15 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun deactivateUser() = withContext(Dispatchers.IO) {
         userDao.deactivateUser()
+        val lang = preferencesManager.language.value
         eventRepository.addEventLog(
             type = "APP_DEACTIVATED",
-            title = "Cihaz Devre Dışı",
-            detail = "Personel uygulama oturumunu tamamen sonlandırdı ve cihazı deaktive etti.",
+            title = trGlobal("Cihaz Devre Dışı", "Device Deactivated", lang),
+            detail = trGlobal(
+                "Personel uygulama oturumunu tamamen sonlandırdı ve cihazı deaktive etti.",
+                "Personnel completely terminated the app session and deactivated the device.",
+                lang
+            ),
             status = "UYARI"
         )
     }

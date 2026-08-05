@@ -2,8 +2,10 @@ package com.example.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 @Entity(tableName = "geofence_zones")
+@JsonClass(generateAdapter = true)
 data class GeofenceZoneEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,

@@ -77,6 +77,8 @@ dependencies {
   implementation(libs.hilt.navigation.compose)
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
+  ksp(libs.androidx.room.compiler)
+  ksp(libs.moshi.kotlin.codegen)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.play.services.location)
@@ -93,7 +95,7 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
-  implementation(libs.moshi.kotlin)
+  implementation(libs.moshi)
   implementation(libs.okhttp)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.core)
@@ -114,8 +116,6 @@ dependencies {
   testImplementation(libs.conscrypt.openjdk.uber)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
-  "ksp"(libs.androidx.room.compiler)
-  "ksp"(libs.moshi.kotlin.codegen)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

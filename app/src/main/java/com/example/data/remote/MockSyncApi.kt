@@ -3,10 +3,12 @@ package com.example.data.remote
 import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.LocationEntity
 import com.example.data.local.entity.OfflineActivityReportEntity
+import com.squareup.moshi.JsonClass
 import kotlinx.coroutines.delay
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
+@JsonClass(generateAdapter = true)
 data class SyncPayload(
     val deviceId: String,
     val timestamp: Long,
@@ -15,6 +17,7 @@ data class SyncPayload(
     val offlineActivityReports: List<OfflineActivityReportEntity> = emptyList(),
 )
 
+@JsonClass(generateAdapter = true)
 data class SyncResponse(
     val success: Boolean,
     val syncedLocationCount: Int,

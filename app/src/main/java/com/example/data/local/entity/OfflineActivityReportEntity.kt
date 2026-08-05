@@ -2,6 +2,7 @@ package com.example.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 @Entity(
     tableName = "offline_activity_reports",
@@ -10,6 +11,7 @@ import androidx.room.PrimaryKey
         androidx.room.Index(value = ["timestamp"])
     ]
 )
+@JsonClass(generateAdapter = true)
 data class OfflineActivityReportEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
