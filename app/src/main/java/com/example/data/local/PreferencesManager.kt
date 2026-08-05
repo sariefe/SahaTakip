@@ -33,7 +33,8 @@ class PreferencesManager(context: Context) {
     val theme: StateFlow<String> = _theme.asStateFlow()
 
     private val _mockServerUrl = MutableStateFlow(
-        prefs.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync") ?: "https://mock-api.example.com/v1/telemetry/sync"
+        prefs.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync")
+            ?: "https://mock-api.example.com/v1/telemetry/sync",
     )
     val mockServerUrl: StateFlow<String> = _mockServerUrl.asStateFlow()
 

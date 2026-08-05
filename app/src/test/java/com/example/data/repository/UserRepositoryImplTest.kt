@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import com.example.data.local.dao.UserDao
 import com.example.domain.repository.EventRepository
+import com.example.domain.repository.GeofenceRepository
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,6 +17,7 @@ class UserRepositoryImplTest {
 
     @MockK lateinit var mockUserDao: UserDao
     @MockK lateinit var mockEventRepository: EventRepository
+    @MockK lateinit var mockGeofenceRepository: GeofenceRepository
 
     private lateinit var userRepository: UserRepositoryImpl
 
@@ -28,10 +30,13 @@ class UserRepositoryImplTest {
         coEvery { mockUserDao.updateLastLogin() } just Runs
         coEvery { mockUserDao.deactivateUser() } just Runs
         coEvery { mockEventRepository.addEventLog(any(), any(), any(), any(), any()) } just Runs
+        coEvery { mockGeofenceRepository.getAllGeofencesOnce() } returns emptyList()
+        coEvery { mockGeofenceRepository.insertGeofence(any()) } returns 1L
 
         userRepository = UserRepositoryImpl(
             mockUserDao,
-            mockEventRepository
+            mockEventRepository,
+            mockGeofenceRepository
         )
     }
 

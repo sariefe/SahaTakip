@@ -12,7 +12,7 @@ data class SyncPayload(
     val timestamp: Long,
     val locationHistory: List<LocationEntity>,
     val eventLogs: List<EventLogEntity>,
-    val offlineActivityReports: List<OfflineActivityReportEntity> = emptyList()
+    val offlineActivityReports: List<OfflineActivityReportEntity> = emptyList(),
 )
 
 data class SyncResponse(

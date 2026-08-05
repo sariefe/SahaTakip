@@ -4,7 +4,9 @@ import com.example.data.local.PreferencesManager
 import com.example.data.local.dao.UserDao
 import com.example.data.local.entity.UserProfileEntity
 import com.example.domain.repository.EventRepository
+import com.example.domain.repository.GeofenceRepository
 import com.example.domain.repository.UserRepository
+import com.example.data.local.entity.GeofenceZoneEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -16,6 +18,7 @@ import javax.inject.Singleton
 class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
     private val eventRepository: EventRepository,
+    private val geofenceRepository: GeofenceRepository,
 ) : UserRepository {
 
     override val userProfile: Flow<UserProfileEntity?> = userDao.getUserProfile()
@@ -37,6 +40,19 @@ class UserRepositoryImpl @Inject constructor(
                     isActivated = false,
                     isBiometricEnabled = true,
                     isCheckedIn = false,
+                )
+            )
+        }
+
+        val currentGeofences = geofenceRepository.getAllGeofencesOnce()
+        if (currentGeofences.isEmpty()) {
+            geofenceRepository.insertGeofence(
+                GeofenceZoneEntity(
+                    name = "Merkez Şantiye Alanı",
+                    centerLat = 41.0125,
+                    centerLng = 28.9810,
+                    radiusMeters = 1000.0,
+                    isActive = true
                 )
             )
         }
