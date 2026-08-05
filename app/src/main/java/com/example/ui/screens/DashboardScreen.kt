@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.StatusGreen
@@ -99,13 +100,12 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // User Header - Sleek Modern Design
+            // User Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -139,12 +139,11 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
             // CRITICAL WARNINGS
             if (deviceStatus.isRooted || deviceStatus.hasMissingCriticalPermissions) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .clickable {
                             when {
                                 !deviceStatus.isGpsEnabled -> {
@@ -207,154 +206,151 @@ fun DashboardScreen(
             }
 
             // TELEMETRY GRID
-            Text(
-                text = tr("Servis Durumları", "Service Status"),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            Column {
+                Text(
+                    text = tr("Servis Durumları", "Service Status"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
 
-            if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("İnternet", "Internet"),
-                        isOk = deviceStatus.isInternetConnected,
-                        icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                            } catch (_: Exception) {
+                if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            StatusGridItem(
+                                modifier = Modifier.weight(1f),
+                                title = tr("İnternet", "Internet"),
+                                isOk = deviceStatus.isInternetConnected,
+                                icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                onClick = {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                                    } catch (_: Exception) {
+                                        try {
+                                            context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                        } catch (_: Exception) {}
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            StatusGridItem(
+                                modifier = Modifier.weight(1f),
+                                title = tr("GPS", "GPS"),
+                                isOk = deviceStatus.isGpsEnabled,
+                                icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
+                                onClick = {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                    } catch (_: Exception) {}
+                                }
+                            )
+                        }
+                        
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            StatusGridItem(
+                                modifier = Modifier.weight(1f),
+                                title = tr("Arka Plan", "Background"),
+                                isOk = deviceStatus.isBackgroundExecutionOk,
+                                icon = Icons.Default.LocationOn,
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = android.net.Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            StatusGridItem(
+                                modifier = Modifier.weight(1f),
+                                title = tr("Bildirimler", "Notifications"),
+                                isOk = deviceStatus.isNotificationGranted,
+                                icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                                onClick = {
+                                    try {
+                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            }
+                                            context.startActivity(intent)
+                                        } else {
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = android.net.Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            context.startActivity(intent)
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatusGridItem(
+                            modifier = Modifier.weight(1f),
+                            title = tr("İnternet", "Internet"),
+                            isOk = deviceStatus.isInternetConnected,
+                            icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            onClick = {
                                 try {
-                                    context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                                } catch (_: Exception) {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                        )
+                        StatusGridItem(
+                            modifier = Modifier.weight(1f),
+                            title = tr("GPS", "GPS"),
+                            isOk = deviceStatus.isGpsEnabled,
+                            icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                                 } catch (_: Exception) {}
                             }
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("GPS", "GPS"),
-                        isOk = deviceStatus.isGpsEnabled,
-                        icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                            } catch (_: Exception) {}
-                        }
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("Arka Plan", "Background"),
-                        isOk = deviceStatus.isBackgroundExecutionOk,
-                        icon = Icons.Default.LocationOn,
-                        onClick = {
-                            try {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("Bildirimler", "Notifications"),
-                        isOk = deviceStatus.isNotificationGranted,
-                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
-                        onClick = {
-                            try {
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                    }
-                                    context.startActivity(intent)
-                                } else {
+                        )
+                        StatusGridItem(
+                            modifier = Modifier.weight(1f),
+                            title = tr("Arka Plan", "Background"),
+                            isOk = deviceStatus.isBackgroundExecutionOk,
+                            icon = Icons.Default.LocationOn,
+                            onClick = {
+                                try {
                                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                         data = android.net.Uri.fromParts("package", context.packageName, null)
                                     }
                                     context.startActivity(intent)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    )
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("İnternet", "Internet"),
-                        isOk = deviceStatus.isInternetConnected,
-                        icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                            } catch (_: Exception) {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
                                 } catch (_: Exception) {}
                             }
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("GPS", "GPS"),
-                        isOk = deviceStatus.isGpsEnabled,
-                        icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                            } catch (_: Exception) {}
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("Arka Plan", "Background"),
-                        isOk = deviceStatus.isBackgroundExecutionOk,
-                        icon = Icons.Default.LocationOn,
-                        onClick = {
-                            try {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    StatusGridItem(
-                        modifier = Modifier.weight(1f),
-                        title = tr("Bildirimler", "Notifications"),
-                        isOk = deviceStatus.isNotificationGranted,
-                        icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
-                        onClick = {
-                            try {
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        )
+                        StatusGridItem(
+                            modifier = Modifier.weight(1f),
+                            title = tr("Bildirimler", "Notifications"),
+                            isOk = deviceStatus.isNotificationGranted,
+                            icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                            onClick = {
+                                try {
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                        }
+                                        context.startActivity(intent)
+                                    } else {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = android.net.Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
                                     }
-                                    context.startActivity(intent)
-                                } else {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    )
+                                } catch (_: Exception) {}
+                            }
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // INTERACTIVE MAP PREVIEW CARD
             Card(
@@ -367,7 +363,6 @@ fun DashboardScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Background placeholder for map
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -411,11 +406,9 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             // BATTERY & SYNC SUMMARY
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("BatteryCard"),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {

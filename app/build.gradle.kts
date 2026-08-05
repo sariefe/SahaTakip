@@ -6,6 +6,7 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.hilt)
+  alias(libs.plugins.secrets)
 }
 
 android {
@@ -79,6 +80,8 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.play.services.location)
+  implementation(libs.play.services.maps)
+  implementation(libs.google.maps.compose)
   implementation(libs.androidx.biometric)
 
   implementation(libs.androidx.camera.camera2)
