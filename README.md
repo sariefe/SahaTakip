@@ -44,7 +44,7 @@ Uygulamanın arayüzünü ve temel özelliklerini aşağıda görebilirsiniz:
 
 SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryolarını izlemek için **GitHub Releases** sayfasındaki tanıtım videosuna göz atabilirsiniz:
 
-[![Tanıtım Videosu](https://img.shields.io/badge/GitHub-Release_Video-blue?style=for-the-badge&logo=github)](https://github.com/sariefe/SahaTakip/releases/tag/video))
+[![Tanıtım Videosu](https://img.shields.io/badge/GitHub-Release_Video-blue?style=for-the-badge&logo=github)](https://github.com/sariefe/SahaTakip/releases/tag/video)
 
 ---
 
