@@ -42,15 +42,18 @@ com.example
 ├── di/             # Bağımlılık Enjeksiyonu (Hilt Modülleri)
 │   ├── AppModule.kt       # Genel uygulama bağımlılıkları
 │   ├── DatabaseModule.kt  # Room DB ve DAO tanımları
-│   └── NetworkModule.kt   # Retrofit ve API servisleri
-├── data/           # Veri Katmanı
+│   ├── NetworkModule.kt   # Retrofit ve API servisleri
+│   ├── RepositoryModule.kt # Repository binding işlemleri (SOLID - DIP)
+│   └── ServiceModule.kt   # Servis ve Utils binding işlemleri
+├── data/           # Veri Katmanı (Implementasyonlar)
 │   ├── local/      # Room DB, DAO'lar, Preferences
 │   ├── remote/     # Mock API tanımları
-│   └── repository/ # Tek gerçek veri kaynağı (Single Source of Truth)
-├── domain/         # İş Mantığı
+│   └── repository/ # Repository Implementasyonları (SRP - Veri Erişimi)
+├── domain/         # Alan Katmanı (İş Kuralları ve Soyutlamalar)
 │   ├── model/      # UI'dan bağımsız veri modelleri
+│   ├── repository/ # Repository Arayüzleri (Abstractions)
 │   └── service/    # Arka plan servisleri (LocationTrackingService)
-├── ui/             # Sunum Katmanı
+├── ui/             # Sunum Katmanı (Jetpack Compose)
 │   ├── components/ # Özelleştirilmiş Harita ve UI bileşenleri
 │   ├── navigation/ # AppNavGraph ve Ekran rotaları
 │   ├── screens/    # Dashboard, Harita, Ayarlar, Olay Günlükleri

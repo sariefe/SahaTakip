@@ -40,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.EventLogEntity
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
@@ -65,7 +65,7 @@ fun EventLogsScreen(
     viewModel: RequestLogViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
-    val eventLogs by viewModel.allEventLogs.collectAsState()
+    val eventLogs by viewModel.allEventLogs.collectAsStateWithLifecycle()
     var selectedLogForNote by remember { mutableStateOf<EventLogEntity?>(null) }
     var noteInputText by remember { mutableStateOf("") }
 

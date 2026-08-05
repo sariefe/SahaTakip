@@ -38,7 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +54,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -71,10 +71,10 @@ fun AuthScreen(
     onAuthSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    val ocrResult by viewModel.ocrScanningState.collectAsState()
-    val ocrIsLoading by viewModel.ocrIsLoading.collectAsState()
-    val errorMessage by viewModel.authErrorMessage.collectAsState()
-    val ocrScanSuggested by viewModel.ocrScanSuggested.collectAsState()
+    val ocrResult by viewModel.ocrScanningState.collectAsStateWithLifecycle()
+    val ocrIsLoading by viewModel.ocrIsLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.authErrorMessage.collectAsStateWithLifecycle()
+    val ocrScanSuggested by viewModel.ocrScanSuggested.collectAsStateWithLifecycle()
 
     val bioTitle = tr("Biyometrik Kayıt", "Biometric Registration")
     val bioSub = tr("Saha Güvenlik Birimi", "Field Security Unit")

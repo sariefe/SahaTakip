@@ -29,10 +29,24 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.LocationEntity
 import com.example.ui.components.CustomMapView
 import com.example.ui.theme.StatusGreen
@@ -62,10 +77,10 @@ fun MapTrackingScreen(
     viewModel: TrackingViewModel,
     windowWidthSizeClass: WindowWidthSizeClass,
 ) {
-    val locations by viewModel.locationsLast24h.collectAsState()
-    val latestLoc by viewModel.latestLocation.collectAsState()
-    val geofences by viewModel.allGeofences.collectAsState()
-    val playbackState by viewModel.playbackState.collectAsState()
+    val locations by viewModel.locationsLast24h.collectAsStateWithLifecycle()
+    val latestLoc by viewModel.latestLocation.collectAsStateWithLifecycle()
+    val geofences by viewModel.allGeofences.collectAsStateWithLifecycle()
+    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var showAddGeofenceDialog by remember { mutableStateOf(value = false) }
     var geofenceToDelete by remember { mutableStateOf<Long?>(null) }

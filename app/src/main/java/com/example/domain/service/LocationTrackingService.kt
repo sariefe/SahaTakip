@@ -14,7 +14,8 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.R
-import com.example.data.repository.SahaRepository
+import com.example.data.local.PreferencesManager
+import com.example.domain.repository.LocationRepository
 import com.example.util.LocationUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -37,7 +38,10 @@ class LocationTrackingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     
     @Inject
-    lateinit var repository: SahaRepository
+    lateinit var locationRepository: LocationRepository
+
+    @Inject
+    lateinit var preferencesManager: PreferencesManager
     
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -125,7 +129,7 @@ class LocationTrackingService : Service() {
                 location.latitude,
                 location.longitude
             )
-            repository.recordNewLocation(
+            locationRepository.recordNewLocation(
                 lat = location.latitude,
                 lng = location.longitude,
                 speed = location.speed,
@@ -144,7 +148,7 @@ class LocationTrackingService : Service() {
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         serviceScope.launch {
-            val intervalSeconds = repository.preferencesManager.updateInterval.first()
+            val intervalSeconds = preferencesManager.updateInterval.first()
             
             val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalSeconds * 1000L)
                 .setMinUpdateIntervalMillis(intervalSeconds * 500L)

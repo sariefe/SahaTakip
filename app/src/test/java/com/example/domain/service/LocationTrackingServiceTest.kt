@@ -2,11 +2,12 @@ package com.example.domain.service
 
 import android.app.NotificationManager
 import android.content.Context
-import com.example.data.repository.SahaRepository
+import com.example.domain.repository.LocationRepository
+import com.example.data.local.PreferencesManager
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.every
-import io.mockk.mockkConstructor
+import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
@@ -27,16 +28,17 @@ class LocationTrackingServiceTest {
 
     private lateinit var context: Context
     private lateinit var shadowService: ShadowService
+    
+    private val mockLocationRepository = mockk<LocationRepository>(relaxed = true)
+    private val mockPreferencesManager = mockk<PreferencesManager>(relaxed = true)
 
     @Before
     fun setup() {
         MockKAnnotations.init(this)
-        context = io.mockk.mockk(relaxed = true)
+        context = mockk(relaxed = true)
         
-        // Mock SahaRepository construction
-        mockkConstructor(SahaRepository::class)
-        every { anyConstructed<SahaRepository>().preferencesManager.updateInterval } returns MutableStateFlow(1)
-        coEvery { anyConstructed<SahaRepository>().recordNewLocation(any(), any(), any(), any(), any(), any()) } returns 1L
+        every { mockPreferencesManager.updateInterval } returns MutableStateFlow(1)
+        coEvery { mockLocationRepository.recordNewLocation(any(), any(), any(), any(), any(), any()) } returns 1L
     }
 
     @After
@@ -48,6 +50,10 @@ class LocationTrackingServiceTest {
     fun testServiceLifecycle() {
         val controller = Robolectric.buildService(LocationTrackingService::class.java)
         val service = controller.get()
+
+        service.locationRepository = mockLocationRepository
+        service.preferencesManager = mockPreferencesManager
+        
         shadowService = shadowOf(service)
 
         controller.create()
@@ -61,6 +67,5 @@ class LocationTrackingServiceTest {
         controller.startCommand(0, 0)
         
         controller.destroy()
-        // verify repo interactions if possible, but it's in a loop
     }
 }

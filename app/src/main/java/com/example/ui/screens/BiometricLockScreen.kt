@@ -30,7 +30,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.OcrCameraScannerModal
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -63,9 +63,9 @@ fun BiometricLockScreen(
     onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    val userProfile by viewModel.userProfile.collectAsState()
-    val ocrAuthError by authViewModel.ocrAuthError.collectAsState()
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
+    val ocrAuthError by authViewModel.ocrAuthError.collectAsStateWithLifecycle()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
     var showOcrModal by remember { mutableStateOf(false) }
     var verificationSuccess by remember { mutableStateOf(false) }
@@ -244,7 +244,7 @@ fun BiometricLockScreen(
     }
 
     if (showOcrModal) {
-        val currentOcrResult by authViewModel.ocrScanningState.collectAsState()
+        val currentOcrResult by authViewModel.ocrScanningState.collectAsStateWithLifecycle()
         
         OcrCameraScannerModal(
             viewModel = authViewModel,

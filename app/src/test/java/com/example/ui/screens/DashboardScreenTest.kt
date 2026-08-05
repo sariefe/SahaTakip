@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.example.data.local.entity.UserProfileEntity
 import com.example.domain.model.DeviceStatus
@@ -52,6 +53,7 @@ class DashboardScreenTest {
         composeTestRule.onNodeWithText("Test User").assertExists()
 
         // Verify battery level
+        composeTestRule.onNodeWithTag("BatteryCard", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Pil", substring = true).assertExists()
         composeTestRule.onNodeWithText("%85", substring = true).assertExists()
 

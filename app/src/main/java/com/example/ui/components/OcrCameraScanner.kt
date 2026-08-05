@@ -43,12 +43,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -84,11 +84,11 @@ fun OcrCameraScannerModal(
     val haptic = LocalHapticFeedback.current
     
     var selectedPreset by remember { mutableStateOf<StaffCardPreset?>(null) }
-    val liveOcrResult by viewModel.ocrScanningState.collectAsState()
-    val stability by viewModel.ocrStability.collectAsState()
-    val detectedLines by viewModel.detectedLines.collectAsState()
-    val imgWidth by viewModel.ocrImageWidth.collectAsState()
-    val imgHeight by viewModel.ocrImageHeight.collectAsState()
+    val liveOcrResult by viewModel.ocrScanningState.collectAsStateWithLifecycle()
+    val stability by viewModel.ocrStability.collectAsStateWithLifecycle()
+    val detectedLines by viewModel.detectedLines.collectAsStateWithLifecycle()
+    val imgWidth by viewModel.ocrImageWidth.collectAsStateWithLifecycle()
+    val imgHeight by viewModel.ocrImageHeight.collectAsStateWithLifecycle()
 
     LaunchedEffect(stability) {
         if (stability >= 1.0f) {
@@ -217,19 +217,26 @@ fun OcrCameraScannerModal(
                             if (imgWidth > 0 && imgHeight > 0) {
                                 val scaleX = canvasWidth / imgWidth
                                 val scaleY = canvasHeight / imgHeight
+                                
+                                val drawColor = frameColor // Capture value to avoid recomposition inside draw
 
                                 Canvas(modifier = Modifier.fillMaxSize()) {
                                     detectedLines.forEach { line ->
+                                        val left = line.left * scaleX
+                                        val top = line.top * scaleY
+                                        val width = line.width * scaleX
+                                        val height = line.height * scaleY
+                                        
                                         drawRoundRect(
-                                            color = frameColor.copy(alpha = 0.3f),
-                                            topLeft = Offset(line.left * scaleX, line.top * scaleY),
-                                            size = Size(line.width * scaleX, line.height * scaleY),
+                                            color = drawColor.copy(alpha = 0.2f),
+                                            topLeft = Offset(left, top),
+                                            size = Size(width, height),
                                             cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
                                         )
                                         drawRoundRect(
-                                            color = frameColor,
-                                            topLeft = Offset(line.left * scaleX, line.top * scaleY),
-                                            size = Size(line.width * scaleX, line.height * scaleY),
+                                            color = drawColor,
+                                            topLeft = Offset(left, top),
+                                            size = Size(width, height),
                                             cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
                                             style = Stroke(width = 1.dp.toPx())
                                         )

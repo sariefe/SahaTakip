@@ -3,7 +3,8 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.LeaveRequestEntity
-import com.example.data.repository.SahaRepository
+import com.example.domain.repository.EventRepository
+import com.example.domain.repository.LeaveRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,24 +14,25 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RequestLogViewModel @Inject constructor(
-    private val repository: SahaRepository
+    private val eventRepository: EventRepository,
+    private val leaveRepository: LeaveRepository,
 ) : androidx.lifecycle.ViewModel() {
 
-    val allEventLogs: StateFlow<List<EventLogEntity>> = repository.allEventLogs
+    val allEventLogs: StateFlow<List<EventLogEntity>> = eventRepository.allEventLogs
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val allLeaveRequests: StateFlow<List<LeaveRequestEntity>> = repository.allLeaveRequests
+    val allLeaveRequests: StateFlow<List<LeaveRequestEntity>> = leaveRepository.allLeaveRequests
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun addNoteToEventLog(logId: Long, note: String) {
         viewModelScope.launch {
-            repository.eventLogDao.updateNote(logId, note)
+            eventRepository.updateNote(logId, note)
         }
     }
 
     fun submitLeaveRequest(type: String, startDate: String, endDate: String, reason: String) {
         viewModelScope.launch {
-            repository.leaveRequestDao.insertLeaveRequest(
+            leaveRepository.insertLeaveRequest(
                 LeaveRequestEntity(
                     startDate = startDate,
                     endDate = endDate,
@@ -44,7 +46,7 @@ class RequestLogViewModel @Inject constructor(
 
     fun deleteLeaveRequest(id: Long) {
         viewModelScope.launch {
-            repository.deleteLeaveRequest(id)
+            leaveRepository.deleteLeaveRequest(id)
         }
     }
 }

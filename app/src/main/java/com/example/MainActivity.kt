@@ -13,8 +13,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.domain.service.LocationTrackingService
 import com.example.ui.navigation.AppNavGraph
 import com.example.ui.theme.SahaTakipTheme
@@ -70,7 +70,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
-            val themeMode by settingsViewModel.theme.collectAsState()
+            val themeMode by settingsViewModel.theme.collectAsStateWithLifecycle()
             val isDarkTheme = when (themeMode) {
                 "dark" -> true
                 "light" -> false

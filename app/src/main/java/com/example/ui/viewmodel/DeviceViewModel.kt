@@ -9,8 +9,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import androidx.lifecycle.viewModelScope
-import com.example.data.repository.SahaRepository
 import com.example.domain.model.DeviceStatus
+import com.example.domain.repository.EventRepository
+import com.example.domain.repository.SyncRepository
 import com.example.util.PermissionUtils
 import com.example.util.SecurityUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,14 +25,15 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: SahaRepository,
-    private val connectivityObserver: com.example.util.ConnectivityObserver
+    private val eventRepository: EventRepository,
+    private val syncRepository: SyncRepository,
+    private val connectivityObserver: com.example.util.ConnectivityObserver,
 ) : androidx.lifecycle.ViewModel() {
 
-    private val _deviceStatus = MutableStateFlow(DeviceStatus())
+    private val _deviceStatus = MutableStateFlow(value = DeviceStatus())
     val deviceStatus: StateFlow<DeviceStatus> = _deviceStatus.asStateFlow()
 
-    private val _isSyncing = MutableStateFlow(false)
+    private val _isSyncing = MutableStateFlow(value = false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
     private val gpsReceiver = object : BroadcastReceiver() {
@@ -45,7 +47,7 @@ class DeviceViewModel @Inject constructor(
             updateDeviceStatus()
             val isPowerSave = PermissionUtils.isPowerSaveMode(context)
             viewModelScope.launch {
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "POWER_MODE_CHANGED",
                     title = if (isPowerSave) "Düşük Güç Modu Aktif" else "Normal Güç Moduna Geçildi",
                     detail = if (isPowerSave) 
@@ -107,7 +109,7 @@ class DeviceViewModel @Inject constructor(
         viewModelScope.launch {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
-            val isOnline = capabilities != null &&
+            val isOnline = (capabilities != null) &&
                     (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
                             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
                             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
@@ -139,7 +141,7 @@ class DeviceViewModel @Inject constructor(
         _deviceStatus.value = _deviceStatus.value.copy(isGpsEnabled = !_deviceStatus.value.isGpsEnabled)
         if (!_deviceStatus.value.isGpsEnabled) {
             viewModelScope.launch {
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "GPS_DISABLED",
                     title = "Konum Servisleri Kapatıldı",
                     detail = "Saha personeli konum servislerini veya GPS antenini devre dışı bıraktı.",
@@ -154,14 +156,14 @@ class DeviceViewModel @Inject constructor(
         _deviceStatus.value = _deviceStatus.value.copy(isInternetConnected = nextOnline)
         viewModelScope.launch {
             if (!nextOnline) {
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "INTERNET_LOST",
                     title = "İnternet Bağlantı Kaybı",
                     detail = "Şebeke bağlantısı kesildi. Çevrimdışı mod devreye girdi.",
                     status = "UYARI"
                 )
             } else {
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "INTERNET_RESTORED",
                     title = "İnternet Bağlantısı Sağlandı",
                     detail = "Şebeke bağlantısı yeniden sağlandı. Çevrimdışı veriler senkronize ediliyor.",
@@ -178,7 +180,7 @@ class DeviceViewModel @Inject constructor(
         viewModelScope.launch {
             _isSyncing.value = true
             try {
-                repository.performOfflineSync()
+                syncRepository.performOfflineSync()
             } catch (e: Exception) {
                 android.util.Log.e("DeviceViewModel", "Sync failed", e)
             } finally {

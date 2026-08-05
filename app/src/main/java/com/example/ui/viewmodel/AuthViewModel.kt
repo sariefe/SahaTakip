@@ -3,7 +3,8 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.PreferencesManager
 import com.example.data.local.entity.UserProfileEntity
-import com.example.data.repository.SahaRepository
+import com.example.domain.repository.EventRepository
+import com.example.domain.repository.UserRepository
 import com.example.util.OcrCardScanner
 import com.example.util.OcrLine
 import com.example.util.ScannedStaffCardResult
@@ -22,43 +23,44 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: SahaRepository
+    private val userRepository: UserRepository,
+    private val eventRepository: EventRepository,
 ) : androidx.lifecycle.ViewModel() {
 
     init {
         viewModelScope.launch {
-            repository.initializeAndSyncDefaultData()
+            userRepository.initializeAndSyncDefaultData()
         }
     }
 
-    val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
+    val userProfile: StateFlow<UserProfileEntity?> = userRepository.userProfile
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val _isAuthenticated = MutableStateFlow(false)
+    private val _isAuthenticated = MutableStateFlow(value = false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
 
-    private val _authErrorMessage = MutableStateFlow<String?>(null)
+    private val _authErrorMessage = MutableStateFlow<String?>(value = null)
     val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
 
-    private val _ocrAuthError = MutableStateFlow<String?>(null)
+    private val _ocrAuthError = MutableStateFlow<String?>(value = null)
     val ocrAuthError: StateFlow<String?> = _ocrAuthError.asStateFlow()
 
-    private val _ocrScanningState = MutableStateFlow<ScannedStaffCardResult?>(null)
+    private val _ocrScanningState = MutableStateFlow<ScannedStaffCardResult?>(value = null)
     val ocrScanningState: StateFlow<ScannedStaffCardResult?> = _ocrScanningState.asStateFlow()
 
-    private val _ocrIsLoading = MutableStateFlow(false)
+    private val _ocrIsLoading = MutableStateFlow(value = false)
     val ocrIsLoading: StateFlow<Boolean> = _ocrIsLoading.asStateFlow()
 
-    private val _ocrStability = MutableStateFlow(0f)
+    private val _ocrStability = MutableStateFlow(value = 0f)
     val ocrStability: StateFlow<Float> = _ocrStability.asStateFlow()
 
-    private val _detectedLines = MutableStateFlow<List<OcrLine>>(emptyList())
+    private val _detectedLines = MutableStateFlow<List<OcrLine>>(value = emptyList())
     val detectedLines: StateFlow<List<OcrLine>> = _detectedLines.asStateFlow()
 
-    private val _ocrImageWidth = MutableStateFlow(0)
+    private val _ocrImageWidth = MutableStateFlow(value = 0)
     val ocrImageWidth: StateFlow<Int> = _ocrImageWidth.asStateFlow()
 
-    private val _ocrImageHeight = MutableStateFlow(0)
+    private val _ocrImageHeight = MutableStateFlow(value = 0)
     val ocrImageHeight: StateFlow<Int> = _ocrImageHeight.asStateFlow()
 
     private val ocrResultBuffer = mutableListOf<String>()
@@ -66,7 +68,7 @@ class AuthViewModel @Inject constructor(
     private var lastOcrLeft = -1
     private val stabilitityThreshold = 5
 
-    private val _ocrScanSuggested = MutableStateFlow(false)
+    private val _ocrScanSuggested = MutableStateFlow(value = false)
     val ocrScanSuggested: StateFlow<Boolean> = _ocrScanSuggested.asStateFlow()
 
     fun markOcrScanSuggested() {
@@ -78,7 +80,7 @@ class AuthViewModel @Inject constructor(
             _ocrIsLoading.value = true
             
             val existingResult = _ocrScanningState.value
-            val result = if (preset == null && existingResult != null) {
+            val result = if ((preset == null) && (existingResult != null)) {
                 delay(500.milliseconds)
                 existingResult
             } else {
@@ -88,7 +90,7 @@ class AuthViewModel @Inject constructor(
             _ocrScanningState.value = result
             _ocrIsLoading.value = false
 
-            repository.addEventLog(
+            eventRepository.addEventLog(
                 type = "OCR_SCAN_SUCCESS",
                 title = "Personel Kartı OCR Taraması Yapıldı",
                 detail = "Personel: ${result.fullName} (ID: ${result.staffId}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
@@ -136,7 +138,7 @@ class AuthViewModel @Inject constructor(
                 if (isMoreComplete || (result.staffId != current.staffId)) {
                     _ocrScanningState.value = result
                     viewModelScope.launch {
-                        repository.addEventLog(
+                        eventRepository.addEventLog(
                             type = "REAL_OCR_DETECTION",
                             title = "Canlı Personel Kartı Tespiti",
                             detail = "Kamera üzerinden kararlı bir şekilde kart tespiti yapıldı: ${result.fullName}",
@@ -168,7 +170,7 @@ class AuthViewModel @Inject constructor(
                 val scannedStaffId = ocrResult?.staffId ?: "ID-2026-999"
                 val scannedDept = ocrResult?.department?.takeIf { it.isNotBlank() } ?: "SAHA"
 
-                repository.userDao.insertOrUpdateUser(
+                userRepository.insertOrUpdateUser(
                     UserProfileEntity(
                         id = 1,
                         firstName = scannedFirstName,
@@ -195,7 +197,7 @@ class AuthViewModel @Inject constructor(
     fun authenticateWithBiometrics(): Boolean {
         _isAuthenticated.value = true
         viewModelScope.launch {
-            repository.userDao.updateLastLogin()
+            userRepository.updateLastLogin()
         }
         return true
     }
@@ -207,11 +209,11 @@ class AuthViewModel @Inject constructor(
             _isAuthenticated.value = true
             _ocrAuthError.value = null
             viewModelScope.launch {
-                repository.userDao.updateLastLogin()
+                userRepository.updateLastLogin()
                 
                 if (ocrResult != null) {
                     currentProfile.let { profile ->
-                        repository.userDao.insertOrUpdateUser(
+                        userRepository.insertOrUpdateUser(
                             profile.copy(
                                 firstName = ocrResult.firstName,
                                 lastName = ocrResult.lastName,
@@ -222,7 +224,7 @@ class AuthViewModel @Inject constructor(
                     }
                 }
 
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "OCR_AUTH_SUCCESS",
                     title = "Personel Doğrulama Başarılı",
                     detail = "Personel kartı OCR ile doğrulandı ve giriş yapıldı.",
@@ -233,7 +235,7 @@ class AuthViewModel @Inject constructor(
         } else {
             _ocrAuthError.value = "Personel kartı kayıtlı personel ile eşleşmiyor!"
             viewModelScope.launch {
-                repository.addEventLog(
+                eventRepository.addEventLog(
                     type = "OCR_AUTH_FAILED",
                     title = "Personel Doğrulama Başarısız",
                     detail = "Farklı bir personel kartı ile giriş denemesi yapıldı (Tespit edilen ID: $scannedStaffId).",
@@ -246,7 +248,7 @@ class AuthViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            repository.deactivateUser()
+            userRepository.deactivateUser()
             _isAuthenticated.value = false
         }
     }

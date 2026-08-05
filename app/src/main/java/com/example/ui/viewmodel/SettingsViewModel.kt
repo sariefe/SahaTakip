@@ -1,21 +1,21 @@
 package com.example.ui.viewmodel
 
-import com.example.data.repository.SahaRepository
+import com.example.data.local.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: SahaRepository
+    private val preferencesManager: PreferencesManager,
 ) : androidx.lifecycle.ViewModel() {
 
-    val language = repository.preferencesManager.language
-    val updateInterval = repository.preferencesManager.updateInterval
-    val theme = repository.preferencesManager.theme
-    val mockServerUrl = repository.preferencesManager.mockServerUrl
+    val language = preferencesManager.language
+    val updateInterval = preferencesManager.updateInterval
+    val theme = preferencesManager.theme
+    val mockServerUrl = preferencesManager.mockServerUrl
 
-    fun setLanguage(lang: String) = repository.preferencesManager.setLanguage(lang)
-    fun setUpdateInterval(seconds: Int) = repository.preferencesManager.setUpdateInterval(seconds)
-    fun setTheme(themeMode: String) = repository.preferencesManager.setTheme(themeMode)
-    fun setMockServerUrl(url: String) = repository.preferencesManager.setMockServerUrl(url)
+    fun setLanguage(lang: String) = preferencesManager.setLanguage(lang)
+    fun setUpdateInterval(seconds: Int) = preferencesManager.setUpdateInterval(seconds)
+    fun setTheme(themeMode: String) = preferencesManager.setTheme(themeMode)
+    fun setMockServerUrl(url: String) = preferencesManager.setMockServerUrl(url)
 }

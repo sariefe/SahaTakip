@@ -4,7 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.data.local.entity.LocationEntity
 import com.example.data.local.entity.UserProfileEntity
-import com.example.data.repository.SahaRepository
+import com.example.domain.repository.GeofenceRepository
+import com.example.domain.repository.LocationRepository
+import com.example.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -12,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,31 +24,33 @@ data class PlaybackState(
     val speedMultiplier: Float = 1.0f,
     val progress: Float = 0.0f,
     val currentIndex: Int = 0,
-    val currentLocation: LocationEntity? = null
+    val currentLocation: LocationEntity? = null,
 )
 
 @HiltViewModel
 class TrackingViewModel @Inject constructor(
-    private val repository: SahaRepository
+    private val userRepository: UserRepository,
+    locationRepository: LocationRepository,
+    private val geofenceRepository: GeofenceRepository,
 ) : androidx.lifecycle.ViewModel() {
 
     init {
         viewModelScope.launch {
-            repository.initializeAndSyncDefaultData()
+            userRepository.initializeAndSyncDefaultData()
         }
     }
 
-    val userProfile: StateFlow<UserProfileEntity?> = repository.userProfile
+    val userProfile: StateFlow<UserProfileEntity?> = userRepository.userProfile
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val locationsLast24h: StateFlow<List<LocationEntity>> = repository.locationDao.getLocationsSince(
-        System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+    val locationsLast24h: StateFlow<List<LocationEntity>> = locationRepository.getLocationsSince(
+        System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
     ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val latestLocation: StateFlow<LocationEntity?> = repository.latestLocation
+    val latestLocation: StateFlow<LocationEntity?> = locationRepository.latestLocation
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val allGeofences: StateFlow<List<GeofenceZoneEntity>> = repository.allGeofences
+    val allGeofences: StateFlow<List<GeofenceZoneEntity>> = geofenceRepository.allGeofences
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _playbackState = MutableStateFlow(PlaybackState())
@@ -106,14 +109,14 @@ class TrackingViewModel @Inject constructor(
 
     fun addGeofenceZone(name: String, lat: Double, lng: Double, radiusMeters: Double) {
         viewModelScope.launch {
-            val existingZones = repository.geofenceDao.getAllGeofences().firstOrNull() ?: emptyList()
+            val existingZones = geofenceRepository.getAllGeofencesOnce()
             val isDuplicate = existingZones.any { 
                 it.name.equals(name, ignoreCase = true) || 
-                (repository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 10.0) 
+                (geofenceRepository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 10.0) 
             }
 
             if (!isDuplicate) {
-                repository.geofenceDao.insertGeofence(
+                geofenceRepository.insertGeofence(
                     GeofenceZoneEntity(
                         name = name.trim(),
                         centerLat = lat,
@@ -128,22 +131,22 @@ class TrackingViewModel @Inject constructor(
 
     fun deleteGeofence(id: Long) {
         viewModelScope.launch {
-            repository.deleteGeofence(id)
+            geofenceRepository.deleteGeofence(id)
         }
     }
 
     fun toggleGeofenceActive(id: Long, isActive: Boolean) {
         viewModelScope.launch {
-            repository.geofenceDao.setGeofenceActive(id, isActive)
+            geofenceRepository.setGeofenceActive(id, isActive)
         }
     }
 
     fun updateGeofenceZone(id: Long, name: String, radiusMeters: Double) {
         viewModelScope.launch {
-            val zones = repository.geofenceDao.getAllGeofences().firstOrNull()
-            val existing = zones?.find { it.id == id }
+            val zones = geofenceRepository.getAllGeofencesOnce()
+            val existing = zones.find { it.id == id }
             existing?.let {
-                repository.geofenceDao.insertGeofence(
+                geofenceRepository.insertGeofence(
                     it.copy(name = name, radiusMeters = radiusMeters)
                 )
             }

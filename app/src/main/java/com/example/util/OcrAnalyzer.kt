@@ -12,9 +12,17 @@ class OcrAnalyzer(
 ) : ImageAnalysis.Analyzer {
 
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private var lastAnalysisTimestamp = 0L
+    private val analysisInterval = 200L
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastAnalysisTimestamp < analysisInterval) {
+            imageProxy.close()
+            return
+        }
+        
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             val rotation = imageProxy.imageInfo.rotationDegrees
@@ -24,6 +32,7 @@ class OcrAnalyzer(
             val imgWidth = if (rotation == 90 || rotation == 270) imageProxy.height else imageProxy.width
             val imgHeight = if (rotation == 90 || rotation == 270) imageProxy.width else imageProxy.height
 
+            lastAnalysisTimestamp = currentTime
             recognizer.process(image)
                 .addOnSuccessListener { visionText ->
                     val lines = mutableListOf<OcrLine>()

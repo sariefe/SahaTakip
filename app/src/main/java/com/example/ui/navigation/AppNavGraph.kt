@@ -1,5 +1,8 @@
 package com.example.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,18 +27,18 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.BiometricLockScreen
 import com.example.ui.screens.DashboardScreen
@@ -55,16 +58,14 @@ import com.example.util.tr
 fun AppNavGraph(
     windowSizeClass: WindowSizeClass
 ) {
-    val deviceViewModel: DeviceViewModel = hiltViewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
     val trackingViewModel: TrackingViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
-    val requestLogViewModel: RequestLogViewModel = hiltViewModel()
-    val authViewModel: AuthViewModel = hiltViewModel()
 
     val navController = rememberNavController()
-    val userProfile by trackingViewModel.userProfile.collectAsState()
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
-    val currentLang by settingsViewModel.language.collectAsState()
+    val userProfile by trackingViewModel.userProfile.collectAsStateWithLifecycle()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsStateWithLifecycle()
+    val currentLang by settingsViewModel.language.collectAsStateWithLifecycle()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -121,7 +122,9 @@ fun AppNavGraph(
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(innerPadding),
+                    enterTransition = { fadeIn(animationSpec = tween(150)) },
+                    exitTransition = { fadeOut(animationSpec = tween(150)) }
                 ) {
                     composable(Screen.Auth.route) {
                         AuthScreen(
@@ -147,6 +150,7 @@ fun AppNavGraph(
                     }
 
                     composable(Screen.Dashboard.route) {
+                        val deviceViewModel: DeviceViewModel = hiltViewModel()
                         DashboardScreen(
                             deviceViewModel = deviceViewModel,
                             trackingViewModel = trackingViewModel,
@@ -164,6 +168,7 @@ fun AppNavGraph(
                     }
 
                     composable(Screen.EventLogs.route) {
+                        val requestLogViewModel: RequestLogViewModel = hiltViewModel()
                         EventLogsScreen(
                             viewModel = requestLogViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass
@@ -171,6 +176,7 @@ fun AppNavGraph(
                     }
 
                     composable(Screen.LeaveRequests.route) {
+                        val requestLogViewModel: RequestLogViewModel = hiltViewModel()
                         LeaveRequestScreen(
                             viewModel = requestLogViewModel,
                             windowWidthSizeClass = windowSizeClass.widthSizeClass

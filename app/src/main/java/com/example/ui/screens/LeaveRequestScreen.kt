@@ -45,7 +45,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
@@ -64,8 +64,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Data model for local state storage - DEPRECATED: Using Room exclusively
-// data class LocalLeaveRequestItem(...)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +71,7 @@ fun LeaveRequestScreen(
     viewModel: RequestLogViewModel,
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
-    val dbRequests by viewModel.allLeaveRequests.collectAsState()
+    val dbRequests by viewModel.allLeaveRequests.collectAsStateWithLifecycle()
 
     var showForm by remember { mutableStateOf(false) }
     var itemToDelete by remember { mutableStateOf<com.example.data.local.entity.LeaveRequestEntity?>(null) }

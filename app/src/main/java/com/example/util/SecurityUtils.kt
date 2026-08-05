@@ -20,7 +20,7 @@ object SecurityUtils {
             "/data/local/bin/su",
             "/system/sd/xbin/su",
             "/system/bin/failsafe/su",
-            "/data/local/su"
+            "/data/local/su",
         )
         for (path in rootPaths) {
             try {
@@ -30,6 +30,6 @@ object SecurityUtils {
             }
         }
         val buildTags = android.os.Build.TAGS
-        buildTags != null && buildTags.contains("test-keys")
+        (buildTags != null) && buildTags.contains("test-keys")
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,10 +35,10 @@ fun SettingsScreen(
     windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val context = LocalContext.current
-    val currentLang by viewModel.language.collectAsState()
-    val currentInterval by viewModel.updateInterval.collectAsState()
-    val currentTheme by viewModel.theme.collectAsState()
-    val serverUrl by viewModel.mockServerUrl.collectAsState()
+    val currentLang by viewModel.language.collectAsStateWithLifecycle()
+    val currentInterval by viewModel.updateInterval.collectAsStateWithLifecycle()
+    val currentTheme by viewModel.theme.collectAsStateWithLifecycle()
+    val serverUrl by viewModel.mockServerUrl.collectAsStateWithLifecycle()
 
     val bioManager = remember { BiometricPromptManager(context) }
     val bioAvailability = remember { bioManager.checkBiometricAvailability() }
