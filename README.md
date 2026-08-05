@@ -8,9 +8,11 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 - **Kesintisiz Arka Plan Konumu:** Cihaz uykuda veya uygulama kapalıyken bile düşük güç tüketimiyle hassas konum kaydı.
 - **Akıllı Rota Oynatma:** Geçmiş konum verilerini harita üzerinde farklı hızlarda (1x, 2x, 4x) görselleştirme.
 - **Dinamik Geofencing:** Harita üzerinden güvenli bölgeler tanımlama; bölge ihlali durumunda anlık sistem bildirimi ve olay günlüğü oluşturma (Türkçe karakter desteği ile).
+- **Gelişmiş Harita Görselleştirme:** Binaların, yerleşkelerin (kampüs, AVM vb.) ve yapıların detaylı kuşbakışı görünümü; kullanıcı deneyimini artıran optimize edilmiş harita katmanları.
 
 ### 🛡️ Güvenlik ve Gizlilik
 - **Biyometrik Giriş:** Parmak izi veya yüz tanıma desteği ile verilerin güvenliğini sağlayan ekran kilidi.
+- **Güvenli Anahtar Yönetimi:** API anahtarlarının ve hassas verilerin `Secrets Gradle Plugin` ile korunması; kaynak kodda anahtar sızıntısının önlenmesi.
 - **Cihaz Güvenlik Analizi:** Root erişimi tespiti ve kritik güvenlik risklerinin raporlanması.
 - **Gizlilik Bildirimleri:** Arka plan aktiviteleri hakkında kullanıcıyı bilgilendiren şeffaf bildirim sistemi.
 
@@ -29,6 +31,7 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 - **UI:** Jetpack Compose & Material 3
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
 - **Bağımlılık Enjeksiyonu:** Hilt (Dagger)
+- **Güvenlik:** Secrets Gradle Plugin
 - **Yerel Veritabanı:** Room Persistence Library
 - **Ağ:** Retrofit & OkHttp & Moshi
 - **Asenkron Akış:** Kotlin Coroutines & Flow
@@ -70,9 +73,13 @@ com.example
    ```bash
    git clone https://github.com/efe-sari/staj-testing.git
    ```
-2. **Derleme:** Android Studio (Ladybug 2026.1.3+) ile projeyi açın ve Gradle senkronizasyonunu başlatın.
-3. **İzinler:** Uygulama açılışında konum, bildirim ve kamera izinlerini onaylayın.
-4. **Arka Plan Takibi:** Kesintisiz izleme için cihazın "Pil Tasarrufu" modunu kapatın ve konum iznini "Her zaman izin ver" olarak ayarlayın.
+2. **API Anahtarı Ayarı:** Projenin kök dizinindeki `local.properties` dosyasına Google Maps API anahtarınızı ekleyin:
+   ```properties
+   MAPS_API_KEY=YOUR_API_KEY_HERE
+   ```
+3. **Derleme:** Android Studio (Ladybug 2026.1.3+) ile projeyi açın ve Gradle senkronizasyonunu başlatın.
+4. **İzinler:** Uygulama açılışında konum, bildirim ve kamera izinlerini onaylayın.
+5. **Arka Plan Takibi:** Kesintisiz izleme için cihazın "Pil Tasarrufu" modunu kapatın ve konum iznini "Her zaman izin ver" olarak ayarlayın.
 
 ## 🧪 Testler ve Kalite
 
