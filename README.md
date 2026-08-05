@@ -32,12 +32,12 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 
 Uygulamanın arayüzünü ve temel özelliklerini aşağıda görebilirsiniz:
 
-| **Ana Panel (Dashboard)** | **Canlı Harita & Takip** | **Olay Günlüğü** |
-|:---:|:---:|:---:|
-| ![Dashboard](art/dashboard.png) | ![Map](art/map.png) | ![Logs](art/logs.png) |
+|    **Ana Panel (Dashboard)**    | **Canlı Harita & Takip** |   **Olay Günlüğü**    |
+|:-------------------------------:|:------------------------:|:---------------------:|
+| ![Dashboard](art/dashboard.png) |   ![Map](art/map.png)    | ![Logs](art/logs.png) |
 
-| **Biyometrik Giriş** | **Ayarlar & Güvenlik** | **İzin Talepleri** |
-|:---:|:---:|:---:|
+|      **Biyometrik Giriş**       |    **Ayarlar & Güvenlik**     |   **İzin Talepleri**    |
+|:-------------------------------:|:-----------------------------:|:-----------------------:|
 | ![Biometric](art/biometric.png) | ![Settings](art/settings.png) | ![Leave](art/leave.png) |
 
 ### 🎥 Uygulama Tanıtım Videosu
