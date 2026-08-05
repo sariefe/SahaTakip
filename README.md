@@ -26,7 +26,29 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 - **Material 3:** Modern, temiz ve göz yormayan "Dynamic Color" destekli tasarım.
 - **Çift Dil Desteği:** Türkçe ve İngilizce dilleri arasında dinamik geçiş.
 
-## 🛠 Kullanılan Teknolojiler (Tech Stack)
+---
+
+## 📸 Ekran Görüntüleri
+
+Uygulamanın arayüzünü ve temel özelliklerini aşağıda görebilirsiniz:
+
+| **Ana Panel (Dashboard)** | **Canlı Harita & Takip** | **Olay Günlüğü** |
+|:---:|:---:|:---:|
+| ![Dashboard](art/dashboard.png) | ![Map](art/map.png) | ![Logs](art/logs.png) |
+
+| **Biyometrik Giriş** | **Ayarlar & Güvenlik** | **İzin Talepleri** |
+|:---:|:---:|:---:|
+| ![Biometric](art/biometric.png) | ![Settings](art/settings.png) | ![Leave](art/leave.png) |
+
+### 🎥 Uygulama Tanıtım Videosu
+
+SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryolarını izlemek için **GitHub Releases** sayfasındaki tanıtım videosuna göz atabilirsiniz:
+
+[![Tanıtım Videosu](https://img.shields.io/badge/GitHub-Release_Video-blue?style=for-the-badge&logo=github)](https://github.com/efe-sari/staj-testing/releases)
+
+---
+
+## 🛠 Teknik Yığın (Tech Stack)
 
 - **UI:** Jetpack Compose & Material 3
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
