@@ -17,6 +17,7 @@ class PreferencesManager(context: Context) {
             KEY_THEME -> _theme.value = sharedPreferences.getString(KEY_THEME, "system") ?: "system"
             KEY_SERVER_URL -> _mockServerUrl.value = sharedPreferences.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync") ?: ""
             KEY_DEVICE_ID -> _deviceId.value = sharedPreferences.getString(KEY_DEVICE_ID, "") ?: ""
+            KEY_DYNAMIC_CODE -> _dynamicActivationCode.value = sharedPreferences.getString(KEY_DYNAMIC_CODE, null)
         }
     }
 
@@ -42,6 +43,9 @@ class PreferencesManager(context: Context) {
 
     private val _deviceId = MutableStateFlow(prefs.getString(KEY_DEVICE_ID, "") ?: "")
     val deviceId: StateFlow<String> = _deviceId.asStateFlow()
+
+    private val _dynamicActivationCode = MutableStateFlow(prefs.getString(KEY_DYNAMIC_CODE, null))
+    val dynamicActivationCode: StateFlow<String?> = _dynamicActivationCode.asStateFlow()
 
     private fun ensureDeviceIdExists() {
         if (prefs.getString(KEY_DEVICE_ID, "").isNullOrBlank()) {
@@ -77,6 +81,7 @@ class PreferencesManager(context: Context) {
         const val KEY_THEME = "key_theme"
         const val KEY_SERVER_URL = "key_server_url"
         const val KEY_DEVICE_ID = "key_device_id"
+        const val KEY_DYNAMIC_CODE = "key_dynamic_code"
         const val DEFAULT_ACTIVATION_CODE = "SAHA2026"
     }
 }

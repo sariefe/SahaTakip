@@ -43,6 +43,7 @@ class SyncRepositoryImpl @Inject constructor(
             )
             val response = mockSyncApi.syncOfflineData(payload)
             if (response.success) {
+                // ... sync mark as logic ...
                 val locIds = unsyncedLocs.map { it.id }
                 val logIds = unsyncedLogs.map { it.id }
                 val reportIds = unsyncedReports.map { it.id }
@@ -59,7 +60,7 @@ class SyncRepositoryImpl @Inject constructor(
                         detail = trGlobal(
                             "${locIds.size} konum kaydı, ${logIds.size} olay günlüğü ve ${reportIds.size} çevrimdışı aktivite raporu sunucuya başarıyla iletildi.",
                             "${locIds.size} location records, ${logIds.size} event logs and ${reportIds.size} offline activity reports successfully sent to server.",
-                            lang
+                            lang,
                         ),
                         isSensitive = false,
                         status = "BİLGİ",
@@ -68,10 +69,12 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 )
                 return@withContext true
+            } else {
+                throw Exception(response.message)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("SyncRepository", "Sync failed: ${e.message}", e)
+            throw e
         }
-        false
     }
 }

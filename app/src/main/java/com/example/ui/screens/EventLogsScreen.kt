@@ -68,12 +68,12 @@ import java.util.Locale
 @Composable
 fun EventLogsScreen(
     viewModel: RequestLogViewModel,
-    windowWidthSizeClass: WindowWidthSizeClass
+    windowWidthSizeClass: WindowWidthSizeClass,
 ) {
     val eventLogs by viewModel.allEventLogs.collectAsStateWithLifecycle()
     var selectedLogForNote by remember { mutableStateOf<EventLogEntity?>(null) }
     var noteInputText by remember { mutableStateOf("") }
-    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var showClearConfirmDialog by remember { mutableStateOf(value = false) }
 
     val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()) }
 
@@ -144,11 +144,10 @@ fun EventLogsScreen(
                             EventLogCard(
                                 log = log,
                                 dateFormat = dateFormat,
-                                onAddNote = {
-                                    selectedLogForNote = log
-                                    noteInputText = log.note
-                                }
-                            )
+                            ) {
+                                selectedLogForNote = log
+                                noteInputText = log.note
+                            }
                         }
                     }
                 } else {
@@ -162,11 +161,10 @@ fun EventLogsScreen(
                             EventLogCard(
                                 log = log,
                                 dateFormat = dateFormat,
-                                onAddNote = {
-                                    selectedLogForNote = log
-                                    noteInputText = log.note
-                                }
-                            )
+                            ) {
+                                selectedLogForNote = log
+                                noteInputText = log.note
+                            }
                         }
                     }
                 }
@@ -188,7 +186,7 @@ fun EventLogsScreen(
                         value = noteInputText,
                         onValueChange = { 
                             val lineCount = it.count { char -> char == '\n' } + 1
-                            if (it.length <= 100 && lineCount <= 4) {
+                            if ((it.length <= 100) && (lineCount <= 4)) {
                                 noteInputText = it
                             }
                         },

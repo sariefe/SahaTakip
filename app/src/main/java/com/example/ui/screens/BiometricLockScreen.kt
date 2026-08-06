@@ -97,11 +97,10 @@ fun BiometricLockScreen(
                 },
                 onError = { _, errString ->
                     biometricErrorMessage = errString
-                },
-                onFailed = {
-                    biometricErrorMessage = matchFailedTr
-                },
-            )
+                }
+            ) {
+                biometricErrorMessage = matchFailedTr
+            }
         } else {
             val reason = (bioAvailability as? BiometricStatus.Unavailable)?.reason ?: "Biyometrik hata."
             biometricErrorMessage = reason
@@ -117,7 +116,7 @@ fun BiometricLockScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background,
     ) {
         // Subtle Gradient Background
         Box(

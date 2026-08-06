@@ -82,15 +82,16 @@ fun DashboardScreen(
     trackingViewModel: TrackingViewModel,
     authViewModel: AuthViewModel,
     onNavigateToMap: () -> Unit,
-    windowWidthSizeClass: WindowWidthSizeClass
+    windowWidthSizeClass: WindowWidthSizeClass,
 ) {
     val context = LocalContext.current
     val deviceStatus by deviceViewModel.deviceStatus.collectAsState()
     val userProfile by trackingViewModel.userProfile.collectAsState()
     val latestLoc by trackingViewModel.latestLocation.collectAsState()
     val isSyncing by deviceViewModel.isSyncing.collectAsState()
+    val syncError by deviceViewModel.lastSyncError.collectAsState()
     
-    var showProfileModal by remember { mutableStateOf(false) }
+    var showProfileModal by remember { mutableStateOf(value = false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -153,17 +154,10 @@ fun DashboardScreen(
                                 }
                                 !deviceStatus.isNotificationGranted -> {
                                     try {
-                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                            }
-                                            context.startActivity(intent)
-                                        } else {
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = android.net.Uri.fromParts("package", context.packageName, null)
-                                            }
-                                            context.startActivity(intent)
+                                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                                         }
+                                        context.startActivity(intent)
                                     } catch (_: Exception) {}
                                 }
                                 !deviceStatus.isBackgroundLocationGranted -> {
@@ -222,28 +216,26 @@ fun DashboardScreen(
                                 title = tr("İnternet", "Internet"),
                                 isOk = deviceStatus.isInternetConnected,
                                 icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                                onClick = {
+                            ) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                                } catch (_: Exception) {
                                     try {
-                                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                                    } catch (_: Exception) {
-                                        try {
-                                            context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
-                                        } catch (_: Exception) {}
-                                    }
+                                        context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                    } catch (_: Exception) {}
                                 }
-                            )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             StatusGridItem(
                                 modifier = Modifier.weight(1f),
                                 title = tr("GPS", "GPS"),
                                 isOk = deviceStatus.isGpsEnabled,
                                 icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                                onClick = {
-                                    try {
-                                        context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                    } catch (_: Exception) {}
-                                }
-                            )
+                            ) {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                } catch (_: Exception) {}
+                            }
                         }
                         
                         Row(modifier = Modifier.fillMaxWidth()) {
@@ -252,37 +244,28 @@ fun DashboardScreen(
                                 title = tr("Arka Plan", "Background"),
                                 isOk = deviceStatus.isBackgroundExecutionOk,
                                 icon = Icons.Default.LocationOn,
-                                onClick = {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = android.net.Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
-                                }
-                            )
+                            ) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             StatusGridItem(
                                 modifier = Modifier.weight(1f),
                                 title = tr("Bildirimler", "Notifications"),
                                 isOk = deviceStatus.isNotificationGranted,
                                 icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
-                                onClick = {
-                                    try {
-                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                            }
-                                            context.startActivity(intent)
-                                        } else {
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = android.net.Uri.fromParts("package", context.packageName, null)
-                                            }
-                                            context.startActivity(intent)
-                                        }
-                                    } catch (_: Exception) {}
-                                }
-                            )
+                            ) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
                         }
                     }
                 } else {
@@ -292,62 +275,51 @@ fun DashboardScreen(
                             title = tr("İnternet", "Internet"),
                             isOk = deviceStatus.isInternetConnected,
                             icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                            onClick = {
+                        ) {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                            } catch (_: Exception) {
                                 try {
-                                    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                                } catch (_: Exception) {
-                                    try {
-                                        context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
-                                    } catch (_: Exception) {}
-                                }
+                                    context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                                } catch (_: Exception) {}
                             }
-                        )
+                        }
                         StatusGridItem(
                             modifier = Modifier.weight(1f),
                             title = tr("GPS", "GPS"),
                             isOk = deviceStatus.isGpsEnabled,
                             icon = if (deviceStatus.isGpsEnabled) Icons.Default.GpsFixed else Icons.Default.GpsOff,
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                } catch (_: Exception) {}
-                            }
-                        )
+                        ) {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                            } catch (_: Exception) {}
+                        }
                         StatusGridItem(
                             modifier = Modifier.weight(1f),
                             title = tr("Arka Plan", "Background"),
                             isOk = deviceStatus.isBackgroundExecutionOk,
                             icon = Icons.Default.LocationOn,
-                            onClick = {
-                                try {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            }
-                        )
+                        ) {
+                            try {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
                         StatusGridItem(
                             modifier = Modifier.weight(1f),
                             title = tr("Bildirimler", "Notifications"),
                             isOk = deviceStatus.isNotificationGranted,
                             icon = if (deviceStatus.isNotificationGranted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
-                            onClick = {
-                                try {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                        }
-                                        context.startActivity(intent)
-                                    } else {
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = android.net.Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                    }
-                                } catch (_: Exception) {}
-                            }
-                        )
+                        ) {
+                            try {
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
             }
@@ -432,17 +404,27 @@ fun DashboardScreen(
                             )
                         }
                         
-                        Button(
-                            onClick = { deviceViewModel.triggerOfflineSync() },
-                            enabled = !isSyncing,
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            if (isSyncing) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
-                            } else {
-                                Text(tr("Senkronize", "Sync"), style = MaterialTheme.typography.labelMedium)
+                        Column(horizontalAlignment = Alignment.End) {
+                            Button(
+                                onClick = { deviceViewModel.triggerOfflineSync() },
+                                enabled = !isSyncing,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                                } else {
+                                    Text(tr("Senkronize", "Sync"), style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            syncError?.let {
+                                Text(
+                                    text = it,
+                                    color = StatusRed,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
                             }
                         }
                     }

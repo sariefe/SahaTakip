@@ -64,14 +64,14 @@ class TrackingViewModel @Inject constructor(
                 _playbackState.value = _playbackState.value.copy(currentIndex = 0)
             }
 
-            while (_playbackState.value.currentIndex < points.size && _playbackState.value.isPlaying) {
+            while ((_playbackState.value.currentIndex < points.size) && _playbackState.value.isPlaying) {
                 val idx = _playbackState.value.currentIndex
                 val currPoint = points[idx]
                 val prog = idx.toFloat() / (points.size - 1).coerceAtLeast(1)
 
                 _playbackState.value = _playbackState.value.copy(
                     progress = prog,
-                    currentLocation = currPoint
+                    currentLocation = currPoint,
                 )
 
                 delay((800 / _playbackState.value.speedMultiplier).toLong().milliseconds)

@@ -26,6 +26,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class AuthViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val eventRepository: EventRepository,
+    private val preferencesManager: PreferencesManager,
 ) : androidx.lifecycle.ViewModel() {
 
     val userProfile: StateFlow<UserProfileEntity?> = userRepository.userProfile
@@ -157,7 +158,14 @@ class AuthViewModel @Inject constructor(
     }
 
     fun activateWithCode(code: String): Boolean {
-        if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE) {
+        val dynamicCode = preferencesManager.dynamicActivationCode.value
+        val isValid = if (dynamicCode != null) {
+            code.trim() == dynamicCode
+        } else {
+            code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE
+        }
+
+        if (isValid) {
             viewModelScope.launch {
                 val ocrResult = _ocrScanningState.value
                 val scannedFirstName = ocrResult?.firstName ?: "AHMET CAN"
@@ -176,7 +184,7 @@ class AuthViewModel @Inject constructor(
                         activationCode = code.trim(),
                         isActivated = true,
                         isBiometricEnabled = true,
-                        lastLoginAt = System.currentTimeMillis()
+                        lastLoginAt = System.currentTimeMillis(),
                     )
                 )
                 _isAuthenticated.value = true

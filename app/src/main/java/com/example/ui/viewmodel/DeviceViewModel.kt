@@ -36,6 +36,9 @@ class DeviceViewModel @Inject constructor(
     private val _isSyncing = MutableStateFlow(value = false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
+    private val _lastSyncError = MutableStateFlow<String?>(value = null)
+    val lastSyncError: StateFlow<String?> = _lastSyncError.asStateFlow()
+
     private val gpsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             updateDeviceStatus()
@@ -54,7 +57,7 @@ class DeviceViewModel @Inject constructor(
                         "Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir."
                     else 
                         "Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.",
-                    status = if (isPowerSave) "UYARI" else "BİLGİ"
+                    status = if (isPowerSave) "UYARI" else "BİLGİ",
                 )
             }
         }
@@ -119,7 +122,7 @@ class DeviceViewModel @Inject constructor(
             val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 85
             val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
-            val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 85
+            val batteryPct = if ((level >= 0) && (scale > 0)) (level * 100 / scale.toFloat()).toInt() else 85
             val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
             val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
@@ -183,10 +186,15 @@ class DeviceViewModel @Inject constructor(
         
         viewModelScope.launch {
             _isSyncing.value = true
+            _lastSyncError.value = null
             try {
-                syncRepository.performOfflineSync()
+                val success = syncRepository.performOfflineSync()
+                if (!success) {
+                    _lastSyncError.value = "Sunucu bağlantısı kurulamadı."
+                }
             } catch (e: Exception) {
                 android.util.Log.e("DeviceViewModel", "Sync failed", e)
+                _lastSyncError.value = e.message ?: "Beklenmeyen bir hata oluştu."
             } finally {
                 _isSyncing.value = false
             }

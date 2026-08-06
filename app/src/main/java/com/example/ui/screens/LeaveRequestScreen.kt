@@ -84,11 +84,11 @@ import java.util.Locale
 @Composable
 fun LeaveRequestScreen(
     viewModel: RequestLogViewModel,
-    windowWidthSizeClass: WindowWidthSizeClass
+    windowWidthSizeClass: WindowWidthSizeClass,
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsStateWithLifecycle()
 
-    var showForm by remember { mutableStateOf(false) }
+    var showForm by remember { mutableStateOf(value = false) }
     var itemToDelete by remember { mutableStateOf<LeaveRequestEntity?>(null) }
 
     Surface(
@@ -140,9 +140,10 @@ fun LeaveRequestScreen(
                         onSubmit = { start, end, newDesc, _, newType ->
                             viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
                             showForm = false
-                        },
-                        onCancel = { showForm = false }
-                    )
+                        }
+                    ) {
+                        showForm = false
+                    }
                 }
 
                 if (!showForm) {
@@ -158,9 +159,8 @@ fun LeaveRequestScreen(
                         LeaveSubmitFormComponent(
                             onSubmit = { start, end, newDesc, _, newType ->
                                 viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
-                            },
-                            onCancel = { /* No cancel needed in side-by-side */ }
-                        )
+                            }
+                        ) { /* No cancel needed in side-by-side */ }
                     }
                     Column(modifier = Modifier.weight(1.2f)) {
                         if (dbRequests.isEmpty()) {
@@ -259,12 +259,9 @@ fun LeaveSubmitFormComponent(
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     val date = utcTimeMillis.toLocalDate()
 
-                    if (date.isBefore(currentYearStart)) return false
-
-                    if (date.isAfter(endDate)) return false
-                    if (ChronoUnit.DAYS.between(date, endDate) > 365) return false
-                    
-                    return true
+                    return !date.isBefore(currentYearStart) &&
+                            !date.isAfter(endDate) &&
+                            (ChronoUnit.DAYS.between(date, endDate) <= 365)
                 }
             }
         )
@@ -273,7 +270,11 @@ fun LeaveSubmitFormComponent(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { selected ->
-                        startDate = selected.toLocalDate()
+                        val date = selected.toLocalDate()
+                        startDate = date
+                        if (endDate.isBefore(date)) {
+                            endDate = date
+                        }
                     }
                     showStartDatePicker = false
                 }) {
@@ -296,12 +297,9 @@ fun LeaveSubmitFormComponent(
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     val date = utcTimeMillis.toLocalDate()
-                    if (date.isBefore(currentYearStart)) return false
-
-                    if (date.isBefore(startDate)) return false
-                    if (ChronoUnit.DAYS.between(startDate, date) > 365) return false
-                    
-                    return true
+                    return !date.isBefore(currentYearStart) &&
+                            !date.isBefore(startDate) &&
+                            (ChronoUnit.DAYS.between(startDate, date) <= 365)
                 }
             }
         )
@@ -401,7 +399,7 @@ fun LeaveSubmitFormComponent(
                 value = descriptionInput,
                 onValueChange = { 
                     val lineCount = it.count { char -> char == '\n' } + 1
-                    if (it.length <= 100 && lineCount <= 4) {
+                    if ((it.length <= 100) && (lineCount <= 4)) {
                         descriptionInput = it
                     }
                 },

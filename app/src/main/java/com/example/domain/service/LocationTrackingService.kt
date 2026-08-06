@@ -58,7 +58,7 @@ class LocationTrackingService : Service() {
         val channel = NotificationChannel(
             channelId,
             channelName,
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description = trGlobal("Arka planda periyodik konum kaydı yapılıyor.", "Periodic location recording in the background.", lang)
         }
@@ -154,7 +154,14 @@ class LocationTrackingService : Service() {
     private fun startLocationUpdates() {
         serviceScope.launch {
             preferencesManager.updateInterval.collectLatest { intervalSeconds ->
-                val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalSeconds * 1000L)
+                val batteryLevel = getBatteryLevel()
+                val priority = if (batteryLevel < 20) {
+                    Priority.PRIORITY_BALANCED_POWER_ACCURACY
+                } else {
+                    Priority.PRIORITY_HIGH_ACCURACY
+                }
+
+                val locationRequest = LocationRequest.Builder(priority, intervalSeconds * 1000L)
                     .setMinUpdateIntervalMillis(intervalSeconds * 500L)
                     .build()
 
@@ -164,7 +171,7 @@ class LocationTrackingService : Service() {
                     locationCallback,
                     Looper.getMainLooper()
                 )
-                android.util.Log.d("LocationTrackingService", "Location updates restarted with interval: $intervalSeconds s")
+                android.util.Log.d("LocationTrackingService", "Location updates restarted. Priority: $priority, Interval: $intervalSeconds s")
             }
         }
     }
