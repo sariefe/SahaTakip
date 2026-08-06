@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.example.data.local.PreferencesManager
 import com.example.data.local.dao.GeofenceDao
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.domain.repository.EventRepository
@@ -9,6 +10,7 @@ import com.example.util.NotificationService
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -27,6 +29,7 @@ class GeofenceRepositoryImplTest {
     @MockK lateinit var mockGeofenceDao: GeofenceDao
     @MockK lateinit var mockEventRepository: EventRepository
     @MockK lateinit var mockNotificationService: NotificationService
+    @MockK lateinit var mockPreferencesManager: PreferencesManager
 
     private lateinit var geofenceRepository: GeofenceRepositoryImpl
 
@@ -37,13 +40,15 @@ class GeofenceRepositoryImplTest {
         
         every { mockNotificationService.sendPrivacySafeAlert(any(), any()) } just Runs
         every { mockGeofenceDao.getAllGeofences() } returns emptyFlow()
+        every { mockPreferencesManager.language } returns MutableStateFlow("tr")
         coEvery { mockEventRepository.insertEventLog(any()) } returns 1L
 
         geofenceRepository = GeofenceRepositoryImpl(
             app,
             mockGeofenceDao,
             mockEventRepository,
-            mockNotificationService
+            mockNotificationService,
+            mockPreferencesManager
         )
     }
 

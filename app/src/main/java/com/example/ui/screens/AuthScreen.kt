@@ -241,8 +241,7 @@ fun AuthScreen(
                         focusedContainerColor = MaterialTheme.colorScheme.surface
                     ),
                     keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done,
-                        autoCorrectEnabled = false
+                        imeAction = ImeAction.Done
                     )
                 )
 

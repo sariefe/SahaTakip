@@ -30,6 +30,12 @@ class RequestLogViewModel @Inject constructor(
         }
     }
 
+    fun clearAllEventLogs() {
+        viewModelScope.launch {
+            eventRepository.clearAllLogs()
+        }
+    }
+
     fun submitLeaveRequest(type: String, startDate: String, endDate: String, reason: String) {
         viewModelScope.launch {
             leaveRepository.insertLeaveRequest(

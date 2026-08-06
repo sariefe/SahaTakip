@@ -16,4 +16,5 @@ interface EventRepository {
     suspend fun markLogsAsSynced(ids: List<Long>)
     suspend fun insertEventLog(log: EventLogEntity): Long
     suspend fun updateNote(id: Long, note: String)
+    suspend fun clearAllLogs()
 }

@@ -519,9 +519,7 @@ fun AddGeofenceDialog(
                     maxLines = 1,
                     keyboardOptions = KeyboardOptions(
                         capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text,
-                        autoCorrectEnabled = false,
-                        hintLocales = androidx.compose.ui.text.intl.LocaleList(androidx.compose.ui.text.intl.Locale("tr-TR"))
+                        keyboardType = KeyboardType.Text
                     )
                 )
 

@@ -5,6 +5,7 @@ import com.example.data.local.PreferencesManager
 import com.example.data.local.entity.UserProfileEntity
 import com.example.domain.repository.EventRepository
 import com.example.domain.repository.UserRepository
+import com.example.util.Constants
 import com.example.util.OcrCardScanner
 import com.example.util.OcrLine
 import com.example.util.ScannedStaffCardResult
@@ -94,7 +95,7 @@ class AuthViewModel @Inject constructor(
                 type = "OCR_SCAN_SUCCESS",
                 title = "Personel Kartı OCR Taraması Yapıldı",
                 detail = "Personel: ${result.fullName} (ID: ${result.staffId}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
-                status = "BAŞARILI"
+                status = Constants.STATUS_SUCCESS
             )
         }
     }
@@ -142,7 +143,7 @@ class AuthViewModel @Inject constructor(
                             type = "REAL_OCR_DETECTION",
                             title = "Canlı Personel Kartı Tespiti",
                             detail = "Kamera üzerinden kararlı bir şekilde kart tespiti yapıldı: ${result.fullName}",
-                            status = "BİLGİ"
+                            status = Constants.STATUS_INFO
                         )
                     }
                 }
@@ -228,7 +229,7 @@ class AuthViewModel @Inject constructor(
                     type = "OCR_AUTH_SUCCESS",
                     title = "Personel Doğrulama Başarılı",
                     detail = "Personel kartı OCR ile doğrulandı ve giriş yapıldı.",
-                    status = "BAŞARILI"
+                    status = Constants.STATUS_SUCCESS
                 )
             }
             true
@@ -239,7 +240,7 @@ class AuthViewModel @Inject constructor(
                     type = "OCR_AUTH_FAILED",
                     title = "Personel Doğrulama Başarısız",
                     detail = "Farklı bir personel kartı ile giriş denemesi yapıldı (Tespit edilen ID: $scannedStaffId).",
-                    status = "TEHLİKE"
+                    status = Constants.STATUS_DANGER
                 )
             }
             false

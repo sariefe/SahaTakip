@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.Test
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -15,12 +16,19 @@ android {
 
   defaultConfig {
     applicationId = "com.aistudio.sahatakip.app"
-    minSdk = 24
+    minSdk = 26
     targetSdk = 37
     versionCode = 1
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    
+    val props = Properties()
+    val localPropertiesFile = project.rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+      localPropertiesFile.inputStream().use { props.load(it) }
+    }
+    manifestPlaceholders["MAPS_API_KEY"] = props.getProperty("MAPS_API_KEY") ?: ""
   }
 
   signingConfigs {
@@ -48,6 +56,7 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+    isCoreLibraryDesugaringEnabled = true
   }
   buildFeatures {
     compose = true
@@ -116,6 +125,7 @@ dependencies {
   testImplementation(libs.conscrypt.openjdk.uber)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
+  coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

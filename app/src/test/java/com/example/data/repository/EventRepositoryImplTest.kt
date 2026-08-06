@@ -3,6 +3,7 @@ package com.example.data.repository
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.local.dao.EventLogDao
+import com.example.util.Constants
 import com.example.util.NotificationService
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -50,9 +51,16 @@ class EventRepositoryImplTest {
 
     @Test
     fun `addEventLog inserts to dao and sends notification`() = runTest {
-        eventRepository.addEventLog("TYPE", "TITLE", "DETAIL", "STATUS", true)
+        eventRepository.addEventLog("TYPE", "TITLE", "DETAIL", Constants.STATUS_DANGER, true)
         
         coVerify { mockEventLogDao.insertEventLog(match { it.type == "TYPE" && it.title == "TITLE" }) }
         verify { mockNotificationService.sendPrivacySafeAlert(any(), "TITLE") }
+    }
+
+    @Test
+    fun `clearAllLogs calls dao clearAll`() = runTest {
+        coEvery { mockEventLogDao.clearAll() } just Runs
+        eventRepository.clearAllLogs()
+        coVerify { mockEventLogDao.clearAll() }
     }
 }

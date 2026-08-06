@@ -6,9 +6,15 @@ import androidx.compose.ui.test.onNodeWithText
 import com.example.ui.viewmodel.TrackingViewModel
 import com.example.ui.viewmodel.PlaybackState
 import com.example.data.local.entity.LocationEntity
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +27,21 @@ class MapTrackingScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @Before
+    fun setup() {
+        mockkStatic(CameraUpdateFactory::class)
+        mockkStatic(CameraPosition::class)
+        every { CameraUpdateFactory.newCameraPosition(any()) } returns mockk(relaxed = true)
+        every { CameraUpdateFactory.newLatLngZoom(any(), any()) } returns mockk(relaxed = true)
+        every { CameraPosition.fromLatLngZoom(any(), any()) } returns mockk(relaxed = true)
+        every { CameraPosition.builder() } returns mockk(relaxed = true)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
 
     @Test
     fun testMapTrackingScreenContent() {

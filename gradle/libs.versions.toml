@@ -42,6 +42,7 @@ hiltNavigationCompose = "1.2.0"
 googleMapsCompose = "8.4.0"
 playServicesMaps = "20.0.0"
 secretsGradlePlugin = "2.0.1"
+desugar_jdk_libs = "2.1.5"
 
 
 [libraries]
@@ -100,6 +101,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "googleMapsCompose" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

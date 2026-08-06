@@ -46,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,17 +61,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.local.entity.LeaveRequestEntity
 import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.RequestLogViewModel
+import com.example.util.Constants
 import com.example.util.tr
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
-import java.util.TimeZone
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +89,7 @@ fun LeaveRequestScreen(
     val dbRequests by viewModel.allLeaveRequests.collectAsStateWithLifecycle()
 
     var showForm by remember { mutableStateOf(false) }
-    var itemToDelete by remember { mutableStateOf<com.example.data.local.entity.LeaveRequestEntity?>(null) }
+    var itemToDelete by remember { mutableStateOf<LeaveRequestEntity?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -204,8 +211,8 @@ private fun EmptyListMessage() {
 
 @Composable
 private fun RequestList(
-    requests: List<com.example.data.local.entity.LeaveRequestEntity>,
-    onDeleteItem: (com.example.data.local.entity.LeaveRequestEntity) -> Unit
+    requests: List<LeaveRequestEntity>,
+    onDeleteItem: (LeaveRequestEntity) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -226,15 +233,13 @@ fun LeaveSubmitFormComponent(
     onSubmit: (startDate: String, endDate: String, description: String, status: String, type: String) -> Unit,
     onCancel: () -> Unit
 ) {
-    val dateFormatter = remember { 
-        SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-    }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault()) }
     
-    val currentDateStr = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()) }
-    var startDateInput by remember { mutableStateOf(currentDateStr) }
-    var endDateInput by remember { mutableStateOf(currentDateStr) }
+    val today = remember { LocalDate.now() }
+    val currentYearStart = remember { today.withDayOfYear(1) }
+
+    var startDate by remember { mutableStateOf(today) }
+    var endDate by remember { mutableStateOf(today) }
     var descriptionInput by remember { mutableStateOf("") }
     
     val leaveTypes = listOf(tr("Mazeret İzni", "Excuse Leave"), tr("Yıllık İzin", "Annual Leave"), tr("Sağlık İzni", "Sick Leave"))
@@ -244,20 +249,31 @@ fun LeaveSubmitFormComponent(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
+    fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+    fun LocalDate.toMillis(): Long = this.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
     if (showStartDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = try {
-                dateFormatter.parse(startDateInput)?.time
-            } catch (_: Exception) {
-                null
-            } ?: System.currentTimeMillis()
+            initialSelectedDateMillis = startDate.toMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val date = utcTimeMillis.toLocalDate()
+
+                    if (date.isBefore(currentYearStart)) return false
+
+                    if (date.isAfter(endDate)) return false
+                    if (ChronoUnit.DAYS.between(date, endDate) > 365) return false
+                    
+                    return true
+                }
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showStartDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        startDateInput = dateFormatter.format(Date(it))
+                    datePickerState.selectedDateMillis?.let { selected ->
+                        startDate = selected.toLocalDate()
                     }
                     showStartDatePicker = false
                 }) {
@@ -276,18 +292,25 @@ fun LeaveSubmitFormComponent(
 
     if (showEndDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = try {
-                dateFormatter.parse(endDateInput)?.time
-            } catch (_: Exception) {
-                null
-            } ?: System.currentTimeMillis()
+            initialSelectedDateMillis = endDate.toMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val date = utcTimeMillis.toLocalDate()
+                    if (date.isBefore(currentYearStart)) return false
+
+                    if (date.isBefore(startDate)) return false
+                    if (ChronoUnit.DAYS.between(startDate, date) > 365) return false
+                    
+                    return true
+                }
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showEndDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        endDateInput = dateFormatter.format(Date(it))
+                    datePickerState.selectedDateMillis?.let { selected ->
+                        endDate = selected.toLocalDate()
                     }
                     showEndDatePicker = false
                 }) {
@@ -336,7 +359,7 @@ fun LeaveSubmitFormComponent(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(modifier = Modifier.weight(1f).clickable { showStartDatePicker = true }) {
                     OutlinedTextField(
-                        value = startDateInput,
+                        value = startDate.format(dateFormatter),
                         onValueChange = { },
                         readOnly = true,
                         enabled = false,
@@ -354,7 +377,7 @@ fun LeaveSubmitFormComponent(
                 }
                 Box(modifier = Modifier.weight(1f).clickable { showEndDatePicker = true }) {
                     OutlinedTextField(
-                        value = endDateInput,
+                        value = endDate.format(dateFormatter),
                         onValueChange = { },
                         readOnly = true,
                         enabled = false,
@@ -388,16 +411,14 @@ fun LeaveSubmitFormComponent(
                 minLines = 3,
                 maxLines = 5,
                 keyboardOptions = KeyboardOptions(
-                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
-                    autoCorrectEnabled = false,
-                    hintLocales = androidx.compose.ui.text.intl.LocaleList(androidx.compose.ui.text.intl.Locale("tr-TR"))
+                    capitalization = KeyboardCapitalization.Sentences
                 ),
                 supportingText = {
                     Text(
                         text = "${descriptionInput.length}/100",
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.labelSmall,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                        textAlign = TextAlign.End,
                         color = if (descriptionInput.length >= 100) StatusRed else MaterialTheme.colorScheme.secondary
                     )
                 }
@@ -409,7 +430,17 @@ fun LeaveSubmitFormComponent(
                 TextButton(onClick = onCancel) { Text(tr("İptal", "Cancel")) }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { if (descriptionInput.isNotBlank()) onSubmit(startDateInput, endDateInput, descriptionInput, "BEKLEMEDE", selectedType) },
+                    onClick = { 
+                        if (descriptionInput.isNotBlank()) { 
+                            onSubmit(
+                                startDate.format(dateFormatter), 
+                                endDate.format(dateFormatter), 
+                                descriptionInput, 
+                                Constants.LEAVE_STATUS_PENDING, 
+                                selectedType
+                            ) 
+                        } 
+                    },
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(tr("Kaydet", "Save"))
@@ -420,10 +451,10 @@ fun LeaveSubmitFormComponent(
 }
 
 @Composable
-fun LeaveRequestCardItem(item: com.example.data.local.entity.LeaveRequestEntity, onDelete: () -> Unit) {
+fun LeaveRequestCardItem(item: LeaveRequestEntity, onDelete: () -> Unit) {
     val (color, icon) = when (item.status.uppercase(Locale.ROOT)) {
-        "ONAYLANDI" -> StatusGreen to Icons.Default.Verified
-        "REDDEDİLDİ" -> StatusRed to Icons.Default.Error
+        Constants.LEAVE_STATUS_APPROVED -> StatusGreen to Icons.Default.Verified
+        Constants.LEAVE_STATUS_REJECTED -> StatusRed to Icons.Default.Error
         else -> StatusAmber to Icons.Default.Pending
     }
 

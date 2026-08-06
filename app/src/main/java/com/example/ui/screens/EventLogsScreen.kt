@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material.icons.filled.GpsOff
@@ -34,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -56,6 +58,7 @@ import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.RequestLogViewModel
+import com.example.util.Constants
 import com.example.util.tr
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -69,6 +72,7 @@ fun EventLogsScreen(
     val eventLogs by viewModel.allEventLogs.collectAsStateWithLifecycle()
     var selectedLogForNote by remember { mutableStateOf<EventLogEntity?>(null) }
     var noteInputText by remember { mutableStateOf("") }
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()) }
 
@@ -82,17 +86,38 @@ fun EventLogsScreen(
                 .padding(20.dp)
         ) {
             // Refined Header
-            Column(modifier = Modifier.padding(bottom = 20.dp)) {
-                Text(
-                    text = tr("Olay Günlüğü", "Event History"),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${eventLogs.size} ${tr("kayıt mevcut", "logs recorded")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = tr("Olay Günlüğü", "Event History"),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${eventLogs.size} ${tr("kayıt mevcut", "logs recorded")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                if (eventLogs.isNotEmpty()) {
+                    IconButton(
+                        onClick = { showClearConfirmDialog = true },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = tr("Tümünü Temizle", "Clear All"),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
 
             if (eventLogs.isEmpty()) {
@@ -172,9 +197,7 @@ fun EventLogsScreen(
                         minLines = 3,
                         maxLines = 5,
                         keyboardOptions = KeyboardOptions(
-                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
-                            autoCorrectEnabled = false,
-                            hintLocales = androidx.compose.ui.text.intl.LocaleList(androidx.compose.ui.text.intl.Locale("tr-TR"))
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
                         ),
                         supportingText = {
                             Text(
@@ -205,6 +228,31 @@ fun EventLogsScreen(
             }
         )
     }
+
+    // CLEAR ALL CONFIRM DIALOG
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text(tr("Tüm Kayıtları Sil", "Clear All Logs")) },
+            text = { Text(tr("Tüm olay günlüklerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.", "Are you sure you want to delete all event logs? This action cannot be undone.")) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.clearAllEventLogs()
+                        showClearConfirmDialog = false
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(tr("Evet, Sil", "Yes, Delete"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text(tr("İptal", "Cancel"))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -214,8 +262,8 @@ fun EventLogCard(
     onAddNote: () -> Unit
 ) {
     val badgeColor = when (log.status) {
-        "TEHLİKE" -> StatusRed
-        "UYARI" -> StatusAmber
+        Constants.STATUS_DANGER -> StatusRed
+        Constants.STATUS_WARNING -> StatusAmber
         else -> StatusGreen
     }
 
@@ -265,10 +313,10 @@ fun EventLogCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     val statusText = when (log.status) {
-                        "TEHLİKE" -> tr("TEHLİKE", "DANGER")
-                        "UYARI" -> tr("UYARI", "WARNING")
-                        "BİLGİ" -> tr("BİLGİ", "INFO")
-                        "BAŞARILI" -> tr("BAŞARILI", "SUCCESS")
+                        Constants.STATUS_DANGER -> tr("TEHLİKE", "DANGER")
+                        Constants.STATUS_WARNING -> tr("UYARI", "WARNING")
+                        Constants.STATUS_INFO -> tr("BİLGİ", "INFO")
+                        Constants.STATUS_SUCCESS -> tr("BAŞARILI", "SUCCESS")
                         else -> log.status
                     }
                     Text(

@@ -25,7 +25,7 @@ class LocationRepositoryImplTest {
         
         every { mockLocationDao.getLatestLocation() } returns emptyFlow()
         coEvery { mockLocationDao.insertLocation(any()) } returns 1L
-        coEvery { mockGeofenceRepository.checkGeofenceBreach(any(), any()) } just Runs
+        coEvery { mockGeofenceRepository.checkGeofenceBreach(any(), any()) } returns null
 
         locationRepository = LocationRepositoryImpl(
             mockLocationDao,

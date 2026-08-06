@@ -7,6 +7,7 @@ import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.GeofenceZoneEntity
 import com.example.domain.repository.EventRepository
 import com.example.domain.repository.GeofenceRepository
+import com.example.util.Constants
 import com.example.util.LocationUtils
 import com.example.util.NotificationService
 import com.example.util.trGlobal
@@ -24,6 +25,7 @@ class GeofenceRepositoryImpl @Inject constructor(
     private val geofenceDao: GeofenceDao,
     private val eventRepository: EventRepository,
     private val notificationService: NotificationService,
+    private val preferencesManager: PreferencesManager,
 ) : GeofenceRepository {
 
     override val allGeofences: Flow<List<GeofenceZoneEntity>> = geofenceDao.getAllGeofences()
@@ -48,13 +50,13 @@ class GeofenceRepositoryImpl @Inject constructor(
             if ((now - lastGeofenceAlertTimestamp) > 120_000L) {
                 lastGeofenceAlertTimestamp = now
 
-                val lang = PreferencesManager(context).language.value
+                val lang = preferencesManager.language.value
                 val log = EventLogEntity(
                     type = "GEOFENCE_VIOLATION",
                     title = trGlobal("Bölge İhlal Kaydı", "Geofence Violation Log", lang),
                     detail = trGlobal("Güvenli bölgelerin dışına çıkıldı (Otomatik Tespit).", "Exited safe zones (Automatic Detection).", lang),
                     isSensitive = true,
-                    status = "UYARI",
+                    status = Constants.STATUS_WARNING,
                     timestamp = now,
                     isSynced = false
                 )

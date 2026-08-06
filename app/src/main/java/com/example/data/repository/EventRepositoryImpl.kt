@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.data.local.dao.EventLogDao
 import com.example.data.local.entity.EventLogEntity
 import com.example.domain.repository.EventRepository
+import com.example.util.Constants
 import com.example.util.NotificationService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +39,10 @@ class EventRepositoryImpl @Inject constructor(
             isSynced = false
         )
         eventLogDao.insertEventLog(log)
-        notificationService.sendPrivacySafeAlert(context, title)
+
+        if (status == Constants.STATUS_WARNING || status == Constants.STATUS_DANGER) {
+            notificationService.sendPrivacySafeAlert(context, title)
+        }
     }
 
     override suspend fun getUnsyncedLogs(): List<EventLogEntity> = withContext(Dispatchers.IO) {
@@ -55,5 +59,9 @@ class EventRepositoryImpl @Inject constructor(
 
     override suspend fun updateNote(id: Long, note: String) = withContext(Dispatchers.IO) {
         eventLogDao.updateNote(id, note)
+    }
+
+    override suspend fun clearAllLogs() = withContext(Dispatchers.IO) {
+        eventLogDao.clearAll()
     }
 }

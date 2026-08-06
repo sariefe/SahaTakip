@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.local.PreferencesManager
 import com.example.data.local.dao.OfflineActivityReportDao
 import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.entity.LocationEntity
@@ -10,6 +11,7 @@ import com.example.domain.repository.LocationRepository
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.After
@@ -23,6 +25,7 @@ class SyncRepositoryImplTest {
     @MockK lateinit var mockEventRepository: EventRepository
     @MockK lateinit var mockOfflineDao: OfflineActivityReportDao
     @MockK lateinit var mockSyncApi: MockSyncApi
+    @MockK lateinit var mockPreferencesManager: PreferencesManager
 
     private lateinit var syncRepository: SyncRepositoryImpl
 
@@ -33,12 +36,14 @@ class SyncRepositoryImplTest {
         coEvery { mockLocationRepository.getUnsyncedLocations() } returns emptyList()
         coEvery { mockEventRepository.getUnsyncedLogs() } returns emptyList()
         coEvery { mockOfflineDao.getUnsyncedReports() } returns emptyList()
+        every { mockPreferencesManager.language } returns MutableStateFlow("tr")
 
         syncRepository = SyncRepositoryImpl(
             mockLocationRepository,
             mockEventRepository,
             mockOfflineDao,
             mockSyncApi,
+            mockPreferencesManager
         )
     }
 

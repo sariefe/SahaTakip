@@ -7,6 +7,7 @@ import com.example.domain.repository.EventRepository
 import com.example.domain.repository.GeofenceRepository
 import com.example.domain.repository.UserRepository
 import com.example.data.local.entity.GeofenceZoneEntity
+import com.example.util.Constants
 import com.example.util.trGlobal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -72,7 +73,7 @@ class UserRepositoryImpl @Inject constructor(
                 "Personnel completely terminated the app session and deactivated the device.",
                 lang
             ),
-            status = "UYARI"
+            status = Constants.STATUS_WARNING
         )
     }
 

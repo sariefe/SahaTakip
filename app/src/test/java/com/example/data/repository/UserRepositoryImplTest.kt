@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.local.PreferencesManager
 import com.example.data.local.dao.UserDao
 import com.example.domain.repository.EventRepository
 import com.example.domain.repository.GeofenceRepository
@@ -18,6 +19,7 @@ class UserRepositoryImplTest {
     @MockK lateinit var mockUserDao: UserDao
     @MockK lateinit var mockEventRepository: EventRepository
     @MockK lateinit var mockGeofenceRepository: GeofenceRepository
+    @MockK lateinit var mockPreferencesManager: PreferencesManager
 
     private lateinit var userRepository: UserRepositoryImpl
 
@@ -32,11 +34,13 @@ class UserRepositoryImplTest {
         coEvery { mockEventRepository.addEventLog(any(), any(), any(), any(), any()) } just Runs
         coEvery { mockGeofenceRepository.getAllGeofencesOnce() } returns emptyList()
         coEvery { mockGeofenceRepository.insertGeofence(any()) } returns 1L
+        every { mockPreferencesManager.language } returns MutableStateFlow("tr")
 
         userRepository = UserRepositoryImpl(
             mockUserDao,
             mockEventRepository,
-            mockGeofenceRepository
+            mockGeofenceRepository,
+            mockPreferencesManager
         )
     }
 
