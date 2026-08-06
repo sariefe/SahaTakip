@@ -14,20 +14,20 @@ import com.example.data.local.PreferencesManager
 object NotificationHelper {
 
     private const val CHANNEL_ID = "saha_security_alerts"
+    private var lastNotificationTime = 0L
+    private const val NOTIFICATION_COOLDOWN_MS = 30_000L
 
     fun createNotificationChannel(context: Context) {
         val prefs = PreferencesManager(context)
         val lang = prefs.language.value
         val channelName = trGlobal("Saha Güvenlik ve Bölge İhlal Bildirimleri", "Field Security and Geofence Alerts", lang)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
-                description = trGlobal("Saha personeli güvenlik ve konum durumu genel uyarıları", "General alerts for field personnel security and location status", lang)
-            }
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
+            description = trGlobal("Saha personeli güvenlik ve konum durumu genel uyarıları", "General alerts for field personnel security and location status", lang)
         }
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     /**
@@ -35,15 +35,26 @@ object NotificationHelper {
      * Only general alert text is shown; details are viewed inside the app.
      */
     fun sendPrivacySafeAlert(context: Context, alertTitle: String = "Saha Takip Uyarısı") {
+        val now = System.currentTimeMillis()
+        if (now - lastNotificationTime < NOTIFICATION_COOLDOWN_MS) {
+            android.util.Log.d("NotificationHelper", "Notification suppressed due to rate limiting.")
+            return
+        }
+        lastNotificationTime = now
+
         val prefs = PreferencesManager(context)
         val lang = prefs.language.value
 
-        val finalTitle = if (alertTitle == "Saha Takip Uyarısı") {
-            trGlobal("Saha Takip Uyarısı", "Field Tracking Alert", lang)
-        } else if (alertTitle == "Güvenlik & Bölge İhlali Uyarısı") {
-            trGlobal("Güvenlik & Bölge İhlali Uyarısı", "Security & Geofence Alert", lang)
-        } else {
-            alertTitle
+        val finalTitle = when (alertTitle) {
+            "Saha Takip Uyarısı" -> {
+                trGlobal("Saha Takip Uyarısı", "Field Tracking Alert", lang)
+            }
+            "Güvenlik & Bölge İhlali Uyarısı" -> {
+                trGlobal("Güvenlik & Bölge İhlali Uyarısı", "Security & Geofence Alert", lang)
+            }
+            else -> {
+                alertTitle
+            }
         }
 
         val contentShort = trGlobal("Saha uygulamanızda yeni bir güvenlik/durum olayı kaydedildi. Detaylar için dokunun.", "A new security/status event has been recorded. Tap for details.", lang)

@@ -1,8 +1,8 @@
 package com.example.data.repository
 
 import com.example.data.local.PreferencesManager
-import com.example.data.local.entity.EventLogEntity
 import com.example.data.local.dao.OfflineActivityReportDao
+import com.example.data.local.entity.EventLogEntity
 import com.example.data.remote.MockSyncApi
 import com.example.data.remote.SyncPayload
 import com.example.domain.repository.EventRepository
@@ -11,7 +11,6 @@ import com.example.domain.repository.SyncRepository
 import com.example.util.trGlobal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,12 +33,13 @@ class SyncRepositoryImpl @Inject constructor(
         }
 
         try {
+            val deviceId = preferencesManager.deviceId.value
             val payload = SyncPayload(
-                deviceId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
                 timestamp = System.currentTimeMillis(),
                 locationHistory = unsyncedLocs,
                 eventLogs = unsyncedLogs,
-                offlineActivityReports = unsyncedReports
+                offlineActivityReports = unsyncedReports,
             )
             val response = mockSyncApi.syncOfflineData(payload)
             if (response.success) {

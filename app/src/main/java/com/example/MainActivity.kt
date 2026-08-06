@@ -15,6 +15,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.repository.UserRepository
 import com.example.domain.service.LocationTrackingService
 import com.example.ui.navigation.AppNavGraph
 import com.example.ui.theme.SahaTakipTheme
@@ -25,10 +26,14 @@ import com.example.util.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     private val deviceViewModel: DeviceViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
@@ -61,6 +66,10 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        lifecycleScope.launch {
+            userRepository.initializeAndSyncDefaultData()
+        }
 
         NotificationHelper.createNotificationChannel(this)
         lifecycleScope.launch {
@@ -126,18 +135,14 @@ class MainActivity : FragmentActivity() {
     private fun startTrackingService() {
         try {
             val serviceIntent = Intent(this, LocationTrackingService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    startForegroundService(serviceIntent)
-                } catch (e: Exception) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
-                        android.util.Log.e("MainActivity", "Foreground service start not allowed from background", e)
-                    } else {
-                        throw e
-                    }
+            try {
+                startForegroundService(serviceIntent)
+            } catch (e: Exception) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
+                    android.util.Log.e("MainActivity", "Foreground service start not allowed from background", e)
+                } else {
+                    throw e
                 }
-            } else {
-                startService(serviceIntent)
             }
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Failed to start tracking service", e)

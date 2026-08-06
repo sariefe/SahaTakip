@@ -7,8 +7,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.location.Location
+import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
@@ -28,8 +28,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,6 +39,7 @@ class LocationTrackingService : Service() {
 
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+    private val addressMutex = Mutex()
     
     @Inject
     lateinit var locationRepository: LocationRepository
@@ -52,17 +55,15 @@ class LocationTrackingService : Service() {
         val channelId = "saha_tracking_service"
         val channelName = trGlobal("Saha Personeli Konum Takip Servisi", "Field Staff Location Tracking Service", lang)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = trGlobal("Arka planda periyodik konum kaydı yapılıyor.", "Periodic location recording in the background.", lang)
-            }
-            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = trGlobal("Arka planda periyodik konum kaydı yapılıyor.", "Periodic location recording in the background.", lang)
         }
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
 
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -125,19 +126,21 @@ class LocationTrackingService : Service() {
 
     private fun saveLocationToRepository(location: Location) {
         serviceScope.launch {
+            val address = addressMutex.withLock {
+                LocationUtils.getAddressFromLocation(
+                    applicationContext,
+                    location.latitude,
+                    location.longitude
+                )
+            }
             val batteryStatus = getBatteryLevel()
-            val address = LocationUtils.getAddressFromLocation(
-                applicationContext,
-                location.latitude,
-                location.longitude
-            )
             locationRepository.recordNewLocation(
                 lat = location.latitude,
                 lng = location.longitude,
                 speed = location.speed,
                 accuracy = location.accuracy,
                 batteryLevel = batteryStatus,
-                address = address //Geocoder ile gerçek veri alınması başarılı
+                address = address
             )
         }
     }
@@ -150,17 +153,19 @@ class LocationTrackingService : Service() {
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         serviceScope.launch {
-            val intervalSeconds = preferencesManager.updateInterval.first()
-            
-            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalSeconds * 1000L)
-                .setMinUpdateIntervalMillis(intervalSeconds * 500L)
-                .build()
+            preferencesManager.updateInterval.collectLatest { intervalSeconds ->
+                val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalSeconds * 1000L)
+                    .setMinUpdateIntervalMillis(intervalSeconds * 500L)
+                    .build()
 
-            fusedLocationClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
-            )
+                fusedLocationClient.removeLocationUpdates(locationCallback)
+                fusedLocationClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper()
+                )
+                android.util.Log.d("LocationTrackingService", "Location updates restarted with interval: $intervalSeconds s")
+            }
         }
     }
 

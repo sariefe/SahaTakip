@@ -60,16 +60,16 @@ import com.example.util.tr
 fun BiometricLockScreen(
     viewModel: TrackingViewModel,
     authViewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
 ) {
     val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val ocrAuthError by authViewModel.ocrAuthError.collectAsStateWithLifecycle()
     val isAuthenticated by authViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
-    var showOcrModal by remember { mutableStateOf(false) }
-    var verificationSuccess by remember { mutableStateOf(false) }
-    var biometricErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showOcrModal by remember { mutableStateOf(value = false) }
+    var verificationSuccess by remember { mutableStateOf(value = false) }
+    var biometricErrorMessage by remember { mutableStateOf<String?>(value = null) }
 
     val biometricManager = remember { BiometricPromptManager(context) }
     val bioAvailability = remember { biometricManager.checkBiometricAvailability() }
@@ -100,13 +100,11 @@ fun BiometricLockScreen(
                 },
                 onFailed = {
                     biometricErrorMessage = matchFailedTr
-                }
+                },
             )
         } else {
-            verificationSuccess = true
-            if (authViewModel.authenticateWithBiometrics()) {
-                onLoginSuccess()
-            }
+            val reason = (bioAvailability as? BiometricStatus.Unavailable)?.reason ?: "Biyometrik hata."
+            biometricErrorMessage = reason
         }
     }
 
@@ -201,18 +199,20 @@ fun BiometricLockScreen(
                         title = tr("Biyometrik Giriş", "Biometric Login"),
                         description = tr("Parmak İzi / Yüz Tanıma", "Fingerprint / Face ID"),
                         icon = Icons.Default.Fingerprint,
-                        primaryColor = MaterialTheme.colorScheme.primary,
-                        onClick = { triggerBiometricAuth() }
-                    )
+                        primaryColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        triggerBiometricAuth()
+                    }
 
                     // Option 2: OCR (Secondary/Fallback)
                     AuthMethodCard(
                         title = tr("Kimlik Kartı Tara", "Scan ID Card"),
                         description = tr("Fiziksel Kart Doğrulaması", "Physical Card Verification"),
                         icon = Icons.Default.DocumentScanner,
-                        primaryColor = MaterialTheme.colorScheme.secondary,
-                        onClick = { showOcrModal = true }
-                    )
+                        primaryColor = MaterialTheme.colorScheme.secondary
+                    ) {
+                        showOcrModal = true
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -252,14 +252,14 @@ fun BiometricLockScreen(
             onScanStart = { preset ->
                 val idToAuth = preset?.staffId ?: currentOcrResult?.staffId
                 if (idToAuth != null) {
-                    val ocrData = currentOcrResult ?: if (preset != null) {
+                    val ocrData = currentOcrResult ?: preset?.let {
                         ScannedStaffCardResult(
-                            firstName = preset.firstName,
-                            lastName = preset.lastName,
-                            staffId = preset.staffId,
-                            department = preset.department
+                            firstName = it.firstName,
+                            lastName = it.lastName,
+                            staffId = it.staffId,
+                            department = it.department
                         )
-                    } else null
+                    }
 
                     if (authViewModel.authenticateWithOcr(idToAuth, ocrData)) {
                         showOcrModal = false
@@ -277,7 +277,7 @@ fun AuthMethodCard(
     description: String,
     icon: ImageVector,
     primaryColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -286,7 +286,7 @@ fun AuthMethodCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),

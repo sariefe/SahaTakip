@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -261,6 +262,8 @@ fun EventLogCard(
     dateFormat: SimpleDateFormat,
     onAddNote: () -> Unit
 ) {
+    var isMasked by remember { mutableStateOf(log.isSensitive) }
+
     val badgeColor = when (log.status) {
         Constants.STATUS_DANGER -> StatusRed
         Constants.STATUS_WARNING -> StatusAmber
@@ -332,9 +335,10 @@ fun EventLogCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = log.detail,
+                text = if (isMasked) tr("Hassas detaylar gizlendi. Görmek için dokunun.", "Sensitive details hidden. Tap to view.") else log.detail,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isMasked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = if (isMasked) Modifier.clickable { isMasked = false } else Modifier
             )
 
             if (log.note.isNotBlank()) {

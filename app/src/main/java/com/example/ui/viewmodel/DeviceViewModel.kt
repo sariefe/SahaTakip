@@ -66,6 +66,8 @@ class DeviceViewModel @Inject constructor(
         }
     }
 
+    private var cachedIsRooted: Boolean? = null
+
     init {
         updateDeviceStatus()
         
@@ -121,7 +123,9 @@ class DeviceViewModel @Inject constructor(
             val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
             val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
-            val isRooted = SecurityUtils.checkIsDeviceRooted()
+            val isRooted = cachedIsRooted ?: SecurityUtils.checkIsDeviceRooted().also { 
+                cachedIsRooted = it 
+            }
 
             _deviceStatus.value = DeviceStatus(
                 isInternetConnected = isOnline,

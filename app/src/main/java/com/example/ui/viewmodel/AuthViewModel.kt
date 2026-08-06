@@ -28,12 +28,6 @@ class AuthViewModel @Inject constructor(
     private val eventRepository: EventRepository,
 ) : androidx.lifecycle.ViewModel() {
 
-    init {
-        viewModelScope.launch {
-            userRepository.initializeAndSyncDefaultData()
-        }
-    }
-
     val userProfile: StateFlow<UserProfileEntity?> = userRepository.userProfile
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -95,7 +89,7 @@ class AuthViewModel @Inject constructor(
                 type = "OCR_SCAN_SUCCESS",
                 title = "Personel Kartı OCR Taraması Yapıldı",
                 detail = "Personel: ${result.fullName} (ID: ${result.staffId}) - Doğruluk Skoru: %${(result.confidenceScore * 100).toInt()}",
-                status = Constants.STATUS_SUCCESS
+                status = Constants.STATUS_SUCCESS,
             )
         }
     }
@@ -110,10 +104,10 @@ class AuthViewModel @Inject constructor(
             val idLine = ocrLines.find { it.text.contains(result.staffId) }
             
             var spatialWeight = 1.0f
-            if (idLine != null && lastOcrTop != -1) {
+            if (idLine != null && (lastOcrTop != -1)) {
                 val dist = sqrt(
                     (idLine.top - lastOcrTop).toDouble().pow(2.0) +
-                            (idLine.left - lastOcrLeft).toDouble().pow(2.0)
+                            (idLine.left - lastOcrLeft).toDouble().pow(2.0),
                 )
                 if (dist > 40) spatialWeight = 0.4f
             }
@@ -130,7 +124,7 @@ class AuthViewModel @Inject constructor(
             val stability = ((frequency.toFloat() / stabilitityThreshold) * spatialWeight).coerceAtMost(1f)
             _ocrStability.value = stability
 
-            if (frequency >= stabilitityThreshold) {
+            if (stability >= 0.8f) {
                 val current = _ocrScanningState.value
                 val isMoreComplete = current == null || 
                         (result.fullName.length > current.fullName.length && result.staffId == current.staffId) ||
@@ -143,7 +137,7 @@ class AuthViewModel @Inject constructor(
                             type = "REAL_OCR_DETECTION",
                             title = "Canlı Personel Kartı Tespiti",
                             detail = "Kamera üzerinden kararlı bir şekilde kart tespiti yapıldı: ${result.fullName}",
-                            status = Constants.STATUS_INFO
+                            status = Constants.STATUS_INFO,
                         )
                     }
                 }
@@ -163,7 +157,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun activateWithCode(code: String): Boolean {
-        if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE || code.trim() == "123456") {
+        if (code.trim() == PreferencesManager.DEFAULT_ACTIVATION_CODE) {
             viewModelScope.launch {
                 val ocrResult = _ocrScanningState.value
                 val scannedFirstName = ocrResult?.firstName ?: "AHMET CAN"
@@ -250,6 +244,7 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             userRepository.deactivateUser()
+            clearOcrResult()
             _isAuthenticated.value = false
         }
     }

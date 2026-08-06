@@ -33,7 +33,7 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "$rootDir/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = "upload"
@@ -65,6 +65,14 @@ android {
   testOptions {
     unitTests.isIncludeAndroidResources = true
   }
+}
+
+ksp {
+  arg("moshi.generateAdapter", "true")
+}
+
+hilt {
+  enableAggregatingTask = true
 }
 
 dependencies {
@@ -117,7 +125,6 @@ dependencies {
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner)
   androidTestImplementation(libs.androidx.espresso.core)
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.robolectric)
   testImplementation(libs.roborazzi)
   testImplementation(libs.roborazzi.compose)

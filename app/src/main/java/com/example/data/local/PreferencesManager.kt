@@ -16,11 +16,13 @@ class PreferencesManager(context: Context) {
             KEY_UPDATE_INTERVAL -> _updateInterval.value = sharedPreferences.getInt(KEY_UPDATE_INTERVAL, 60)
             KEY_THEME -> _theme.value = sharedPreferences.getString(KEY_THEME, "system") ?: "system"
             KEY_SERVER_URL -> _mockServerUrl.value = sharedPreferences.getString(KEY_SERVER_URL, "https://mock-api.example.com/v1/telemetry/sync") ?: ""
+            KEY_DEVICE_ID -> _deviceId.value = sharedPreferences.getString(KEY_DEVICE_ID, "") ?: ""
         }
     }
 
     init {
         prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+        ensureDeviceIdExists()
     }
 
     private val _language = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "tr") ?: "tr")
@@ -37,6 +39,17 @@ class PreferencesManager(context: Context) {
             ?: "https://mock-api.example.com/v1/telemetry/sync",
     )
     val mockServerUrl: StateFlow<String> = _mockServerUrl.asStateFlow()
+
+    private val _deviceId = MutableStateFlow(prefs.getString(KEY_DEVICE_ID, "") ?: "")
+    val deviceId: StateFlow<String> = _deviceId.asStateFlow()
+
+    private fun ensureDeviceIdExists() {
+        if (prefs.getString(KEY_DEVICE_ID, "").isNullOrBlank()) {
+            val newId = java.util.UUID.randomUUID().toString()
+            prefs.edit { putString(KEY_DEVICE_ID, newId) }
+            _deviceId.value = newId
+        }
+    }
 
     fun setLanguage(lang: String) {
         prefs.edit { putString(KEY_LANGUAGE, lang) }
@@ -63,6 +76,7 @@ class PreferencesManager(context: Context) {
         const val KEY_UPDATE_INTERVAL = "key_update_interval"
         const val KEY_THEME = "key_theme"
         const val KEY_SERVER_URL = "key_server_url"
+        const val KEY_DEVICE_ID = "key_device_id"
         const val DEFAULT_ACTIVATION_CODE = "SAHA2026"
     }
 }

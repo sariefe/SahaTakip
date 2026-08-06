@@ -29,16 +29,10 @@ data class PlaybackState(
 
 @HiltViewModel
 class TrackingViewModel @Inject constructor(
-    private val userRepository: UserRepository,
+    userRepository: UserRepository,
     locationRepository: LocationRepository,
     private val geofenceRepository: GeofenceRepository,
 ) : androidx.lifecycle.ViewModel() {
-
-    init {
-        viewModelScope.launch {
-            userRepository.initializeAndSyncDefaultData()
-        }
-    }
 
     val userProfile: StateFlow<UserProfileEntity?> = userRepository.userProfile
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -66,24 +60,30 @@ class TrackingViewModel @Inject constructor(
         _playbackState.value = _playbackState.value.copy(isPlaying = true)
 
         playbackJob = viewModelScope.launch {
-            var idx = _playbackState.value.currentIndex
-            if (idx >= (points.size - 1)) idx = 0
+            if (_playbackState.value.currentIndex >= (points.size - 1)) {
+                _playbackState.value = _playbackState.value.copy(currentIndex = 0)
+            }
 
-            while ((idx < points.size) && _playbackState.value.isPlaying) {
+            while (_playbackState.value.currentIndex < points.size && _playbackState.value.isPlaying) {
+                val idx = _playbackState.value.currentIndex
                 val currPoint = points[idx]
                 val prog = idx.toFloat() / (points.size - 1).coerceAtLeast(1)
 
                 _playbackState.value = _playbackState.value.copy(
-                    currentIndex = idx,
                     progress = prog,
                     currentLocation = currPoint
                 )
 
                 delay((800 / _playbackState.value.speedMultiplier).toLong().milliseconds)
-                idx++
+                
+                if (_playbackState.value.isPlaying) {
+                    _playbackState.value = _playbackState.value.copy(currentIndex = idx + 1)
+                }
             }
 
-            _playbackState.value = _playbackState.value.copy(isPlaying = false)
+            if (_playbackState.value.currentIndex >= points.size) {
+                _playbackState.value = _playbackState.value.copy(isPlaying = false)
+            }
         }
     }
 
@@ -113,12 +113,15 @@ class TrackingViewModel @Inject constructor(
             val collator = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("tr")).apply {
                 strength = java.text.Collator.PRIMARY
             }
-            val isDuplicate = existingZones.any { 
-                (collator.compare(it.name.trim(), name.trim()) == 0 && 
-                 geofenceRepository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 50.0) 
+            val isNameDuplicate = existingZones.any { 
+                collator.compare(it.name.trim(), name.trim()) == 0 
+            }
+            
+            val isLocationDuplicate = existingZones.any {
+                 geofenceRepository.calculateDistanceInMeters(lat, lng, it.centerLat, it.centerLng) < 50.0
             }
 
-            if (!isDuplicate) {
+            if (!isNameDuplicate && !isLocationDuplicate) {
                 geofenceRepository.insertGeofence(
                     GeofenceZoneEntity(
                         name = name.trim(),
@@ -148,9 +151,17 @@ class TrackingViewModel @Inject constructor(
         viewModelScope.launch {
             val zones = geofenceRepository.getAllGeofencesOnce()
             val existing = zones.find { it.id == id }
-            existing?.let {
+            
+            val collator = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("tr")).apply {
+                strength = java.text.Collator.PRIMARY
+            }
+            val isNameDuplicate = zones.any { 
+                it.id != id && collator.compare(it.name.trim(), name.trim()) == 0 
+            }
+
+            if (existing != null && !isNameDuplicate) {
                 geofenceRepository.insertGeofence(
-                    it.copy(name = name.trim(), radiusMeters = radiusMeters)
+                    existing.copy(name = name.trim(), radiusMeters = radiusMeters)
                 )
             }
         }

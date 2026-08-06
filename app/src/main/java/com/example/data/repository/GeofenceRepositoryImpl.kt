@@ -30,7 +30,10 @@ class GeofenceRepositoryImpl @Inject constructor(
 
     override val allGeofences: Flow<List<GeofenceZoneEntity>> = geofenceDao.getAllGeofences()
 
-    private var lastGeofenceAlertTimestamp: Long = 0L
+    private var lastKnownZoneId: Long? = null
+    private var isInitialized: Boolean = false
+    private var lastExitTime: Long = 0L
+    private val JITTER_THRESHOLD_MS = 15_000L // 15 saniye jitter koruması
 
     override suspend fun deleteGeofence(id: Long) = withContext(Dispatchers.IO) {
         geofenceDao.deleteById(id)
@@ -38,33 +41,58 @@ class GeofenceRepositoryImpl @Inject constructor(
 
     override suspend fun checkGeofenceBreach(lat: Double, lng: Double): GeofenceZoneEntity? = withContext(Dispatchers.IO) {
         val activeGeofences = geofenceDao.getActiveGeofences()
-        if (activeGeofences.isEmpty()) return@withContext null
+        if (activeGeofences.isEmpty()) {
+            isInitialized = true
+            return@withContext null
+        }
         
         val now = System.currentTimeMillis()
-
-        val containingZone = activeGeofences.find { zone ->
+        val currentZone = activeGeofences.find { zone ->
             LocationUtils.calculateDistanceInMeters(lat, lng, zone.centerLat, zone.centerLng) <= zone.radiusMeters
         }
 
-        if (containingZone == null) {
-            if ((now - lastGeofenceAlertTimestamp) > 120_000L) {
-                lastGeofenceAlertTimestamp = now
+        val lang = preferencesManager.language.value
 
-                val lang = preferencesManager.language.value
-                val log = EventLogEntity(
-                    type = "GEOFENCE_VIOLATION",
-                    title = trGlobal("Bölge İhlal Kaydı", "Geofence Violation Log", lang),
-                    detail = trGlobal("Güvenli bölgelerin dışına çıkıldı (Otomatik Tespit).", "Exited safe zones (Automatic Detection).", lang),
-                    isSensitive = true,
-                    status = Constants.STATUS_WARNING,
-                    timestamp = now,
-                    isSynced = false
+        if (isInitialized) {
+            if (lastKnownZoneId != null && (currentZone == null || currentZone.id != lastKnownZoneId)) {
+                if ((now - lastExitTime) > JITTER_THRESHOLD_MS) {
+                    eventRepository.insertEventLog(
+                        EventLogEntity(
+                            type = "GEOFENCE_EXIT",
+                            title = trGlobal("Bölgeden Ayrıldı", "Exited Zone", lang),
+                            detail = trGlobal("Güvenli alandan çıkış yapıldı.", "Exited safe area.", lang),
+                            isSensitive = true,
+                            status = Constants.STATUS_WARNING,
+                            timestamp = now,
+                            isSynced = false
+                        )
+                    )
+                    lastExitTime = now
+                    if (currentZone == null) {
+                        notificationService.sendPrivacySafeAlert(context, trGlobal("Bölge Dışı Uyarısı", "Out of Zone Alert", lang))
+                    }
+                }
+            }
+
+            // Giriş Tespiti
+            if (currentZone != null && currentZone.id != lastKnownZoneId) {
+                eventRepository.insertEventLog(
+                    EventLogEntity(
+                        type = "GEOFENCE_ENTER",
+                        title = trGlobal("Bölgeye Giriş", "Entered Zone", lang),
+                        detail = trGlobal("${currentZone.name} bölgesine girildi.", "Entered zone ${currentZone.name}.", lang),
+                        isSensitive = false,
+                        status = Constants.STATUS_SUCCESS,
+                        timestamp = now,
+                        isSynced = false
+                    )
                 )
-                eventRepository.insertEventLog(log)
-                notificationService.sendPrivacySafeAlert(context, trGlobal("Güvenlik & Bölge İhlali Uyarısı", "Security & Geofence Alert", lang))
             }
         }
-        return@withContext containingZone
+
+        lastKnownZoneId = currentZone?.id
+        isInitialized = true
+        return@withContext currentZone
     }
 
     override suspend fun getActiveGeofences(): List<GeofenceZoneEntity> = withContext(Dispatchers.IO) {
