@@ -30,6 +30,7 @@ import com.sahatakip.data.local.entity.GeofenceZoneEntity
 import com.sahatakip.data.local.entity.LocationEntity
 import com.sahatakip.ui.theme.StatusBlue
 import com.sahatakip.ui.theme.StatusGreen
+import com.sahatakip.util.LocationUtils
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -105,13 +106,48 @@ fun CustomMapView(
                 mapToolbarEnabled = false
             )
         ) {
-            // Draw Route History
-            if (locations.size > 1) {
-                Polyline(
-                    points = locations.map { LatLng(it.latitude, it.longitude) },
-                    color = StatusBlue,
-                    width = 10f
-                )
+            // Draw Route History in Segments to avoid long jumps
+            val routeSegments = remember(locations) {
+                val validPoints = locations.filter { it.latitude != 0.0 && it.longitude != 0.0 }
+                val segments = mutableListOf<List<LatLng>>()
+                if (validPoints.isNotEmpty()) {
+                    var currentSegment = mutableListOf<LatLng>()
+                    for (i in validPoints.indices) {
+                        val point = validPoints[i]
+                        val latLng = LatLng(point.latitude, point.longitude)
+                        
+                        if (currentSegment.isEmpty()) {
+                            currentSegment.add(latLng)
+                        } else {
+                            val prevPoint = validPoints[i - 1]
+                            val distance = LocationUtils.calculateDistanceInMeters(
+                                prevPoint.latitude, prevPoint.longitude,
+                                point.latitude, point.longitude
+                            )
+                            val timeDiff = point.timestamp - prevPoint.timestamp
+                            
+                            // Split if distance > 1km or time gap > 15 minutes
+                            if (distance > 1000.0 || timeDiff > 15 * 60 * 1000L) {
+                                segments.add(currentSegment)
+                                currentSegment = mutableListOf(latLng)
+                            } else {
+                                currentSegment.add(latLng)
+                            }
+                        }
+                    }
+                    if (currentSegment.isNotEmpty()) segments.add(currentSegment)
+                }
+                segments
+            }
+
+            routeSegments.forEach { segment ->
+                if (segment.size > 1) {
+                    Polyline(
+                        points = segment,
+                        color = StatusBlue,
+                        width = 10f
+                    )
+                }
             }
 
             // Draw Geofences

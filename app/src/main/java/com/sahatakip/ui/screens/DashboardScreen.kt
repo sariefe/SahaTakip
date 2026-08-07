@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sahatakip.ui.theme.StatusAmber
 import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.ui.theme.StatusRed
 import com.sahatakip.ui.viewmodel.AuthViewModel
@@ -92,6 +93,22 @@ fun DashboardScreen(
     val syncError by deviceViewModel.lastSyncError.collectAsState()
     
     var showProfileModal by remember { mutableStateOf(value = false) }
+    var showBackgroundPermissionRationale by remember { mutableStateOf(false) }
+
+    if (showBackgroundPermissionRationale) {
+        BackgroundPermissionDialog(
+            onDismiss = { showBackgroundPermissionRationale = false },
+            onConfirm = {
+                showBackgroundPermissionRationale = false
+                try {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -177,21 +194,27 @@ fun DashboardScreen(
                             }
                         },
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = StatusRed.copy(alpha = 0.1f))
+                    colors = CardDefaults.cardColors(
+                        containerColor = (if (deviceStatus.isRooted || !deviceStatus.isGpsEnabled) StatusRed else StatusAmber).copy(alpha = 0.1f)
+                    )
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.GppBad, contentDescription = null, tint = StatusRed)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            val title = when {
-                                deviceStatus.isRooted -> tr("Güvenlik Riski", "Security Risk")
-                                deviceStatus.isPowerSaveModeActive -> tr("Düşük Güç Modu", "Power Save Mode")
-                                else -> tr("Eksik İzinler", "Missing Permissions")
+                            val (title, color) = when {
+                                deviceStatus.isRooted -> tr("Güvenlik Riski", "Security Risk") to StatusRed
+                                !deviceStatus.isGpsEnabled || !deviceStatus.isNotificationGranted || !deviceStatus.isBackgroundLocationGranted -> tr("Eksik İzinler", "Missing Permissions") to StatusRed
+                                deviceStatus.isPowerSaveModeActive || !deviceStatus.isBatteryOptimizationIgnored -> tr("Pil Kısıtlaması", "Battery Restriction") to StatusAmber
+                                else -> tr("Sistem Uyarısı", "System Warning") to StatusAmber
                             }
-                            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = StatusRed)
+                            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
                             val desc = when {
                                 deviceStatus.isPowerSaveModeActive -> tr("Cihaz tasarruf modunda. Takip hassasiyeti azalabilir. Kapatmak için dokunun.", "Device in save mode. Tracking accuracy may decrease. Tap to disable.")
-                                else -> tr("Sistem güvenliği veya takibi için aksiyon almanız gerekiyor. Ayarlara gitmek için dokunun.", "Action required for system security or tracking. Tap to go to settings.")
+                                deviceStatus.isRooted -> tr("Cihaz rootlu tespit edildi. Güvenlik politikaları gereği bazı özellikler kısıtlanmış olabilir.", "Device is rooted. Some features may be restricted due to security policies.")
+                                !deviceStatus.isGpsEnabled -> tr("Konum servisleri kapalı. Takip yapılamıyor.", "GPS is disabled. Tracking is unavailable.")
+                                !deviceStatus.isNotificationGranted -> tr("Bildirim izni eksik. Servis durumu takip edilemiyor.", "Notifications disabled. Service status cannot be monitored.")
+                                else -> tr("Uygulamanın arka planda kesintisiz çalışması için ek izinler gerekiyor.", "Additional permissions required for seamless background operation.")
                             }
                             Text(desc, style = MaterialTheme.typography.bodySmall)
                         }
@@ -242,15 +265,20 @@ fun DashboardScreen(
                             StatusGridItem(
                                 modifier = Modifier.weight(1f),
                                 title = tr("Arka Plan", "Background"),
-                                isOk = deviceStatus.isBackgroundExecutionOk,
+                                isOk = deviceStatus.isBackgroundLocationGranted,
+                                statusColor = if (deviceStatus.isBackgroundLocationGranted) StatusGreen else StatusAmber,
                                 icon = Icons.Default.LocationOn,
                             ) {
-                                try {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
+                                if (!deviceStatus.isBackgroundLocationGranted) {
+                                    showBackgroundPermissionRationale = true
+                                } else {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = android.net.Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             StatusGridItem(
@@ -297,15 +325,20 @@ fun DashboardScreen(
                         StatusGridItem(
                             modifier = Modifier.weight(1f),
                             title = tr("Arka Plan", "Background"),
-                            isOk = deviceStatus.isBackgroundExecutionOk,
+                            isOk = deviceStatus.isBackgroundLocationGranted,
+                            statusColor = if (deviceStatus.isBackgroundLocationGranted) StatusGreen else StatusAmber,
                             icon = Icons.Default.LocationOn,
                         ) {
-                            try {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = android.net.Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
+                            if (!deviceStatus.isBackgroundLocationGranted) {
+                                showBackgroundPermissionRationale = true
+                            } else {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
                         }
                         StatusGridItem(
                             modifier = Modifier.weight(1f),
@@ -541,6 +574,7 @@ fun StatusGridItem(
     modifier: Modifier = Modifier,
     title: String,
     isOk: Boolean,
+    statusColor: Color = if (isOk) StatusGreen else StatusRed,
     icon: ImageVector,
     onClick: () -> Unit
 ) {
@@ -550,9 +584,9 @@ fun StatusGridItem(
             .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isOk) MaterialTheme.colorScheme.surface else StatusRed.copy(alpha = 0.05f)
+            containerColor = if (isOk) MaterialTheme.colorScheme.surface else statusColor.copy(alpha = 0.05f)
         ),
-        border = if (!isOk) BorderStroke(1.dp, StatusRed.copy(alpha = 0.2f)) else null,
+        border = if (!isOk) BorderStroke(1.dp, statusColor.copy(alpha = 0.2f)) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -562,7 +596,7 @@ fun StatusGridItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isOk) StatusGreen else StatusRed,
+                tint = statusColor,
                 modifier = Modifier.size(24.dp)
             )
             Row(
@@ -579,9 +613,81 @@ fun StatusGridItem(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .background(if (isOk) StatusGreen else StatusRed, CircleShape)
+                        .background(statusColor, CircleShape)
                 )
             }
         }
+    }
+}
+
+@Composable
+fun BackgroundPermissionDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(tr("Arka Plan Konum İzni", "Background Location"), fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    tr(
+                        "Saha takibinin kesintisiz çalışması için konum iznini 'Her zaman izin ver' olarak ayarlamanız gerekmektedir.",
+                        "To keep tracking active while the app is in the background, please set location permission to 'Allow all the time'."
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PermissionStepItem(1, tr("Ayarlara gidin", "Go to Settings"))
+                        PermissionStepItem(2, tr("'İzinler' bölümünü açın", "Open 'Permissions'"))
+                        PermissionStepItem(3, tr("'Konum' seçeneğine dokunun", "Tap on 'Location'"))
+                        PermissionStepItem(4, tr("'Her zaman izin ver'i seçin", "Select 'Allow all the time'"))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(tr("Ayarları Aç", "Open Settings"))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(tr("İptal", "Cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun PermissionStepItem(index: Int, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            modifier = Modifier.size(20.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(index.toString(), style = MaterialTheme.typography.labelSmall, color = Color.White)
+            }
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -144,6 +144,8 @@ class LocationTrackingService : Service() {
     }
 
     private fun saveLocationToRepository(location: Location) {
+        if (location.latitude == 0.0 && location.longitude == 0.0) return
+        
         serviceScope.launch {
             val address = addressMutex.withLock {
                 LocationUtils.getAddressFromLocation(
