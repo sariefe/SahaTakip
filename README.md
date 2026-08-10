@@ -11,6 +11,7 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 - **Gelişmiş Harita Görselleştirme:** Binaların, yerleşkelerin (kampüs, AVM vb.) ve yapıların detaylı kuşbakışı görünümü; kullanıcı deneyimini artıran optimize edilmiş harita katmanları.
 
 ### 🛡️ Güvenlik ve Gizlilik
+- **Hibrit Veri Şifreleme:** Yerel Room veritabanının **SQLCipher (AES-256)** ile şifrelenmesi ve hassas ayarların **Android Keystore** destekli **AES/GCM** ile korunması.
 - **Biyometrik Giriş:** Parmak izi veya yüz tanıma desteği ile verilerin güvenliğini sağlayan ekran kilidi.
 - **Güvenli Anahtar Yönetimi:** API anahtarlarının ve hassas verilerin `Secrets Gradle Plugin` ile korunması; kaynak kodda anahtar sızıntısının önlenmesi.
 - **Cihaz Güvenlik Analizi:** Root erişimi tespiti ve kritik güvenlik risklerinin raporlanması.
@@ -54,7 +55,9 @@ SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryol
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
 - **Bağımlılık Enjeksiyonu:** Hilt (Dagger)
 - **Güvenlik:** Secrets Gradle Plugin
-- **Yerel Veritabanı:** Room Persistence Library
+- **Yerel Veritabanı:** Room Persistence Library & **SQLCipher (Encrypted DB)**
+- **Veri Depolama:** Jetpack DataStore (Preferences)
+- **Şifreleme:** Android Keystore System & AES-GCM
 - **Ağ:** Retrofit & OkHttp & Moshi
 - **Asenkron Akış:** Kotlin Coroutines & Flow
 - **Konum:** Google Play Services Location

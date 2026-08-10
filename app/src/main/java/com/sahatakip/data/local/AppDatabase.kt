@@ -16,6 +16,7 @@ import com.sahatakip.data.local.entity.LeaveRequestEntity
 import com.sahatakip.data.local.entity.LocationEntity
 import com.sahatakip.data.local.entity.OfflineActivityReportEntity
 import com.sahatakip.data.local.entity.UserProfileEntity
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
@@ -43,11 +44,17 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                System.loadLibrary("sqlcipher")
+
+                val passphrase = "SAHA2026".toByteArray()
+                val factory = SupportOpenHelperFactory(passphrase)
+
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "saha_takip_database"
                 )
+                .openHelperFactory(factory)
                 .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance

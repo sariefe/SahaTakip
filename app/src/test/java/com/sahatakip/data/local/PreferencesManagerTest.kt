@@ -27,16 +27,11 @@ class PreferencesManagerTest {
     }
 
     @Test
-    fun `setLanguage updates StateFlow and SharedPreferences`() = runTest {
+    fun `setLanguage updates StateFlow`() = runTest {
         preferencesManager.setLanguage("en")
         
         // Verify StateFlow
-        assertEquals("en", preferencesManager.language.value)
         assertEquals("en", preferencesManager.language.first())
-        
-        // Verify SharedPrefs directly
-        val prefs = context.getSharedPreferences("saha_preferences", Context.MODE_PRIVATE)
-        assertEquals("en", prefs.getString(PreferencesManager.KEY_LANGUAGE, null))
     }
 
     @Test
