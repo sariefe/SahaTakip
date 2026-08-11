@@ -17,6 +17,7 @@ import com.sahatakip.data.local.entity.LocationEntity
 import com.sahatakip.data.local.entity.OfflineActivityReportEntity
 import com.sahatakip.data.local.entity.UserProfileEntity
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import java.security.SecureRandom
 
 @Database(
     entities = [
@@ -42,11 +43,20 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        fun generatePassword(): String {
+            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            val random = SecureRandom()
+
+            return (1..8)
+                .map { chars[random.nextInt(chars.length)] }
+                .joinToString("")
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 System.loadLibrary("sqlcipher")
 
-                val passphrase = "SAHA2026".toByteArray()
+                val passphrase = generatePassword().toByteArray()
                 val factory = SupportOpenHelperFactory(passphrase)
 
                 val instance = Room.databaseBuilder(
