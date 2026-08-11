@@ -18,6 +18,7 @@ import com.sahatakip.data.local.entity.OfflineActivityReportEntity
 import com.sahatakip.data.local.entity.UserProfileEntity
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
+import androidx.core.content.edit
 
 @Database(
     entities = [
@@ -26,12 +27,13 @@ import java.security.SecureRandom
         LeaveRequestEntity::class,
         GeofenceZoneEntity::class,
         UserProfileEntity::class,
-        OfflineActivityReportEntity::class,
+        OfflineActivityReportEntity::class
     ],
     version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
+
     abstract fun locationDao(): LocationDao
     abstract fun eventLogDao(): EventLogDao
     abstract fun leaveRequestDao(): LeaveRequestDao
@@ -40,34 +42,73 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun offlineActivityReportDao(): OfflineActivityReportDao
 
     companion object {
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        fun generatePassword(): String {
-            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        private const val PREFS_NAME = "database_security"
+        private const val KEY_DB_PASSWORD = "db_password"
+
+        private fun generatePassword(): String {
+            val chars =
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
             val random = SecureRandom()
 
-            return (1..8)
-                .map { chars[random.nextInt(chars.length)] }
+            return (1..32)
+                .map {
+                    chars[random.nextInt(chars.length)]
+                }
                 .joinToString("")
         }
 
+        private fun getDatabasePassword(context: Context): String {
+
+            val prefs = context.getSharedPreferences(
+                PREFS_NAME,
+                Context.MODE_PRIVATE
+            )
+
+            var password = prefs.getString(KEY_DB_PASSWORD, null)
+
+            if (password == null) {
+                password = generatePassword()
+
+                prefs.edit {
+                    putString(KEY_DB_PASSWORD, password)
+                }
+            }
+
+            return password
+        }
+
         fun getDatabase(context: Context): AppDatabase {
+
             return INSTANCE ?: synchronized(this) {
+
                 System.loadLibrary("sqlcipher")
 
-                val passphrase = generatePassword().toByteArray()
-                val factory = SupportOpenHelperFactory(passphrase)
+                val password = getDatabasePassword(
+                    context.applicationContext
+                )
+
+                val factory = SupportOpenHelperFactory(
+                    password.toByteArray()
+                )
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "saha_takip_database"
                 )
-                .openHelperFactory(factory)
-                .fallbackToDestructiveMigration(dropAllTables = true)
-                .build()
+                    .openHelperFactory(factory)
+                    .fallbackToDestructiveMigration(
+                        dropAllTables = true
+                    )
+                    .build()
+
                 INSTANCE = instance
+
                 instance
             }
         }
