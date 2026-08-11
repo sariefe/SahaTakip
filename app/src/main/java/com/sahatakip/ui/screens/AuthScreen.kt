@@ -272,7 +272,7 @@ fun AuthScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                placeholder = { Text("SAHA2026") },
+                placeholder = { Text("Şifre Girin") },
                 singleLine = true,
                 maxLines = 1,
                 colors = OutlinedTextFieldDefaults.colors(
