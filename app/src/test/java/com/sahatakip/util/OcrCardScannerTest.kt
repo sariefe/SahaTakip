@@ -10,11 +10,11 @@ class OcrCardScannerTest {
     fun `parseStaffCardText handles positional layout correctly`() {
         // Mocking a typical card layout:
         val ocrLines = listOf(
-            OcrLine("KURUM PERSONEL KARTI", 30, 200, 10, 50),
-            OcrLine("ID-123456", 25, 100, 50, 50),
-            OcrLine("MEHMET", 25, 80, 85, 50),
-            OcrLine("AKSOY", 25, 80, 120, 50),
-            OcrLine("TEKNIK BÖLÜMÜ", 20, 150, 155, 50)
+            OcrLine("KURUM PERSONEL KARTI", 200, 30, 10, 50),
+            OcrLine("ID-123456", 150, 25, 50, 50),
+            OcrLine("MEHMET", 100, 25, 85, 50),
+            OcrLine("AKSOY", 100, 25, 120, 50),
+            OcrLine("TEKNIK BÖLÜMÜ", 150, 20, 155, 50)
         )
 
         val result = OcrCardScanner.parseStaffCardText(ocrLines)
@@ -48,11 +48,11 @@ class OcrCardScannerTest {
     @Test
     fun `parseStaffCardText handles noisy data and picks correct ID`() {
         val ocrLines = listOf(
-            OcrLine("REPUBLIC OF TURKEY", 15, 100, 10, 50),
-            OcrLine("SİSTEM GİRİŞ", 15, 100, 30, 50),
-            OcrLine("555444", 25, 100, 60, 50), // This is the ID
-            OcrLine("ZEYNEP", 25, 80, 95, 50),
-            OcrLine("YILDIRIM", 25, 80, 130, 50)
+            OcrLine("REPUBLIC OF TURKEY", 150, 15, 10, 50),
+            OcrLine("SİSTEM GİRİŞ", 120, 15, 30, 50),
+            OcrLine("555444", 100, 25, 60, 50),
+            OcrLine("ZEYNEP", 100, 25, 95, 50),
+            OcrLine("YILDIRIM", 100, 25, 130, 50)
         )
 
         val result = OcrCardScanner.parseStaffCardText(ocrLines)

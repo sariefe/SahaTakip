@@ -39,7 +39,7 @@ class MainActivity : FragmentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     private val requestBackgroundPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
             deviceViewModel.updateDeviceStatus()
@@ -143,7 +143,7 @@ class MainActivity : FragmentActivity() {
             try {
                 startForegroundService(serviceIntent)
             } catch (e: Exception) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is android.app.ForegroundServiceStartNotAllowedException) {
+                if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (e is android.app.ForegroundServiceStartNotAllowedException)) {
                     android.util.Log.e("MainActivity", "Foreground service start not allowed from background", e)
                 } else {
                     throw e

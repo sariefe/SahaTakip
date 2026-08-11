@@ -25,7 +25,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         LeaveRequestEntity::class,
         GeofenceZoneEntity::class,
         UserProfileEntity::class,
-        OfflineActivityReportEntity::class
+        OfflineActivityReportEntity::class,
     ],
     version = 7,
     exportSchema = false
@@ -55,7 +55,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "saha_takip_database"
                 )
                 .openHelperFactory(factory)
-                .fallbackToDestructiveMigration(true)
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
                 INSTANCE = instance
                 instance

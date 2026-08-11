@@ -33,7 +33,7 @@ class GeofenceRepositoryImpl @Inject constructor(
     private var lastKnownZoneId: Long? = null
     private var isInitialized: Boolean = false
     private var lastExitTime: Long = 0L
-    private val JITTER_THRESHOLD_MS = 15_000L // 15 saniye jitter koruması
+    private val JITTER_THRESHOLD_MS = 15_000L
 
     override suspend fun deleteGeofence(id: Long) = withContext(Dispatchers.IO) {
         geofenceDao.deleteById(id)
@@ -74,7 +74,6 @@ class GeofenceRepositoryImpl @Inject constructor(
                 }
             }
 
-            // Giriş Tespiti
             if (currentZone != null && currentZone.id != lastKnownZoneId) {
                 eventRepository.insertEventLog(
                     EventLogEntity(

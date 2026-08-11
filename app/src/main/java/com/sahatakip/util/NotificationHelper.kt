@@ -76,7 +76,6 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Privacy safe alert text: generic message without raw GPS / violation details
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_stat)
             .setContentTitle(finalTitle)

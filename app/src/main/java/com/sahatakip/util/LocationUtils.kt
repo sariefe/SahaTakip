@@ -3,47 +3,59 @@ package com.sahatakip.util
 import android.content.Context
 import android.location.Address
 import android.location.Geocoder
+import android.location.Location
+import android.os.Build
+import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.math.*
+import kotlin.coroutines.resume
 
 object LocationUtils {
     /**
-     * Calculates the distance between two points in meters using Haversine formula.
+     * Calculates the distance between two points in meters using Android's built-in distanceBetween.
      */
     fun calculateDistanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371000.0 // Earth's radius in meters
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = (sin(dLat / 2) * sin(dLat / 2)) +
-                (cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2))
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
+        val results = FloatArray(1)
+        Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+        return results[0].toDouble()
     }
 
-    @Suppress("DEPRECATION")
-    fun getAddressFromLocation(context: Context, lat: Double, lng: Double): String {
+    suspend fun getAddressFromLocation(context: Context, lat: Double, lng: Double): String {
+        if (!Geocoder.isPresent()) return "Bilinmeyen Konum ($lat, $lng)"
+
         return try {
             val geocoder = Geocoder(context, Locale.getDefault())
 
-            val addresses = geocoder.getFromLocation(lat, lng, 1)
-            
-            if (!addresses.isNullOrEmpty()) {
-                formatAddress(addresses[0])
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine { continuation ->
+                    geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
+                        override fun onGeocode(addresses: MutableList<Address>) {
+                            val result = addresses.firstOrNull()?.let(::formatAddress)
+                                ?: "Bilinmeyen Konum ($lat, $lng)"
+                            continuation.resume(result)
+                        }
+
+                        override fun onError(errorMessage: String?) {
+                            Log.e("LocationUtils", "Geocode error: $errorMessage")
+                            continuation.resume("Konum Çözülemedi ($lat, $lng)")
+                        }
+                    })
+                }
             } else {
-                "Bilinmeyen Konum ($lat, $lng)"
+                withContext(Dispatchers.IO) {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocation(lat, lng, 1)
+                    addresses?.firstOrNull()?.let(::formatAddress) ?: "Bilinmeyen Konum ($lat, $lng)"
+                }
             }
         } catch (e: Exception) {
-            android.util.Log.e("LocationUtils", "Geocoder error: ${e.message}")
+            Log.e("LocationUtils", "Geocoder exception: ${e.message}", e)
             "Konum Çözülemedi ($lat, $lng)"
         }
     }
 
-    private fun formatAddress(address: Address): String {
-        val addressParts = mutableListOf<String>()
-        for (i in 0..address.maxAddressLineIndex) {
-            addressParts.add(address.getAddressLine(i))
-        }
-        return addressParts.joinToString(", ")
-    }
+    private fun formatAddress(address: Address): String =
+        (0..address.maxAddressLineIndex).joinToString(", ", transform = address::getAddressLine)
 }

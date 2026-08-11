@@ -10,7 +10,6 @@ data class ScannedStaffCardResult(
     val staffId: String,
     val department: String,
     val confidenceScore: Float = 0.98f,
-    val rawExtractedText: String = ""
 ) {
     val fullName: String get() = "$firstName $lastName"
 }
@@ -21,7 +20,6 @@ data class StaffCardPreset(
     val lastName: String,
     val staffId: String,
     val department: String,
-    val role: String
 )
 
 object OcrCardScanner {
@@ -29,10 +27,10 @@ object OcrCardScanner {
     private val DEPARTMENTS = listOf("SAHA", "TEKNİK", "GÜVENLİK", "LOJİSTİK", "YÖNETİM", "BİLGİ İŞLEM")
 
     val availablePresets = listOf(
-        StaffCardPreset("Saha Şefi", "AHMET CAN", "YILMAZ", "ID-2026-001", "SAHA", "Saha Operasyon Şefi"),
-        StaffCardPreset("Saha Teknisyeni", "MEHMET ALİ", "DEMİR", "ID-2026-142", "TEKNİK", "Kıdemli Saha Teknisyeni"),
-        StaffCardPreset("Güvenlik Uzmanı", "AYŞE SULTAN", "KAYA", "ID-2026-088", "GÜVENLİK", "İSG & Güvenlik Uzmanı"),
-        StaffCardPreset("Sistem Operatörü", "ZEHRA ELİF", "ÇELİK", "ID-2026-305", "YÖNETİM", "Sistem & Tesis Operatörü")
+        StaffCardPreset("Saha Şefi", "AHMET CAN", "YILMAZ", "ID-2026-001", "SAHA"),
+        StaffCardPreset("Saha Teknisyeni", "MEHMET ALİ", "DEMİR", "ID-2026-142", "TEKNİK"),
+        StaffCardPreset("Güvenlik Uzmanı", "AYŞE SULTAN", "KAYA", "ID-2026-088", "GÜVENLİK"),
+        StaffCardPreset("Sistem Operatörü", "ZEHRA ELİF", "ÇELİK", "ID-2026-305", "YÖNETİM"),
     )
 
     fun parseStaffCardText(ocrLines: List<OcrLine>): ScannedStaffCardResult? {
@@ -40,7 +38,7 @@ object OcrCardScanner {
 
         val upperLines = ocrLines.map { it.copy(text = it.text.uppercase(Locale.forLanguageTag("tr"))) }
         
-        val avgHeight = ocrLines.map { it.height }.average()
+        val avgHeight = ocrLines.asSequence().map { it.height }.average()
         
         var staffId = ""
         var firstName = ""
@@ -57,8 +55,8 @@ object OcrCardScanner {
         // 1. ANCHOR SEARCH: Find the ID line first regardless of position
         // Only look at lines that don't contain noise headers and are large enough
         val potentialIdLines = upperLines.filter { line ->
-            !noiseHeaders.any { line.text.contains(it) } && 
-            (line.height > avgHeight * 0.85) // Slightly more relaxed height constraint
+            (!noiseHeaders.any { line.text.contains(it) }) && 
+            (line.height > (avgHeight * 0.85))
         }
 
         val idLine = potentialIdLines.find { idRegex.containsMatchIn(it.text) }
@@ -135,12 +133,11 @@ object OcrCardScanner {
             staffId = staffId.trim(),
             department = department.trim().uppercase(Locale.forLanguageTag("tr")),
             confidenceScore = confidence.coerceAtMost(0.99f),
-            rawExtractedText = ocrLines.joinToString("\n") { it.text }
         )
     }
 
     fun parseStaffCardText(rawText: String): ScannedStaffCardResult? {
-        val lines = rawText.lines().map { OcrLine(it, 20, 0, 0, 0) }
+        val lines = rawText.lines().map { OcrLine(it, 100, 20, 0, 0) }
         return parseStaffCardText(lines)
     }
 
@@ -155,15 +152,7 @@ object OcrCardScanner {
         delay(1200.milliseconds) 
 
         if (preset != null) {
-            val rawText = """
-                KURUM PERSONEL KARTI
-                İSİM: ${preset.firstName}
-                SOYİSİM: ${preset.lastName}
-                DEPARTMAN: ${preset.department}
-                PERSONEL ID: ${preset.staffId}
-            """.trimIndent()
-
-            return scannedStaffStaffCardResult(preset, rawText)
+            return scannedStaffStaffCardResult(preset)
         }
 
         // Simulate a "No Keyword" card for fallback
@@ -180,13 +169,12 @@ object OcrCardScanner {
         return parseStaffCardText(rawNoLabels) ?: ScannedStaffCardResult("BİLİNMEYEN", "PERSONEL", randomId, "SAHA")
     }
 
-    private fun scannedStaffStaffCardResult(preset: StaffCardPreset, rawText: String) = ScannedStaffCardResult(
+    private fun scannedStaffStaffCardResult(preset: StaffCardPreset) = ScannedStaffCardResult(
         firstName = preset.firstName,
         lastName = preset.lastName,
         staffId = preset.staffId,
         department = preset.department,
         confidenceScore = 0.99f,
-        rawExtractedText = rawText
     )
 }
 

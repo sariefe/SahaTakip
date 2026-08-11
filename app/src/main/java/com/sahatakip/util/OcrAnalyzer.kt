@@ -8,8 +8,15 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 
 class OcrAnalyzer(
-    private val onTextDetected: (List<OcrLine>, Int, Int) -> Unit
+    private val onTextDetected: (List<OcrLine>, Int, Int) -> Unit,
 ) : ImageAnalysis.Analyzer {
+
+    companion object {
+        private const val ROI_X_MIN = 0.05f
+        private const val ROI_X_MAX = 0.95f
+        private const val ROI_Y_MIN = 0.35f
+        private const val ROI_Y_MAX = 0.65f
+    }
 
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var lastAnalysisTimestamp = 0L
@@ -18,7 +25,7 @@ class OcrAnalyzer(
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastAnalysisTimestamp < analysisInterval) {
+        if ((currentTime - lastAnalysisTimestamp) < analysisInterval) {
             imageProxy.close()
             return
         }
@@ -28,7 +35,6 @@ class OcrAnalyzer(
             val rotation = imageProxy.imageInfo.rotationDegrees
             val image = InputImage.fromMediaImage(mediaImage, rotation)
             
-            // Image dimensions after rotation
             val imgWidth = if (rotation == 90 || rotation == 270) imageProxy.height else imageProxy.width
             val imgHeight = if (rotation == 90 || rotation == 270) imageProxy.width else imageProxy.height
 
@@ -36,39 +42,30 @@ class OcrAnalyzer(
             recognizer.process(image)
                 .addOnSuccessListener { visionText ->
                     val lines = mutableListOf<OcrLine>()
-                    
-                    // Region of Interest (ROI) - Central 90% width, 30% height
-                    // Adjusted to better match the visual scanning box
-                    val roiXMin = 0.05f
-                    val roiXMax = 0.95f
-                    val roiYMin = 0.35f
-                    val roiYMax = 0.65f
 
                     visionText.textBlocks.forEach { block ->
                         block.lines.forEach { line ->
                             line.boundingBox?.let { box ->
-                                // Calculate normalized boundaries
                                 val left = box.left.toFloat() / imgWidth
                                 val right = box.right.toFloat() / imgWidth
                                 val top = box.top.toFloat() / imgHeight
                                 val bottom = box.bottom.toFloat() / imgHeight
 
-                                // Box-in-Frame check
                                 val centerX = (left + right) / 2f
                                 val centerY = (top + bottom) / 2f
 
-                                val isHorizontallyIn = centerX in roiXMin..roiXMax
-                                val isVerticallyIn = centerY in roiYMin..roiYMax
+                                val isHorizontallyIn = centerX in ROI_X_MIN..ROI_X_MAX
+                                val isVerticallyIn = centerY in ROI_Y_MIN..ROI_Y_MAX
 
                                 if (isHorizontallyIn && isVerticallyIn) {
                                     lines.add(
                                         OcrLine(
                                             text = line.text,
-                                            height = box.height(),
                                             width = box.width(),
+                                            height = box.height(),
                                             top = box.top,
-                                            left = box.left
-                                        )
+                                            left = box.left,
+                                        ),
                                     )
                                 }
                             }

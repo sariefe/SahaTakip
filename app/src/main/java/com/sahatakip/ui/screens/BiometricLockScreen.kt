@@ -55,6 +55,8 @@ import com.sahatakip.util.BiometricPromptManager
 import com.sahatakip.util.BiometricStatus
 import com.sahatakip.util.ScannedStaffCardResult
 import com.sahatakip.util.tr
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
 
 @Composable
 fun BiometricLockScreen(
@@ -67,9 +69,9 @@ fun BiometricLockScreen(
     val ocrAuthError by authViewModel.ocrAuthError.collectAsStateWithLifecycle()
     val isAuthenticated by authViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
-    var showOcrModal by remember { mutableStateOf(value = false) }
-    var verificationSuccess by remember { mutableStateOf(value = false) }
-    var biometricErrorMessage by remember { mutableStateOf<String?>(value = null) }
+    var showOcrModal by remember { mutableStateOf(false) }
+    var verificationInProgress by remember { mutableStateOf(false) }
+    var biometricErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val biometricManager = remember { BiometricPromptManager(context) }
     val bioAvailability = remember { biometricManager.checkBiometricAvailability() }
@@ -78,47 +80,88 @@ fun BiometricLockScreen(
     val promptSubtitle = tr("Saha personeli güvenli giriş doğrulaması", "Field personnel secure login verification")
     val promptDesc = tr("Devam etmek için sensörü kullanın", "Use sensor to continue")
     val promptCancel = tr("İptal", "Cancel")
-    
     val matchFailedTr = tr("Biyometrik eşleşme başarısız.", "Biometric match failed.")
-
-    val triggerBiometricAuth = {
-        if (bioAvailability is BiometricStatus.Available) {
-            biometricManager.showBiometricPrompt(
-                context = context,
-                title = promptTitle,
-                subtitle = promptSubtitle,
-                description = promptDesc,
-                negativeButtonText = promptCancel,
-                onSuccess = {
-                    verificationSuccess = true
-                    if (authViewModel.authenticateWithBiometrics()) {
-                        onLoginSuccess()
-                    }
-                },
-                onError = { _, errString ->
-                    biometricErrorMessage = errString
-                }
-            ) {
-                biometricErrorMessage = matchFailedTr
-            }
-        } else {
-            val reason = (bioAvailability as? BiometricStatus.Unavailable)?.reason ?: "Biyometrik hata."
-            biometricErrorMessage = reason
-        }
-    }
 
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
-            verificationSuccess = true
             onLoginSuccess()
         }
     }
 
+    BiometricLockScreenContent(
+        userProfileFullName = userProfile?.fullName,
+        ocrAuthError = ocrAuthError,
+        biometricErrorMessage = biometricErrorMessage,
+        verificationInProgress = verificationInProgress || isAuthenticated,
+        onBiometricClick = {
+            if (bioAvailability is BiometricStatus.Available) {
+                biometricManager.showBiometricPrompt(
+                    context = context,
+                    title = promptTitle,
+                    subtitle = promptSubtitle,
+                    description = promptDesc,
+                    negativeButtonText = promptCancel,
+                    onSuccess = {
+                        verificationInProgress = true
+                        if (authViewModel.authenticateWithBiometrics()) {
+                            onLoginSuccess()
+                        }
+                    },
+                    onError = { _, errString -> 
+                        biometricErrorMessage = errString
+                        verificationInProgress = false
+                    },
+                    onFailed = {
+                        biometricErrorMessage = matchFailedTr
+                        verificationInProgress = false
+                    }
+                )
+            } else {
+                biometricErrorMessage = (bioAvailability as? BiometricStatus.Unavailable)?.reason ?: "Biyometrik hata."
+            }
+        },
+        onOcrClick = { showOcrModal = true }
+    )
+
+    if (showOcrModal) {
+        val currentOcrResult by authViewModel.ocrScanningState.collectAsStateWithLifecycle()
+        OcrCameraScannerModal(
+            viewModel = authViewModel,
+            onDismiss = { showOcrModal = false },
+            onScanStart = { preset ->
+                val idToAuth = preset?.staffId ?: currentOcrResult?.staffId
+                if (idToAuth != null) {
+                    val ocrData = currentOcrResult ?: preset?.let {
+                        ScannedStaffCardResult(
+                            firstName = it.firstName,
+                            lastName = it.lastName,
+                            staffId = it.staffId,
+                            department = it.department
+                        )
+                    }
+                    if (authViewModel.authenticateWithOcr(idToAuth, ocrData)) {
+                        showOcrModal = false
+                        onLoginSuccess()
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun BiometricLockScreenContent(
+    userProfileFullName: String?,
+    ocrAuthError: String?,
+    biometricErrorMessage: String?,
+    verificationInProgress: Boolean,
+    onBiometricClick: () -> Unit,
+    onOcrClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        // Subtle Gradient Background
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -138,7 +181,6 @@ fun BiometricLockScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // High-Security Icon Circle
                 Box(
                     modifier = Modifier
                         .size(120.dp)
@@ -180,7 +222,7 @@ fun BiometricLockScreen(
                 )
                 
                 Text(
-                    text = userProfile?.fullName ?: tr("Saha Personeli", "Field Staff"),
+                    text = userProfileFullName ?: tr("Saha Personeli", "Field Staff"),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -188,35 +230,29 @@ fun BiometricLockScreen(
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // DUAL LOGIN METHODS CONTAINER
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Option 1: Biometric (Primary)
                     AuthMethodCard(
                         title = tr("Biyometrik Giriş", "Biometric Login"),
                         description = tr("Parmak İzi / Yüz Tanıma", "Fingerprint / Face ID"),
                         icon = Icons.Default.Fingerprint,
-                        primaryColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        triggerBiometricAuth()
-                    }
+                        primaryColor = MaterialTheme.colorScheme.primary,
+                        onClick = onBiometricClick
+                    )
 
-                    // Option 2: OCR (Secondary/Fallback)
                     AuthMethodCard(
                         title = tr("Kimlik Kartı Tara", "Scan ID Card"),
                         description = tr("Fiziksel Kart Doğrulaması", "Physical Card Verification"),
                         icon = Icons.Default.DocumentScanner,
-                        primaryColor = MaterialTheme.colorScheme.secondary
-                    ) {
-                        showOcrModal = true
-                    }
+                        primaryColor = MaterialTheme.colorScheme.secondary,
+                        onClick = onOcrClick
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Error Messages
                 ocrAuthError?.let { msg ->
                     Text(msg, color = StatusRed, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 }
@@ -226,7 +262,7 @@ fun BiometricLockScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
                 
-                AnimatedVisibility(visible = verificationSuccess) {
+                AnimatedVisibility(visible = verificationInProgress) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(12.dp))
@@ -241,31 +277,19 @@ fun BiometricLockScreen(
             }
         }
     }
+}
 
-    if (showOcrModal) {
-        val currentOcrResult by authViewModel.ocrScanningState.collectAsStateWithLifecycle()
-        
-        OcrCameraScannerModal(
-            viewModel = authViewModel,
-            onDismiss = { showOcrModal = false },
-            onScanStart = { preset ->
-                val idToAuth = preset?.staffId ?: currentOcrResult?.staffId
-                if (idToAuth != null) {
-                    val ocrData = currentOcrResult ?: preset?.let {
-                        ScannedStaffCardResult(
-                            firstName = it.firstName,
-                            lastName = it.lastName,
-                            staffId = it.staffId,
-                            department = it.department
-                        )
-                    }
-
-                    if (authViewModel.authenticateWithOcr(idToAuth, ocrData)) {
-                        showOcrModal = false
-                        onLoginSuccess()
-                    }
-                }
-            }
+@Preview(showBackground = true)
+@Composable
+fun BiometricLockScreenPreview() {
+    SahaTakipTheme {
+        BiometricLockScreenContent(
+            userProfileFullName = "Ahmet Can Yılmaz",
+            ocrAuthError = null,
+            biometricErrorMessage = null,
+            verificationInProgress = false,
+            onBiometricClick = {},
+            onOcrClick = {}
         )
     }
 }

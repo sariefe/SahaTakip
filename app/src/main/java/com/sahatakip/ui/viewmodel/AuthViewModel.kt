@@ -242,7 +242,7 @@ class AuthViewModel @Inject constructor(
                     type = "OCR_AUTH_FAILED",
                     title = "Personel Doğrulama Başarısız",
                     detail = "Farklı bir personel kartı ile giriş denemesi yapıldı (Tespit edilen ID: $scannedStaffId).",
-                    status = Constants.STATUS_DANGER
+                    status = Constants.STATUS_DANGER,
                 )
             }
             false

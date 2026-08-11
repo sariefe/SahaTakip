@@ -65,12 +65,31 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
+
 @Composable
 fun EventLogsScreen(
     viewModel: RequestLogViewModel,
     windowWidthSizeClass: WindowWidthSizeClass,
 ) {
     val eventLogs by viewModel.allEventLogs.collectAsStateWithLifecycle()
+
+    EventLogsScreenContent(
+        eventLogs = eventLogs,
+        windowWidthSizeClass = windowWidthSizeClass,
+        onAddNote = { id, note -> viewModel.addNoteToEventLog(id, note) },
+        onClearLogs = { viewModel.clearAllEventLogs() }
+    )
+}
+
+@Composable
+fun EventLogsScreenContent(
+    eventLogs: List<EventLogEntity>,
+    windowWidthSizeClass: WindowWidthSizeClass,
+    onAddNote: (Long, String) -> Unit,
+    onClearLogs: () -> Unit
+) {
     var selectedLogForNote by remember { mutableStateOf<EventLogEntity?>(null) }
     var noteInputText by remember { mutableStateOf("") }
     var showClearConfirmDialog by remember { mutableStateOf(value = false) }
@@ -213,7 +232,7 @@ fun EventLogsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.addNoteToEventLog(log.id, noteInputText)
+                        onAddNote(log.id, noteInputText)
                         selectedLogForNote = null
                     }
                 ) {
@@ -237,7 +256,7 @@ fun EventLogsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.clearAllEventLogs()
+                        onClearLogs()
                         showClearConfirmDialog = false
                     },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -253,6 +272,29 @@ fun EventLogsScreen(
         )
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun EventLogsScreenPreview() {
+    SahaTakipTheme {
+        EventLogsScreenContent(
+            eventLogs = listOf(
+                EventLogEntity(
+                    id = 1,
+                    title = "GPS Kapatıldı",
+                    detail = "Cihazın konum servisi manuel olarak devre dışı bırakıldı.",
+                    status = Constants.STATUS_DANGER,
+                    type = "GPS_DISABLED",
+                    timestamp = System.currentTimeMillis()
+                )
+            ),
+            windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onAddNote = { _, _ -> },
+            onClearLogs = {}
+        )
+    }
+}
+
 
 @Composable
 fun EventLogCard(

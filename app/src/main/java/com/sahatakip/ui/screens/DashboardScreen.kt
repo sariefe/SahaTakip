@@ -76,6 +76,15 @@ import com.sahatakip.ui.viewmodel.DeviceViewModel
 import com.sahatakip.ui.viewmodel.TrackingViewModel
 import com.sahatakip.util.tr
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
+import com.sahatakip.domain.model.DeviceStatus
+import com.sahatakip.data.local.entity.UserProfileEntity
+import com.sahatakip.data.local.entity.LocationEntity
+
+import androidx.compose.material.icons.filled.SignalCellular4Bar
+import com.sahatakip.util.ConnectionType
+
 @SuppressLint("BatteryLife")
 @Composable
 fun DashboardScreen(
@@ -85,15 +94,48 @@ fun DashboardScreen(
     onNavigateToMap: () -> Unit,
     windowWidthSizeClass: WindowWidthSizeClass,
 ) {
-    val context = LocalContext.current
     val deviceStatus by deviceViewModel.deviceStatus.collectAsState()
     val userProfile by trackingViewModel.userProfile.collectAsState()
     val latestLoc by trackingViewModel.latestLocation.collectAsState()
     val isSyncing by deviceViewModel.isSyncing.collectAsState()
     val syncError by deviceViewModel.lastSyncError.collectAsState()
     
+    DashboardScreenContent(
+        deviceStatus = deviceStatus,
+        userProfile = userProfile,
+        latestLoc = latestLoc,
+        isSyncing = isSyncing,
+        syncError = syncError,
+        windowWidthSizeClass = windowWidthSizeClass,
+        onNavigateToMap = onNavigateToMap,
+        onTriggerSync = { deviceViewModel.triggerOfflineSync() },
+    ) {
+        authViewModel.logout()
+    }
+}
+
+@SuppressLint("BatteryLife")
+@Composable
+fun DashboardScreenContent(
+    deviceStatus: DeviceStatus,
+    userProfile: UserProfileEntity?,
+    latestLoc: LocationEntity?,
+    isSyncing: Boolean,
+    syncError: String?,
+    windowWidthSizeClass: WindowWidthSizeClass,
+    onNavigateToMap: () -> Unit,
+    onTriggerSync: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    val context = LocalContext.current
     var showProfileModal by remember { mutableStateOf(value = false) }
-    var showBackgroundPermissionRationale by remember { mutableStateOf(false) }
+    var showBackgroundPermissionRationale by remember { mutableStateOf(value = false) }
+
+    val internetIcon = when {
+        !deviceStatus.isInternetConnected -> Icons.Default.WifiOff
+        deviceStatus.connectionType == ConnectionType.Cellular -> Icons.Default.SignalCellular4Bar
+        else -> Icons.Default.Wifi
+    }
 
     if (showBackgroundPermissionRationale) {
         BackgroundPermissionDialog(
@@ -121,7 +163,6 @@ fun DashboardScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // User Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -157,7 +198,6 @@ fun DashboardScreen(
                 }
             }
 
-            // CRITICAL WARNINGS
             if (deviceStatus.isRooted || deviceStatus.hasMissingCriticalPermissions) {
                 Card(
                     modifier = Modifier
@@ -222,7 +262,6 @@ fun DashboardScreen(
                 }
             }
 
-            // TELEMETRY GRID
             Column {
                 Text(
                     text = tr("Servis Durumları", "Service Status"),
@@ -238,7 +277,7 @@ fun DashboardScreen(
                                 modifier = Modifier.weight(1f),
                                 title = tr("İnternet", "Internet"),
                                 isOk = deviceStatus.isInternetConnected,
-                                icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                icon = internetIcon,
                             ) {
                                 try {
                                     context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
@@ -302,7 +341,7 @@ fun DashboardScreen(
                             modifier = Modifier.weight(1f),
                             title = tr("İnternet", "Internet"),
                             isOk = deviceStatus.isInternetConnected,
-                            icon = if (deviceStatus.isInternetConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            icon = internetIcon,
                         ) {
                             try {
                                 context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
@@ -357,7 +396,6 @@ fun DashboardScreen(
                 }
             }
 
-            // INTERACTIVE MAP PREVIEW CARD
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -411,7 +449,6 @@ fun DashboardScreen(
                 }
             }
 
-            // BATTERY & SYNC SUMMARY
             Card(
                 modifier = Modifier.fillMaxWidth().testTag("BatteryCard"),
                 shape = RoundedCornerShape(24.dp),
@@ -439,7 +476,7 @@ fun DashboardScreen(
                         
                         Column(horizontalAlignment = Alignment.End) {
                             Button(
-                                onClick = { deviceViewModel.triggerOfflineSync() },
+                                onClick = { onTriggerSync() },
                                 enabled = !isSyncing,
                                 shape = RoundedCornerShape(12.dp),
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
@@ -482,17 +519,44 @@ fun DashboardScreen(
             user = userProfile,
             onDismiss = { showProfileModal = false },
             onLogout = { 
-                authViewModel.logout()
+                onLogout()
                 showProfileModal = false
             }
         )
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenPreview() {
+    SahaTakipTheme {
+        DashboardScreenContent(
+            deviceStatus = DeviceStatus(
+                batteryLevel = 85,
+                isInternetConnected = true,
+                isGpsEnabled = true
+            ),
+            userProfile = UserProfileEntity(
+                fullName = "Ahmet Can Yılmaz",
+                staffId = "12345",
+                department = "Saha Operasyon"
+            ),
+            latestLoc = null,
+            isSyncing = false,
+            syncError = null,
+            windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onNavigateToMap = {},
+            onTriggerSync = {},
+            onLogout = {}
+        )
+    }
+}
+
+
 
 @Composable
 fun ProfileInfoModal(
-    user: com.sahatakip.data.local.entity.UserProfileEntity?,
+    user: UserProfileEntity?,
     onDismiss: () -> Unit,
     onLogout: () -> Unit
 ) {

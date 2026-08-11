@@ -14,44 +14,55 @@ enum class ConnectivityStatus {
     Available, Unavailable, Losing, Lost
 }
 
+enum class ConnectionType {
+    Wifi, Cellular, None
+}
+
 class ConnectivityObserver(context: Context) {
 
     private val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-    fun observe(): Flow<ConnectivityStatus> {
+    fun observe(): Flow<Pair<ConnectivityStatus, ConnectionType>> {
         return callbackFlow {
             val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    launch { send(ConnectivityStatus.Available) }
+                    val capabilities = connectivityManager.getNetworkCapabilities(network)
+                    val type = when {
+                        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> ConnectionType.Wifi
+                        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> ConnectionType.Cellular
+                        else -> ConnectionType.None
+                    }
+                    launch { send(ConnectivityStatus.Available to type) }
                 }
 
                 override fun onLosing(network: Network, maxMsToLive: Int) {
-                    launch { send(ConnectivityStatus.Losing) }
+                    launch { send(ConnectivityStatus.Losing to ConnectionType.None) }
                 }
 
                 override fun onLost(network: Network) {
-                    launch { send(ConnectivityStatus.Lost) }
+                    launch { send(ConnectivityStatus.Lost to ConnectionType.None) }
                 }
 
                 override fun onUnavailable() {
-                    launch { send(ConnectivityStatus.Unavailable) }
+                    launch { send(ConnectivityStatus.Unavailable to ConnectionType.None) }
                 }
             }
 
             connectivityManager.registerDefaultNetworkCallback(callback)
             
-            // Initial state
             val activeNetwork = connectivityManager.activeNetwork
             val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-            val isOnline = capabilities != null &&
-                    (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+            val type = when {
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> ConnectionType.Wifi
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> ConnectionType.Cellular
+                else -> ConnectionType.None
+            }
             
-            if (isOnline) {
-                launch { send(ConnectivityStatus.Available) }
+            if (type != ConnectionType.None) {
+                launch { send(ConnectivityStatus.Available to type) }
             } else {
-                launch { send(ConnectivityStatus.Unavailable) }
+                launch { send(ConnectivityStatus.Unavailable to ConnectionType.None) }
             }
 
             awaitClose {

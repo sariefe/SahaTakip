@@ -110,7 +110,7 @@ class AuthViewModelTest {
 
     @Test
     fun `onRealOcrDetected handles stability logic`() = runTest {
-        val lines = listOf(OcrLine("ID-123", 10, 10, 100, 20))
+        val lines = listOf(OcrLine("ID-123", 50, 10, 100, 20))
         val mockResult = ScannedStaffCardResult("FIRST", "LAST", "ID-123", "DEPT")
         
         mockkObject(OcrCardScanner)

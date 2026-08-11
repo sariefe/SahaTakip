@@ -80,6 +80,9 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveRequestScreen(
@@ -88,6 +91,24 @@ fun LeaveRequestScreen(
 ) {
     val dbRequests by viewModel.allLeaveRequests.collectAsStateWithLifecycle()
 
+    LeaveRequestScreenContent(
+        dbRequests = dbRequests,
+        windowWidthSizeClass = windowWidthSizeClass,
+        onSubmitRequest = { type, start, end, reason ->
+            viewModel.submitLeaveRequest(type = type, startDate = start, endDate = end, reason = reason)
+        },
+        onDeleteRequest = { viewModel.deleteLeaveRequest(it) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LeaveRequestScreenContent(
+    dbRequests: List<LeaveRequestEntity>,
+    windowWidthSizeClass: WindowWidthSizeClass,
+    onSubmitRequest: (type: String, start: String, end: String, reason: String) -> Unit,
+    onDeleteRequest: (Long) -> Unit
+) {
     var showForm by remember { mutableStateOf(value = false) }
     var itemToDelete by remember { mutableStateOf<LeaveRequestEntity?>(null) }
 
@@ -138,7 +159,7 @@ fun LeaveRequestScreen(
                 AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
                     LeaveSubmitFormComponent(
                         onSubmit = { start, end, newDesc, _, newType ->
-                            viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
+                            onSubmitRequest(newType, start, end, newDesc)
                             showForm = false
                         }
                     ) {
@@ -158,7 +179,7 @@ fun LeaveRequestScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         LeaveSubmitFormComponent(
                             onSubmit = { start, end, newDesc, _, newType ->
-                                viewModel.submitLeaveRequest(type = newType, startDate = start, endDate = end, reason = newDesc)
+                                onSubmitRequest(newType, start, end, newDesc)
                             }
                         ) { /* No cancel needed in side-by-side */ }
                     }
@@ -184,7 +205,7 @@ fun LeaveRequestScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deleteLeaveRequest(item.id)
+                        onDeleteRequest(item.id)
                         itemToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = StatusRed),
@@ -201,6 +222,29 @@ fun LeaveRequestScreen(
         )
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun LeaveRequestScreenPreview() {
+    SahaTakipTheme {
+        LeaveRequestScreenContent(
+            dbRequests = listOf(
+                LeaveRequestEntity(
+                    id = 1,
+                    requestType = "Yıllık İzin",
+                    startDate = "12.08.2026",
+                    endDate = "15.08.2026",
+                    reason = "Tatil planı",
+                    status = "Beklemede"
+                )
+            ),
+            windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onSubmitRequest = { _, _, _, _ -> },
+            onDeleteRequest = {}
+        )
+    }
+}
+
 
 @Composable
 private fun EmptyListMessage() {

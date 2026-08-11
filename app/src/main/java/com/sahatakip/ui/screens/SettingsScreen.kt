@@ -29,6 +29,9 @@ import com.sahatakip.util.BiometricPromptManager
 import com.sahatakip.util.BiometricStatus
 import com.sahatakip.util.tr
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -42,6 +45,37 @@ fun SettingsScreen(
 
     val bioManager = remember { BiometricPromptManager(context) }
     val bioAvailability = remember { bioManager.checkBiometricAvailability() }
+
+    SettingsScreenContent(
+        currentLang = currentLang,
+        currentInterval = currentInterval,
+        currentTheme = currentTheme,
+        serverUrl = serverUrl,
+        bioAvailability = bioAvailability,
+        bioManager = bioManager,
+        windowWidthSizeClass = windowWidthSizeClass,
+        onSetLanguage = { viewModel.setLanguage(it) },
+        onSetTheme = { viewModel.setTheme(it) },
+        onSetUpdateInterval = { viewModel.setUpdateInterval(it) },
+        onSetMockServerUrl = { viewModel.setMockServerUrl(it) }
+    )
+}
+
+@Composable
+fun SettingsScreenContent(
+    currentLang: String,
+    currentInterval: Int,
+    currentTheme: String,
+    serverUrl: String,
+    bioAvailability: BiometricStatus,
+    bioManager: BiometricPromptManager,
+    windowWidthSizeClass: WindowWidthSizeClass,
+    onSetLanguage: (String) -> Unit,
+    onSetTheme: (String) -> Unit,
+    onSetUpdateInterval: (Int) -> Unit,
+    onSetMockServerUrl: (String) -> Unit,
+) {
+    val context = LocalContext.current
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -68,16 +102,20 @@ fun SettingsScreen(
             }
 
             if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
-                SettingsContent(viewModel, currentLang, currentInterval, currentTheme, serverUrl, bioAvailability, bioManager, context)
+                SettingsBody(
+                    currentLang, currentInterval, currentTheme, serverUrl,
+                    bioAvailability, bioManager, context,
+                    onSetLanguage, onSetTheme, onSetUpdateInterval, onSetMockServerUrl
+                )
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        AppearanceSettings(viewModel, currentLang, currentTheme)
+                        AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme)
                         Spacer(modifier = Modifier.height(24.dp))
                         SecuritySettings(bioAvailability, bioManager, context)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        TrackingSettings(viewModel, currentInterval, serverUrl)
+                        TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl)
                     }
                 }
             }
@@ -88,25 +126,33 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsContent(
-    viewModel: SettingsViewModel,
+private fun SettingsBody(
     currentLang: String,
     currentInterval: Int,
     currentTheme: String,
     serverUrl: String,
     bioAvailability: BiometricStatus,
     bioManager: BiometricPromptManager,
-    context: android.content.Context
+    context: android.content.Context,
+    onSetLanguage: (String) -> Unit,
+    onSetTheme: (String) -> Unit,
+    onSetUpdateInterval: (Int) -> Unit,
+    onSetMockServerUrl: (String) -> Unit
 ) {
-    AppearanceSettings(viewModel, currentLang, currentTheme)
+    AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme)
     Spacer(modifier = Modifier.height(24.dp))
-    TrackingSettings(viewModel, currentInterval, serverUrl)
+    TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl)
     Spacer(modifier = Modifier.height(24.dp))
     SecuritySettings(bioAvailability, bioManager, context)
 }
 
 @Composable
-private fun AppearanceSettings(viewModel: SettingsViewModel, currentLang: String, currentTheme: String) {
+private fun AppearanceSettings(
+    currentLang: String,
+    currentTheme: String,
+    onSetLanguage: (String) -> Unit,
+    onSetTheme: (String) -> Unit
+) {
     SettingsSectionHeader(tr("Görünüm ve Dil", "Appearance & Language"))
     SettingsCard {
         SettingsRowItem(
@@ -114,8 +160,8 @@ private fun AppearanceSettings(viewModel: SettingsViewModel, currentLang: String
             icon = Icons.Default.Language
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LanguageChip("TR", currentLang == "tr") { viewModel.setLanguage("tr") }
-                LanguageChip("EN", currentLang == "en") { viewModel.setLanguage("en") }
+                LanguageChip("TR", currentLang == "tr") { onSetLanguage("tr") }
+                LanguageChip("EN", currentLang == "en") { onSetLanguage("en") }
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -124,16 +170,21 @@ private fun AppearanceSettings(viewModel: SettingsViewModel, currentLang: String
             icon = Icons.Default.Palette
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ThemeIconChip(Icons.Default.SettingsBrightness, currentTheme == "system") { viewModel.setTheme("system") }
-                ThemeIconChip(Icons.Default.LightMode, currentTheme == "light") { viewModel.setTheme("light") }
-                ThemeIconChip(Icons.Default.DarkMode, currentTheme == "dark") { viewModel.setTheme("dark") }
+                ThemeIconChip(Icons.Default.SettingsBrightness, currentTheme == "system") { onSetTheme("system") }
+                ThemeIconChip(Icons.Default.LightMode, currentTheme == "light") { onSetTheme("light") }
+                ThemeIconChip(Icons.Default.DarkMode, currentTheme == "dark") { onSetTheme("dark") }
             }
         }
     }
 }
 
 @Composable
-private fun TrackingSettings(viewModel: SettingsViewModel, currentInterval: Int, serverUrl: String) {
+private fun TrackingSettings(
+    currentInterval: Int,
+    serverUrl: String,
+    onSetUpdateInterval: (Int) -> Unit,
+    onSetMockServerUrl: (String) -> Unit
+) {
     var urlInput by remember { mutableStateOf(serverUrl) }
     SettingsSectionHeader(tr("Takip Yapılandırması", "Tracking Configuration"))
     SettingsCard {
@@ -154,7 +205,7 @@ private fun TrackingSettings(viewModel: SettingsViewModel, currentInterval: Int,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { viewModel.setUpdateInterval(sec) }
+                                    .clickable { onSetUpdateInterval(sec) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
                                 color = Color.Transparent
                             ) {
@@ -191,7 +242,7 @@ private fun TrackingSettings(viewModel: SettingsViewModel, currentInterval: Int,
                 )
             )
             Button(
-                onClick = { viewModel.setMockServerUrl(urlInput) },
+                onClick = { onSetMockServerUrl(urlInput) },
                 modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
@@ -201,6 +252,28 @@ private fun TrackingSettings(viewModel: SettingsViewModel, currentInterval: Int,
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsScreenPreview() {
+    val context = LocalContext.current
+    SahaTakipTheme {
+        SettingsScreenContent(
+            currentLang = "tr",
+            currentInterval = 60,
+            currentTheme = "system",
+            serverUrl = "https://mock.server.com.tr",
+            bioAvailability = BiometricStatus.Available,
+            bioManager = BiometricPromptManager(context),
+            windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onSetLanguage = {},
+            onSetTheme = {},
+            onSetUpdateInterval = {},
+            onSetMockServerUrl = {}
+        )
+    }
+}
+
 
 @Composable
 private fun SecuritySettings(bioAvailability: BiometricStatus, bioManager: BiometricPromptManager, context: android.content.Context) {

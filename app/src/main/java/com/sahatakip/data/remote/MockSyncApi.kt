@@ -30,7 +30,6 @@ data class SyncResponse(
 
 class MockSyncApi {
     suspend fun syncOfflineData(payload: SyncPayload): SyncResponse {
-        // Simulate network latency for realistic sync
         delay(1200.milliseconds)
         return SyncResponse(
             success = true,

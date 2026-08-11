@@ -81,29 +81,9 @@ class LocationTrackingService : Service() {
             .setOngoing(true)
             .build()
 
+        // Always call startForeground as soon as possible to avoid ForegroundServiceDidNotStartInTimeException
         try {
-            val hasFineLocation = androidx.core.content.ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            val hasCoarseLocation = androidx.core.content.ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-            if (!hasFineLocation && !hasCoarseLocation) {
-                android.util.Log.e("LocationTrackingService", "Starting service without location permissions. Stopping.")
-                stopSelf()
-                return
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    1001,
-                    notification,
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     1001,
                     notification,
@@ -118,6 +98,22 @@ class LocationTrackingService : Service() {
             } else {
                 android.util.Log.e("LocationTrackingService", "Failed to start foreground service: ${e.message}", e)
             }
+            stopSelf()
+            return
+        }
+
+        // Now check for permissions. If missing, we already called startForeground, so we can stop safely.
+        val hasFineLocation = androidx.core.content.ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarseLocation = androidx.core.content.ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasFineLocation && !hasCoarseLocation) {
+            android.util.Log.e("LocationTrackingService", "Service started without location permissions. Stopping.")
             stopSelf()
         }
     }
@@ -144,7 +140,7 @@ class LocationTrackingService : Service() {
     }
 
     private fun saveLocationToRepository(location: Location) {
-        if (location.latitude == 0.0 && location.longitude == 0.0) return
+        if ((location.latitude == 0.0) && (location.longitude == 0.0)) return
         
         serviceScope.launch {
             val address = addressMutex.withLock {

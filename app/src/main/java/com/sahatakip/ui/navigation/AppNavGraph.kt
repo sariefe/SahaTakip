@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -56,11 +56,12 @@ import com.sahatakip.util.tr
 
 @Composable
 fun AppNavGraph(
-    windowSizeClass: WindowSizeClass
+    windowSizeClass: WindowSizeClass,
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val trackingViewModel: TrackingViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val deviceViewModel: DeviceViewModel = hiltViewModel()
 
     val navController = rememberNavController()
     val userProfile by trackingViewModel.userProfile.collectAsStateWithLifecycle()
@@ -88,23 +89,22 @@ fun AppNavGraph(
     }
 
     val showBottomBar = currentRoute in bottomNavScreens.map { it.route }
-    val useNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact && showBottomBar
+    val useNavRail = (windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact) && showBottomBar
 
     CompositionLocalProvider(LocalLanguage provides currentLang) {
         Row(modifier = Modifier.fillMaxSize()) {
             if (useNavRail) {
                 AppNavRail(
                     currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        if (currentRoute != route) {
-                            navController.navigate(route) {
-                                popUpTo(startDestination) { saveState = true }
-                                launchSingleTop = true
-                                if (route != Screen.Dashboard.route) restoreState = true
-                            }
+                ) { route ->
+                    if (currentRoute != route) {
+                        navController.navigate(route) {
+                            popUpTo(startDestination) { saveState = true }
+                            launchSingleTop = true
+                            if (route != Screen.Dashboard.route) restoreState = true
                         }
                     }
-                )
+                }
             }
             
             Scaffold(
@@ -150,7 +150,6 @@ fun AppNavGraph(
                     }
 
                     composable(Screen.Dashboard.route) {
-                        val deviceViewModel: DeviceViewModel = hiltViewModel()
                         DashboardScreen(
                             deviceViewModel = deviceViewModel,
                             trackingViewModel = trackingViewModel,
@@ -201,6 +200,29 @@ fun AppBottomBar(
     startDestination: String,
     navController: NavController
 ) {
+    AppBottomBarContent(
+        currentRoute = currentRoute,
+        onNavigate = { screen ->
+            if (currentRoute != screen.route) {
+                navController.navigate(screen.route) {
+                    popUpTo(startDestination) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    if (screen.route != Screen.Dashboard.route) {
+                        restoreState = true
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun AppBottomBarContent(
+    currentRoute: String?,
+    onNavigate: (Screen) -> Unit
+) {
     NavigationBar(
         modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -211,19 +233,7 @@ fun AppBottomBar(
             NavigationBarItem(
                 selected = selected,
                 alwaysShowLabel = true,
-                onClick = {
-                    if (currentRoute != screen.route) {
-                        navController.navigate(screen.route) {
-                            popUpTo(startDestination) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            if (screen.route != Screen.Dashboard.route) {
-                                restoreState = true
-                            }
-                        }
-                    }
-                },
+                onClick = { onNavigate(screen) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,

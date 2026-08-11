@@ -33,7 +33,11 @@ import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.util.LocationUtils
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
+import com.google.android.gms.maps.model.JointType
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.RoundCap
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -106,9 +110,11 @@ fun CustomMapView(
                 mapToolbarEnabled = false
             )
         ) {
-            // Draw Route History in Segments to avoid long jumps
             val routeSegments = remember(locations) {
-                val validPoints = locations.filter { it.latitude != 0.0 && it.longitude != 0.0 }
+                val validPoints = locations.filter { 
+                    it.latitude != 0.0 && it.longitude != 0.0 && it.accuracy < 35f 
+                }
+                
                 val segments = mutableListOf<List<LatLng>>()
                 if (validPoints.isNotEmpty()) {
                     var currentSegment = mutableListOf<LatLng>()
@@ -139,13 +145,26 @@ fun CustomMapView(
                 }
                 segments
             }
+            val pattern = listOf(Gap(10f), Dash(20f))
 
             routeSegments.forEach { segment ->
                 if (segment.size > 1) {
                     Polyline(
                         points = segment,
-                        color = StatusBlue,
-                        width = 10f
+                        color = StatusBlue.copy(alpha = 0.8f),
+                        width = 12f,
+                        jointType = JointType.ROUND,
+                        startCap = RoundCap(),
+                        endCap = RoundCap()
+                    )
+                    
+                    // Directional Indicator Layer
+                    Polyline(
+                        points = segment,
+                        color = Color.White.copy(alpha = 0.4f),
+                        width = 4f,
+                        pattern = pattern,
+                        jointType = JointType.ROUND
                     )
                 }
             }
@@ -185,11 +204,36 @@ fun CustomMapView(
 
             // Active Marker (Live or Playback)
             activeLocation?.let { loc ->
+                val rotation = remember(loc, locations) {
+                    calculateRotation(loc, locations)
+                }
+
                 Marker(
                     state = rememberUpdatedMarkerState(position = LatLng(loc.latitude, loc.longitude)),
-                    title = if (playbackLocation != null) "Playback" else "Live Location",
-                    snippet = loc.address
+                    title = if (playbackLocation != null) "Oynatma" else "Canlı Konum",
+                    snippet = loc.address,
+                    rotation = rotation,
+                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
                 )
+            }
+            // Start and End markers for the whole path
+            if (locations.isNotEmpty()) {
+                val start = locations.first()
+                val end = locations.last()
+                
+                Marker(
+                    state = rememberUpdatedMarkerState(position = LatLng(start.latitude, start.longitude)),
+                    title = "Başlangıç Noktası",
+                    alpha = 0.7f
+                )
+
+                if (activeLocation != end) {
+                    Marker(
+                        state = rememberUpdatedMarkerState(position = LatLng(end.latitude, end.longitude)),
+                        title = "Bitiş Noktası",
+                        alpha = 0.7f
+                    )
+                }
             }
         }
 
@@ -224,6 +268,32 @@ fun CustomMapView(
             }
         }
     }
+}
+
+/**
+ * Calculates the bearing between two locations in degrees.
+ */
+private fun calculateRotation(current: LocationEntity, allLocations: List<LocationEntity>): Float {
+    if (allLocations.size < 2) return 0f
+    
+    // Find the previous point to determine direction
+    val currentIndex = allLocations.indexOf(current)
+    if (currentIndex <= 0) return 0f
+    
+    val prev = allLocations[currentIndex - 1]
+    
+    val lat1 = Math.toRadians(prev.latitude)
+    val lon1 = Math.toRadians(prev.longitude)
+    val lat2 = Math.toRadians(current.latitude)
+    val lon2 = Math.toRadians(current.longitude)
+    
+    val dLon = lon2 - lon1
+    val y = kotlin.math.sin(dLon) * kotlin.math.cos(lat2)
+    val x = kotlin.math.cos(lat1) * kotlin.math.sin(lat2) -
+            kotlin.math.sin(lat1) * kotlin.math.cos(lat2) * kotlin.math.cos(dLon)
+    
+    val bearing = Math.toDegrees(kotlin.math.atan2(y, x))
+    return bearing.toFloat()
 }
 
 @Composable

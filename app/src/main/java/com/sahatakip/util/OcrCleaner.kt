@@ -29,7 +29,6 @@ object OcrCleaner {
                 // Common noise characters in names
                 .replace('|', 'I')
                 .replace('$', 'S')
-                // Be extremely explicit with Turkish characters in regex (I = \u0049, İ = \u0130)
                 .replace(Regex("[^A-ZÇĞÖŞÜ\u0130 ]"), "")
         }
         
@@ -41,10 +40,6 @@ object OcrCleaner {
      */
     private fun fixTurkishCharacters(text: String): String {
         return text
-            .replace("\u015E", "\u015E") // Ş
-            .replace("\u011E", "\u011E") // Ğ
-            .replace("\u0130", "\u0130") // İ
-            .replace("\u0049", "\u0049") // I
             // Heuristics for common failures
             .replace("S,", "\u015E")
             .replace("C,", "\u00C7")

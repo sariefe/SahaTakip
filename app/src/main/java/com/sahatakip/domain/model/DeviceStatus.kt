@@ -1,7 +1,10 @@
 package com.sahatakip.domain.model
 
+import com.sahatakip.util.ConnectionType
+
 data class DeviceStatus(
     val isInternetConnected: Boolean = true,
+    val connectionType: ConnectionType = ConnectionType.None,
     val isGpsEnabled: Boolean = true,
     val isBackgroundLocationGranted: Boolean = true,
     val isNotificationGranted: Boolean = true,
@@ -13,8 +16,4 @@ data class DeviceStatus(
 ) {
     val hasMissingCriticalPermissions: Boolean
         get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted || !isBatteryOptimizationIgnored || isPowerSaveModeActive
-
-    val isBackgroundExecutionOk: Boolean
-        get() = isBackgroundLocationGranted && isBatteryOptimizationIgnored && !isPowerSaveModeActive
-
 }

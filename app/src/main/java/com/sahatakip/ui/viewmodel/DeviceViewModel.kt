@@ -8,10 +8,13 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import com.sahatakip.domain.model.DeviceStatus
 import com.sahatakip.domain.repository.EventRepository
 import com.sahatakip.domain.repository.SyncRepository
+import com.sahatakip.util.ConnectionType
+import com.sahatakip.util.ConnectivityStatus
 import com.sahatakip.util.PermissionUtils
 import com.sahatakip.util.SecurityUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,26 +78,35 @@ class DeviceViewModel @Inject constructor(
         updateDeviceStatus()
         
         viewModelScope.launch {
-            connectivityObserver.observe().collect { status ->
-                val isOnline = status == com.sahatakip.util.ConnectivityStatus.Available
-                _deviceStatus.value = _deviceStatus.value.copy(isInternetConnected = isOnline)
+            connectivityObserver.observe().collect { (status, type) ->
+                val isOnline = status == ConnectivityStatus.Available
+                _deviceStatus.value = _deviceStatus.value.copy(
+                    isInternetConnected = isOnline,
+                    connectionType = type
+                )
                 if (isOnline) triggerOfflineSync()
             }
         }
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             gpsReceiver,
-            IntentFilter(android.location.LocationManager.PROVIDERS_CHANGED_ACTION)
+            IntentFilter(android.location.LocationManager.PROVIDERS_CHANGED_ACTION),
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             powerReceiver,
-            IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             batteryReceiver,
-            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
     }
 
@@ -113,13 +125,22 @@ class DeviceViewModel @Inject constructor(
     fun updateDeviceStatus() {
         viewModelScope.launch {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
-            val isOnline = (capabilities != null) &&
-                    (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+            val activeNetwork = cm.activeNetwork
+            val capabilities = cm.getNetworkCapabilities(activeNetwork)
+            
+            val type = when {
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> ConnectionType.Wifi
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> ConnectionType.Cellular
+                else -> ConnectionType.None
+            }
+            val isOnline = type != ConnectionType.None
 
-            val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            val batteryIntent = ContextCompat.registerReceiver(
+                context,
+                null,
+                IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
             val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 85
             val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
             val batteryPct = if ((level >= 0) && (scale > 0)) (level * 100 / scale.toFloat()).toInt() else 85
@@ -132,6 +153,7 @@ class DeviceViewModel @Inject constructor(
 
             _deviceStatus.value = DeviceStatus(
                 isInternetConnected = isOnline,
+                connectionType = type,
                 isGpsEnabled = PermissionUtils.isGpsEnabled(context) && PermissionUtils.hasLocationPermissions(context),
                 isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
                 isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
@@ -160,7 +182,11 @@ class DeviceViewModel @Inject constructor(
 
     fun toggleInternetSimulation() {
         val nextOnline = !_deviceStatus.value.isInternetConnected
-        _deviceStatus.value = _deviceStatus.value.copy(isInternetConnected = nextOnline)
+        val nextType = if (nextOnline) ConnectionType.Wifi else ConnectionType.None
+        _deviceStatus.value = _deviceStatus.value.copy(
+            isInternetConnected = nextOnline,
+            connectionType = nextType
+        )
         viewModelScope.launch {
             if (!nextOnline) {
                 eventRepository.addEventLog(

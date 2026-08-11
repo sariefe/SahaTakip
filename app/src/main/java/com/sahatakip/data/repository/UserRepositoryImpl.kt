@@ -35,14 +35,11 @@ class UserRepositoryImpl @Inject constructor(
                     firstName = "Ömer",
                     lastName = "Saha",
                     fullName = "Ömer Saha",
-                    position = "Saha Teknisyeni",
                     department = "SAHA",
                     staffId = "ID-2026-DEMO",
-                    roleTitle = "Saha Personeli (Demo)",
                     activationCode = PreferencesManager.DEFAULT_ACTIVATION_CODE,
                     isActivated = false,
                     isBiometricEnabled = true,
-                    isCheckedIn = false,
                 )
             )
         }

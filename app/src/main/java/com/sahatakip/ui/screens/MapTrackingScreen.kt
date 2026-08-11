@@ -70,6 +70,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.sahatakip.ui.theme.SahaTakipTheme
+import com.sahatakip.data.local.entity.GeofenceZoneEntity
+import com.sahatakip.ui.viewmodel.PlaybackState
+
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,9 +87,44 @@ fun MapTrackingScreen(
     val geofences by viewModel.allGeofences.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
+    MapTrackingScreenContent(
+        locations = locations,
+        latestLoc = latestLoc,
+        geofences = geofences,
+        playbackState = playbackState,
+        windowWidthSizeClass = windowWidthSizeClass,
+        onSetPlaybackSpeed = { viewModel.setPlaybackSpeed(it) },
+        onSeekPlayback = { viewModel.seekPlaybackProgress(it) },
+        onStartPlayback = { viewModel.startRoutePlayback() },
+        onPausePlayback = { viewModel.pauseRoutePlayback() },
+        onAddGeofence = { name, lat, lng, radius -> viewModel.addGeofenceZone(name, lat, lng, radius) },
+        onDeleteGeofence = { viewModel.deleteGeofence(it) },
+        onUpdateGeofence = { id, name, radius -> viewModel.updateGeofenceZone(id, name, radius) },
+        onToggleGeofence = { id, active -> viewModel.toggleGeofenceActive(id, active) }
+    )
+}
+
+@SuppressLint("DefaultLocale")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MapTrackingScreenContent(
+    locations: List<LocationEntity>,
+    latestLoc: LocationEntity?,
+    geofences: List<GeofenceZoneEntity>,
+    playbackState: PlaybackState,
+    windowWidthSizeClass: WindowWidthSizeClass,
+    onSetPlaybackSpeed: (Float) -> Unit,
+    onSeekPlayback: (Float) -> Unit,
+    onStartPlayback: () -> Unit,
+    onPausePlayback: () -> Unit,
+    onAddGeofence: (String, Double, Double, Double) -> Unit,
+    onDeleteGeofence: (Long) -> Unit,
+    onUpdateGeofence: (Long, String, Double) -> Unit,
+    onToggleGeofence: (Long, Boolean) -> Unit
+) {
     var showAddGeofenceDialog by remember { mutableStateOf(value = false) }
     var geofenceToDelete by remember { mutableStateOf<Long?>(null) }
-    var geofenceToEdit by remember { mutableStateOf<com.sahatakip.data.local.entity.GeofenceZoneEntity?>(null) }
+    var geofenceToEdit by remember { mutableStateOf<GeofenceZoneEntity?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -92,7 +132,6 @@ fun MapTrackingScreen(
     ) {
         if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Interactive Map Area
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -101,7 +140,6 @@ fun MapTrackingScreen(
                     MapArea(locations, latestLoc, geofences, playbackState)
                 }
 
-                // Bottom Panel: Telemetry & Controls
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -112,13 +150,17 @@ fun MapTrackingScreen(
                         .padding(20.dp)
                 ) {
                     MapControls(
-                        viewModel = viewModel,
                         locations = locations,
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
                         onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it }
+                        onEditGeofence = { geofenceToEdit = it },
+                        onSetPlaybackSpeed = onSetPlaybackSpeed,
+                        onSeekPlayback = onSeekPlayback,
+                        onStartPlayback = onStartPlayback,
+                        onPausePlayback = onPausePlayback,
+                        onToggleGeofence = onToggleGeofence
                     )
                     
                     Spacer(modifier = Modifier.height(100.dp))
@@ -143,13 +185,17 @@ fun MapTrackingScreen(
                         .padding(20.dp)
                 ) {
                     MapControls(
-                        viewModel = viewModel,
                         locations = locations,
                         playbackState = playbackState,
                         geofences = geofences,
                         onAddGeofence = { showAddGeofenceDialog = true },
                         onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it }
+                        onEditGeofence = { geofenceToEdit = it },
+                        onSetPlaybackSpeed = onSetPlaybackSpeed,
+                        onSeekPlayback = onSeekPlayback,
+                        onStartPlayback = onStartPlayback,
+                        onPausePlayback = onPausePlayback,
+                        onToggleGeofence = onToggleGeofence
                     )
                 }
             }
@@ -165,7 +211,7 @@ fun MapTrackingScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        geofenceToDelete?.let { viewModel.deleteGeofence(it) }
+                        geofenceToDelete?.let { onDeleteGeofence(it) }
                         geofenceToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = com.sahatakip.ui.theme.StatusRed),
@@ -188,7 +234,7 @@ fun MapTrackingScreen(
         ) { name, radius ->
             val lat = latestLoc?.latitude ?: 41.0082
             val lng = latestLoc?.longitude ?: 28.9784
-            viewModel.addGeofenceZone(name, lat, lng, radius)
+            onAddGeofence(name, lat, lng, radius)
             showAddGeofenceDialog = false
         }
     }
@@ -201,7 +247,7 @@ fun MapTrackingScreen(
             onDismiss = { geofenceToEdit = null },
             onConfirm = { name, radius ->
                 geofenceToEdit?.let {
-                    viewModel.updateGeofenceZone(it.id, name, radius)
+                    onUpdateGeofence(it.id, name, radius)
                 }
                 geofenceToEdit = null
             }
@@ -213,8 +259,8 @@ fun MapTrackingScreen(
 private fun MapArea(
     locations: List<LocationEntity>,
     latestLoc: LocationEntity?,
-    geofences: List<com.sahatakip.data.local.entity.GeofenceZoneEntity>,
-    playbackState: com.sahatakip.ui.viewmodel.PlaybackState,
+    geofences: List<GeofenceZoneEntity>,
+    playbackState: PlaybackState,
 ) {
     CustomMapView(
         locations = locations,
@@ -223,7 +269,6 @@ private fun MapArea(
         geofences = geofences
     )
 
-    // Premium Top Badge
     Card(
         modifier = Modifier
             .padding(16.dp),
@@ -253,15 +298,18 @@ private fun MapArea(
 @SuppressLint("DefaultLocale")
 @Composable
 private fun MapControls(
-    viewModel: TrackingViewModel,
     locations: List<LocationEntity>,
-    playbackState: com.sahatakip.ui.viewmodel.PlaybackState,
-    geofences: List<com.sahatakip.data.local.entity.GeofenceZoneEntity>,
+    playbackState: PlaybackState,
+    geofences: List<GeofenceZoneEntity>,
     onAddGeofence: () -> Unit,
     onDeleteGeofence: (Long) -> Unit,
-    onEditGeofence: (com.sahatakip.data.local.entity.GeofenceZoneEntity) -> Unit
+    onEditGeofence: (GeofenceZoneEntity) -> Unit,
+    onSetPlaybackSpeed: (Float) -> Unit,
+    onSeekPlayback: (Float) -> Unit,
+    onStartPlayback: () -> Unit,
+    onPausePlayback: () -> Unit,
+    onToggleGeofence: (Long, Boolean) -> Unit
 ) {
-    // QUICK TELEMETRY ROW
     val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
     val avgSpeed = remember(locations) {
         if (locations.isNotEmpty()) locations.asSequence().map { it.speed }.average() else 0.0
@@ -289,7 +337,6 @@ private fun MapControls(
 
     Spacer(modifier = Modifier.height(20.dp))
 
-    // COMPACT PLAYBACK CONTROLS
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -314,7 +361,7 @@ private fun MapControls(
                         Surface(
                             modifier = Modifier
                                 .padding(start = 4.dp)
-                                .clickable { viewModel.setPlaybackSpeed(multiplier.toFloat()) },
+                                .clickable { onSetPlaybackSpeed(multiplier.toFloat()) },
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
                         ) {
@@ -332,7 +379,7 @@ private fun MapControls(
 
             Slider(
                 value = playbackState.progress,
-                onValueChange = { viewModel.seekPlaybackProgress(it) },
+                onValueChange = { onSeekPlayback(it) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -349,8 +396,8 @@ private fun MapControls(
 
                 IconButton(
                     onClick = {
-                        if (playbackState.isPlaying) viewModel.pauseRoutePlayback()
-                        else viewModel.startRoutePlayback()
+                        if (playbackState.isPlaying) onPausePlayback()
+                        else onStartPlayback()
                     },
                     modifier = Modifier
                         .size(44.dp)
@@ -369,7 +416,6 @@ private fun MapControls(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    // GEOFENCE SECTION
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -392,13 +438,36 @@ private fun MapControls(
             zoneName = zone.name,
             details = "${tr("Yarıçap", "Radius")}: ${zone.radiusMeters.toInt()}m",
             isActive = zone.isActive,
-            onToggle = { active -> viewModel.toggleGeofenceActive(zone.id, active) },
+            onToggle = { active -> onToggleGeofence(zone.id, active) },
             onDelete = { onDeleteGeofence(zone.id) },
             onEdit = { onEditGeofence(zone) },
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun MapTrackingScreenPreview() {
+    SahaTakipTheme {
+        MapTrackingScreenContent(
+            locations = emptyList(),
+            latestLoc = null,
+            geofences = emptyList(),
+            playbackState = PlaybackState(),
+            windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onSetPlaybackSpeed = {},
+            onSeekPlayback = {},
+            onStartPlayback = {},
+            onPausePlayback = {},
+            onAddGeofence = { _, _, _, _ -> },
+            onDeleteGeofence = {},
+            onUpdateGeofence = { _, _, _ -> },
+            onToggleGeofence = { _, _ -> }
+        )
+    }
+}
+
 
 @Composable
 fun TelemetryCard(
@@ -561,7 +630,6 @@ fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
         val l1 = filteredLocations[i]
         val l2 = filteredLocations[i + 1]
         
-        // Skip huge jumps (e.g., > 100km in one step) which usually indicate GPS error
         val dist = calculateHaversine(l1.latitude, l1.longitude, l2.latitude, l2.longitude)
         if (dist < 100000.0) { // 100 km threshold
             totalMeters += dist
