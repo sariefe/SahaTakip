@@ -35,7 +35,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,11 +43,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -60,14 +56,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sahatakip.ui.viewmodel.AuthViewModel
 import com.sahatakip.util.OcrAnalyzer
-import com.sahatakip.util.OcrCardScanner
 import com.sahatakip.util.StaffCardPreset
 import com.sahatakip.util.tr
 import java.util.concurrent.Executors
@@ -83,7 +78,6 @@ fun OcrCameraScannerModal(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val haptic = LocalHapticFeedback.current
     
-    var selectedPreset by remember { mutableStateOf<StaffCardPreset?>(null) }
     val liveOcrResult by viewModel.ocrScanningState.collectAsStateWithLifecycle()
     val stability by viewModel.ocrStability.collectAsStateWithLifecycle()
     val detectedLines by viewModel.detectedLines.collectAsStateWithLifecycle()
@@ -209,7 +203,6 @@ fun OcrCameraScannerModal(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Live Bounding Box Overlays
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                             val canvasWidth = constraints.maxWidth.toFloat()
                             val canvasHeight = constraints.maxHeight.toFloat()
@@ -245,7 +238,7 @@ fun OcrCameraScannerModal(
                             }
                         }
 
-                        // ID Card Mockup Frame in Center (Semi-transparent overlay)
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(0.92f)
@@ -257,7 +250,6 @@ fun OcrCameraScannerModal(
                                     shape = RoundedCornerShape(12.dp)
                                 )
                         ) {
-                            // Moving Scan Line Animation
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -278,7 +270,6 @@ fun OcrCameraScannerModal(
                             )
                         }
 
-                        // Top Overlay Hint
                         Column(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
@@ -324,53 +315,21 @@ fun OcrCameraScannerModal(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = tr("Taranacak Kart Örneği / Test Personeli:", "Card Sample to Scan / Test Staff:"),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OcrCardScanner.availablePresets.chunked(2).forEach { rowPresets ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowPresets.forEach { preset ->
-                                val isSelected = selectedPreset == preset
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedPreset = preset },
-                                    label = { Text("${preset.title} (${preset.firstName})", fontSize = 11.sp) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 Button(
-                    onClick = { onScanStart(selectedPreset) },
+                    onClick = { onScanStart(null) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (liveOcrResult != null && selectedPreset == null) 
+                        containerColor = if (liveOcrResult != null) 
                             Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (liveOcrResult != null && selectedPreset == null)
+                        text = if (liveOcrResult != null)
                             tr("Tespit Edilen Kimliği Onayla", "Confirm Detected Identity")
                         else
                             tr("Kameradan Tara & OCR Bilgilerini Oku", "Scan Camera & Read OCR Info"),
@@ -379,7 +338,7 @@ fun OcrCameraScannerModal(
                     )
                 }
 
-                if (liveOcrResult != null && selectedPreset == null) {
+                if (liveOcrResult != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
                         onClick = { viewModel.clearOcrResult() },

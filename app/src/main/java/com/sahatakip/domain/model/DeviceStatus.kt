@@ -15,5 +15,5 @@ data class DeviceStatus(
     val isRooted: Boolean = false
 ) {
     val hasMissingCriticalPermissions: Boolean
-        get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted || !isBatteryOptimizationIgnored || isPowerSaveModeActive
+        get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted
 }

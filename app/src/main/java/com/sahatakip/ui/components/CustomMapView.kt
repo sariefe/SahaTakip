@@ -70,7 +70,6 @@ fun CustomMapView(
 
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
 
-    // Disable follow mode if user moves the map manually
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving && 
             (cameraPositionState.cameraMoveStartedReason == com.google.maps.android.compose.CameraMoveStartedReason.GESTURE)) {
@@ -270,9 +269,6 @@ fun CustomMapView(
     }
 }
 
-/**
- * Calculates the bearing between two locations in degrees.
- */
 private fun calculateRotation(current: LocationEntity, allLocations: List<LocationEntity>): Float {
     if (allLocations.size < 2) return 0f
     

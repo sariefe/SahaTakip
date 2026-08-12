@@ -109,7 +109,9 @@ fun LeaveRequestScreenContent(
     onSubmitRequest: (type: String, start: String, end: String, reason: String) -> Unit,
     onDeleteRequest: (Long) -> Unit
 ) {
-    var showForm by remember { mutableStateOf(value = false) }
+    var showForm by remember(windowWidthSizeClass) { 
+        mutableStateOf(windowWidthSizeClass != WindowWidthSizeClass.Compact) 
+    }
     var itemToDelete by remember { mutableStateOf<LeaveRequestEntity?>(null) }
 
     Surface(
@@ -154,40 +156,59 @@ fun LeaveRequestScreenContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
-                // Form Section (Compact)
-                AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
-                    LeaveSubmitFormComponent(
-                        onSubmit = { start, end, newDesc, _, newType ->
-                            onSubmitRequest(newType, start, end, newDesc)
-                            showForm = false
-                        }
-                    ) {
-                        showForm = false
-                    }
-                }
-
-                if (!showForm) {
-                    if (dbRequests.isEmpty()) {
-                        EmptyListMessage()
-                    } else {
-                        RequestList(dbRequests) { itemToDelete = it }
-                    }
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                if (windowWidthSizeClass != WindowWidthSizeClass.Compact) {
                     Column(modifier = Modifier.weight(1f)) {
-                        LeaveSubmitFormComponent(
-                            onSubmit = { start, end, newDesc, _, newType ->
-                                onSubmitRequest(newType, start, end, newDesc)
+                        AnimatedVisibility(
+                            visible = showForm,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            LeaveSubmitFormComponent(
+                                isWide = true,
+                                onSubmit = { start, end, newDesc, _, newType ->
+                                    onSubmitRequest(newType, start, end, newDesc)
+                                    showForm = false
+                                }
+                            ) {
+                                showForm = false
                             }
-                        ) { /* No cancel needed in side-by-side */ }
+                        }
                     }
-                    Column(modifier = Modifier.weight(1.2f)) {
+
+                    Column(
+                        modifier = Modifier.weight(1.2f)
+                    ) {
                         if (dbRequests.isEmpty()) {
                             EmptyListMessage()
                         } else {
                             RequestList(dbRequests) { itemToDelete = it }
+                        }
+                    }
+                } else {
+                    // Mobile/Compact: Vertical layout, either Form or List
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        AnimatedVisibility(visible = showForm, enter = fadeIn(), exit = fadeOut()) {
+                            LeaveSubmitFormComponent(
+                                isWide = false,
+                                onSubmit = { start, end, newDesc, _, newType ->
+                                    onSubmitRequest(newType, start, end, newDesc)
+                                    showForm = false
+                                }
+                            ) {
+                                showForm = false
+                            }
+                        }
+
+                        if (!showForm) {
+                            if (dbRequests.isEmpty()) {
+                                EmptyListMessage()
+                            } else {
+                                RequestList(dbRequests) { itemToDelete = it }
+                            }
                         }
                     }
                 }
@@ -274,6 +295,7 @@ private fun RequestList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaveSubmitFormComponent(
+    isWide: Boolean = true,
     onSubmit: (startDate: String, endDate: String, description: String, status: String, type: String) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -398,42 +420,83 @@ fun LeaveSubmitFormComponent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(modifier = Modifier.weight(1f).clickable { showStartDatePicker = true }) {
-                    OutlinedTextField(
-                        value = startDate.format(dateFormatter),
-                        onValueChange = { },
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text(tr("Başlangıç", "Start Date")) },
-                        trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            if (isWide) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.weight(1f).clickable { showStartDatePicker = true }) {
+                        OutlinedTextField(
+                            value = startDate.format(dateFormatter),
+                            onValueChange = { },
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text(tr("Başlangıç", "Start Date")) },
+                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
+                    Box(modifier = Modifier.weight(1f).clickable { showEndDatePicker = true }) {
+                        OutlinedTextField(
+                            value = endDate.format(dateFormatter),
+                            onValueChange = { },
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text(tr("Bitiş", "End Date")) },
+                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
                 }
-                Box(modifier = Modifier.weight(1f).clickable { showEndDatePicker = true }) {
-                    OutlinedTextField(
-                        value = endDate.format(dateFormatter),
-                        onValueChange = { },
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text(tr("Bitiş", "End Date")) },
-                        trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showStartDatePicker = true }) {
+                        OutlinedTextField(
+                            value = startDate.format(dateFormatter),
+                            onValueChange = { },
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text(tr("Başlangıç", "Start Date")) },
+                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showEndDatePicker = true }) {
+                        OutlinedTextField(
+                            value = endDate.format(dateFormatter),
+                            onValueChange = { },
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text(tr("Bitiş", "End Date")) },
+                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
                 }
             }
 
@@ -507,13 +570,19 @@ fun LeaveRequestCardItem(item: LeaveRequestEntity, onDelete: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = item.requestType, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     val dateText = if (item.startDate == item.endDate) item.startDate else "${item.startDate} - ${item.endDate}"
                     Text(text = dateText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 }
                 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Surface(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
                     Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))

@@ -1,6 +1,7 @@
 package com.sahatakip.ui.screens
 
 import android.annotation.SuppressLint
+import android.location.Location
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sahatakip.data.local.entity.LocationEntity
@@ -65,10 +67,6 @@ import com.sahatakip.ui.components.CustomMapView
 import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.ui.viewmodel.TrackingViewModel
 import com.sahatakip.util.tr
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 import androidx.compose.ui.tooling.preview.Preview
 import com.sahatakip.ui.theme.SahaTakipTheme
@@ -126,77 +124,101 @@ fun MapTrackingScreenContent(
     var geofenceToDelete by remember { mutableStateOf<Long?>(null) }
     var geofenceToEdit by remember { mutableStateOf<GeofenceZoneEntity?>(null) }
 
+
+    val controlsContent: @Composable () -> Unit = {
+        MapControls(
+            locations = locations,
+            playbackState = playbackState,
+            geofences = geofences,
+            onAddGeofence = { showAddGeofenceDialog = true },
+            onDeleteGeofence = { geofenceToDelete = it },
+            onEditGeofence = { geofenceToEdit = it },
+            onSetPlaybackSpeed = onSetPlaybackSpeed,
+            onSeekPlayback = onSeekPlayback,
+            onStartPlayback = onStartPlayback,
+            onPausePlayback = onPausePlayback,
+            onToggleGeofence = onToggleGeofence
+        )
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        if (windowWidthSizeClass == WindowWidthSizeClass.Compact) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1.2f),
-                ) {
-                    MapArea(locations, latestLoc, geofences, playbackState)
-                }
+        when (windowWidthSizeClass) {
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp)
-                ) {
-                    MapControls(
-                        locations = locations,
-                        playbackState = playbackState,
-                        geofences = geofences,
-                        onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it },
-                        onSetPlaybackSpeed = onSetPlaybackSpeed,
-                        onSeekPlayback = onSeekPlayback,
-                        onStartPlayback = onStartPlayback,
-                        onPausePlayback = onPausePlayback,
-                        onToggleGeofence = onToggleGeofence
-                    )
-                    
-                    Spacer(modifier = Modifier.height(100.dp))
+
+            WindowWidthSizeClass.Compact -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1.2f),
+                    ) {
+                        MapArea(locations, latestLoc, geofences, playbackState)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                    ) {
+                        controlsContent()
+                        Spacer(modifier = Modifier.height(100.dp))
+                    }
                 }
             }
-        } else {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1.5f)
-                        .fillMaxHeight()
-                ) {
-                    MapArea(locations, latestLoc, geofences, playbackState)
-                }
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp)
-                ) {
-                    MapControls(
-                        locations = locations,
-                        playbackState = playbackState,
-                        geofences = geofences,
-                        onAddGeofence = { showAddGeofenceDialog = true },
-                        onDeleteGeofence = { geofenceToDelete = it },
-                        onEditGeofence = { geofenceToEdit = it },
-                        onSetPlaybackSpeed = onSetPlaybackSpeed,
-                        onSeekPlayback = onSeekPlayback,
-                        onStartPlayback = onStartPlayback,
-                        onPausePlayback = onPausePlayback,
-                        onToggleGeofence = onToggleGeofence
-                    )
+            WindowWidthSizeClass.Medium -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1.3f),
+                    ) {
+                        MapArea(locations, latestLoc, geofences, playbackState)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .verticalScroll(rememberScrollState())
+                            // Tablet dikey için yatay padding artırıldı — yazılar nefes alıyor
+                            .padding(horizontal = 32.dp, vertical = 24.dp)
+                    ) {
+                        controlsContent()
+                        Spacer(modifier = Modifier.height(40.dp))
+                    }
+                }
+            }
+
+            else -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .fillMaxHeight()
+                    ) {
+                        MapArea(locations, latestLoc, geofences, playbackState)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp, vertical = 20.dp)
+                    ) {
+                        controlsContent()
+                    }
                 }
             }
         }
@@ -446,9 +468,9 @@ private fun MapControls(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Compact - Telefon")
 @Composable
-fun MapTrackingScreenPreview() {
+fun MapTrackingScreenPreviewCompact() {
     SahaTakipTheme {
         MapTrackingScreenContent(
             locations = emptyList(),
@@ -456,6 +478,50 @@ fun MapTrackingScreenPreview() {
             geofences = emptyList(),
             playbackState = PlaybackState(),
             windowWidthSizeClass = WindowWidthSizeClass.Compact,
+            onSetPlaybackSpeed = {},
+            onSeekPlayback = {},
+            onStartPlayback = {},
+            onPausePlayback = {},
+            onAddGeofence = { _, _, _, _ -> },
+            onDeleteGeofence = {},
+            onUpdateGeofence = { _, _, _ -> },
+            onToggleGeofence = { _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Medium - Tablet Dikey", widthDp = 700, heightDp = 1000)
+@Composable
+fun MapTrackingScreenPreviewMedium() {
+    SahaTakipTheme {
+        MapTrackingScreenContent(
+            locations = emptyList(),
+            latestLoc = null,
+            geofences = emptyList(),
+            playbackState = PlaybackState(),
+            windowWidthSizeClass = WindowWidthSizeClass.Medium,
+            onSetPlaybackSpeed = {},
+            onSeekPlayback = {},
+            onStartPlayback = {},
+            onPausePlayback = {},
+            onAddGeofence = { _, _, _, _ -> },
+            onDeleteGeofence = {},
+            onUpdateGeofence = { _, _, _ -> },
+            onToggleGeofence = { _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Expanded - Tablet Yatay", widthDp = 1000, heightDp = 700)
+@Composable
+fun MapTrackingScreenPreviewExpanded() {
+    SahaTakipTheme {
+        MapTrackingScreenContent(
+            locations = emptyList(),
+            latestLoc = null,
+            geofences = emptyList(),
+            playbackState = PlaybackState(),
+            windowWidthSizeClass = WindowWidthSizeClass.Expanded,
             onSetPlaybackSpeed = {},
             onSeekPlayback = {},
             onStartPlayback = {},
@@ -487,7 +553,13 @@ fun TelemetryCard(
             Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -526,11 +598,24 @@ fun GeofenceItem(
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = zoneName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(text = details, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    text = zoneName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = details,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            
+
             IconButton(onClick = onEdit) {
                 Icon(
                     imageVector = Icons.Default.Edit,
@@ -572,11 +657,11 @@ fun AddGeofenceDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
-        title = { 
+        title = {
             Text(
-                if (isEdit) tr("Bölgeyi Düzenle", "Edit Safe Zone") else tr("Yeni Güvenli Bölge", "New Safe Zone"), 
+                if (isEdit) tr("Bölgeyi Düzenle", "Edit Safe Zone") else tr("Yeni Güvenli Bölge", "New Safe Zone"),
                 fontWeight = FontWeight.Bold
-            ) 
+            )
         },
         text = {
             Column {
@@ -625,25 +710,17 @@ fun calculateTotalDistanceKm(locations: List<LocationEntity>): Double {
     var totalMeters = 0.0
     val filteredLocations = locations.filter { (it.latitude != 0.0) && (it.longitude != 0.0) }
     if (filteredLocations.size < 2) return 0.0
-    
+
+    val results = FloatArray(1)
     for (i in 0 until (filteredLocations.size - 1)) {
         val l1 = filteredLocations[i]
         val l2 = filteredLocations[i + 1]
-        
-        val dist = calculateHaversine(l1.latitude, l1.longitude, l2.latitude, l2.longitude)
-        if (dist < 100000.0) { // 100 km threshold
+
+        Location.distanceBetween(l1.latitude, l1.longitude, l2.latitude, l2.longitude, results)
+        val dist = results[0].toDouble()
+        if (dist < 100000.0) {
             totalMeters += dist
         }
     }
     return totalMeters / 1000.0
-}
-
-private fun calculateHaversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val rLat1 = Math.toRadians(lat1)
-    val rLat2 = Math.toRadians(lat2)
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLng = Math.toRadians(lon2 - lon1)
-    val a = (sin(dLat / 2) * sin(dLat / 2)) + (cos(rLat1) * cos(rLat2) * sin(dLng / 2) * sin(dLng / 2))
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return 6371000.0 * c
 }

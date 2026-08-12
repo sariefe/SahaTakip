@@ -17,10 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,10 +43,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sahatakip.ui.components.OcrCameraScannerModal
+import com.sahatakip.ui.theme.SahaTakipTheme
 import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.ui.theme.StatusRed
 import com.sahatakip.ui.viewmodel.AuthViewModel
@@ -55,8 +57,6 @@ import com.sahatakip.util.BiometricPromptManager
 import com.sahatakip.util.BiometricStatus
 import com.sahatakip.util.ScannedStaffCardResult
 import com.sahatakip.util.tr
-import androidx.compose.ui.tooling.preview.Preview
-import com.sahatakip.ui.theme.SahaTakipTheme
 
 @Composable
 fun BiometricLockScreen(
@@ -197,7 +197,7 @@ fun BiometricLockScreenContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Shield,
+                            imageVector = Icons.Default.AccountCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(56.dp)

@@ -225,12 +225,6 @@ fun DashboardScreenContent(
                                         context.startActivity(intent)
                                     } catch (_: Exception) {}
                                 }
-                                !deviceStatus.isBatteryOptimizationIgnored -> {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
-                                }
                             }
                         },
                     shape = RoundedCornerShape(20.dp),
@@ -245,12 +239,10 @@ fun DashboardScreenContent(
                             val (title, color) = when {
                                 deviceStatus.isRooted -> tr("Güvenlik Riski", "Security Risk") to StatusRed
                                 !deviceStatus.isGpsEnabled || !deviceStatus.isNotificationGranted || !deviceStatus.isBackgroundLocationGranted -> tr("Eksik İzinler", "Missing Permissions") to StatusRed
-                                deviceStatus.isPowerSaveModeActive || !deviceStatus.isBatteryOptimizationIgnored -> tr("Pil Kısıtlaması", "Battery Restriction") to StatusAmber
                                 else -> tr("Sistem Uyarısı", "System Warning") to StatusAmber
                             }
                             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
                             val desc = when {
-                                deviceStatus.isPowerSaveModeActive -> tr("Cihaz tasarruf modunda. Takip hassasiyeti azalabilir. Kapatmak için dokunun.", "Device in save mode. Tracking accuracy may decrease. Tap to disable.")
                                 deviceStatus.isRooted -> tr("Cihaz rootlu tespit edildi. Güvenlik politikaları gereği bazı özellikler kısıtlanmış olabilir.", "Device is rooted. Some features may be restricted due to security policies.")
                                 !deviceStatus.isGpsEnabled -> tr("Konum servisleri kapalı. Takip yapılamıyor.", "GPS is disabled. Tracking is unavailable.")
                                 !deviceStatus.isNotificationGranted -> tr("Bildirim izni eksik. Servis durumu takip edilemiyor.", "Notifications disabled. Service status cannot be monitored.")
@@ -672,7 +664,10 @@ fun StatusGridItem(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Box(
                     modifier = Modifier

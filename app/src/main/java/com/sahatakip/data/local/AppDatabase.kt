@@ -1,6 +1,14 @@
 package com.sahatakip.data.local
 
 import android.content.Context
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -16,9 +24,18 @@ import com.sahatakip.data.local.entity.LeaveRequestEntity
 import com.sahatakip.data.local.entity.LocationEntity
 import com.sahatakip.data.local.entity.OfflineActivityReportEntity
 import com.sahatakip.data.local.entity.UserProfileEntity
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import java.security.KeyStore
 import java.security.SecureRandom
-import androidx.core.content.edit
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+
+private val Context.dbKeyStore: DataStore<Preferences>
+        by preferencesDataStore(name = "db_key_store")
 
 @Database(
     entities = [
@@ -45,71 +62,93 @@ abstract class AppDatabase : RoomDatabase() {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
+        private val PREF_ENCRYPTED_PASS = stringPreferencesKey("enc_db_pass_v1")
 
-        private const val PREFS_NAME = "database_security"
-        private const val KEY_DB_PASSWORD = "db_password"
 
-        private fun generatePassword(): String {
-            val chars =
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        private const val KEYSTORE_ALIAS= "sahatakip_db_key"
+        private const val KEYSTORE_PROVIDER= "AndroidKeyStore"
+        private const val AES_GCM_TRANSFORMATION= "AES/GCM/NoPadding"
+        private const val GCM_TAG_LENGTH=128
+        private const val DB_PASSWORD_BYTES= 32
 
-            val random = SecureRandom()
+        private fun getOrCreateKeystoreKey(): SecretKey {
+            val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
+            keyStore.getKey(KEYSTORE_ALIAS, null)?.let { return it as SecretKey }
 
-            return (1..32)
-                .map {
-                    chars[random.nextInt(chars.length)]
-                }
-                .joinToString("")
+            val spec = KeyGenParameterSpec.Builder(
+                KEYSTORE_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .setRandomizedEncryptionRequired(true)
+                .build()
+
+            return KeyGenerator
+                .getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE_PROVIDER)
+                .apply { init(spec) }
+                .generateKey()
         }
 
+        private fun encrypt(plaintext: ByteArray): String {
+            val key = getOrCreateKeystoreKey()
+            val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION).apply {
+                init(Cipher.ENCRYPT_MODE, key)
+            }
+            val combined = cipher.iv + cipher.doFinal(plaintext)
+            return Base64.encodeToString(combined, Base64.NO_WRAP)
+        }
+
+        private fun decrypt(encryptedBase64: String): ByteArray {
+            val key = getOrCreateKeystoreKey()
+            val combined = Base64.decode(encryptedBase64, Base64.NO_WRAP)
+            val iv = combined.copyOfRange(0, 12)
+            val ciphertext = combined.copyOfRange(12, combined.size)
+
+            val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION).apply {
+                init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH, iv))
+            }
+            return cipher.doFinal(ciphertext)
+        }
         private fun getDatabasePassword(context: Context): String {
+            return runBlocking {
+                val prefs = context.applicationContext.dbKeyStore.data.first()
+                val stored = prefs[PREF_ENCRYPTED_PASS]
 
-            val prefs = context.getSharedPreferences(
-                PREFS_NAME,
-                Context.MODE_PRIVATE
-            )
+                if (stored != null) {
+                    decrypt(stored).joinToString("") { "%02x".format(it) }
+                } else {
+                    val rawPassword = ByteArray(DB_PASSWORD_BYTES)
+                        .also { SecureRandom().nextBytes(it) }
 
-            var password = prefs.getString(KEY_DB_PASSWORD, null)
+                    context.applicationContext.dbKeyStore.edit { ds ->
+                        ds[PREF_ENCRYPTED_PASS] = encrypt(rawPassword)
+                    }
 
-            if (password == null) {
-                password = generatePassword()
-
-                prefs.edit {
-                    putString(KEY_DB_PASSWORD, password)
+                    rawPassword.joinToString("") { "%02x".format(it) }
                 }
             }
-
-            return password
         }
-
         fun getDatabase(context: Context): AppDatabase {
-
             return INSTANCE ?: synchronized(this) {
+                INSTANCE?.let { return it }
 
                 System.loadLibrary("sqlcipher")
 
-                val password = getDatabasePassword(
-                    context.applicationContext
-                )
+                context.applicationContext.deleteDatabase("saha_takip_database")
+                val password = getDatabasePassword(context.applicationContext)
+                val factory = SupportOpenHelperFactory(password.toByteArray(Charsets.UTF_8))
 
-                val factory = SupportOpenHelperFactory(
-                    password.toByteArray()
-                )
-
-                val instance = Room.databaseBuilder(
+                Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "saha_takip_database"
                 )
                     .openHelperFactory(factory)
-                    .fallbackToDestructiveMigration(
-                        dropAllTables = true
-                    )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
-
-                INSTANCE = instance
-
-                instance
+                    .also { INSTANCE = it }
             }
         }
     }
