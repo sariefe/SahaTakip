@@ -59,8 +59,10 @@ class GeofenceRepositoryImplTest {
 
     @Test
     fun `checkGeofenceBreach triggers breach when outside active zone`() = runTest {
-        val lat = 41.0
-        val lng = 29.0
+        val latInside = 40.0
+        val lngInside = 28.0
+        val latOutside = 41.0
+        val lngOutside = 29.0
 
         val zone = GeofenceZoneEntity(
             id = 1,
@@ -73,10 +75,14 @@ class GeofenceRepositoryImplTest {
         
         coEvery { mockGeofenceDao.getActiveGeofences() } returns listOf(zone)
 
-        geofenceRepository.checkGeofenceBreach(lat, lng)
+        // First call to initialize state inside the zone
+        geofenceRepository.checkGeofenceBreach(latInside, lngInside)
+        
+        // Second call to trigger exit event
+        geofenceRepository.checkGeofenceBreach(latOutside, lngOutside)
 
-        coVerify { mockEventRepository.insertEventLog(match { it.type == "GEOFENCE_VIOLATION" }) }
-        verify { mockNotificationService.sendPrivacySafeAlert(any(), "Güvenlik & Bölge İhlali Uyarısı") }
+        coVerify { mockEventRepository.insertEventLog(match { it.type == "GEOFENCE_EXIT" }) }
+        verify { mockNotificationService.sendPrivacySafeAlert(any(), "Bölge Dışı Uyarısı") }
     }
 
     @Test

@@ -14,7 +14,10 @@ import java.util.UUID
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "saha_settings")
 
-class PreferencesManager(private val context: Context) {
+class PreferencesManager(
+    private val context: Context,
+    private val dataStore: DataStore<Preferences> = context.dataStore
+) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -29,29 +32,29 @@ class PreferencesManager(private val context: Context) {
         const val DEFAULT_ACTIVATION_CODE = "SAHA2026"
     }
 
-    val language: StateFlow<String> = context.dataStore.data
+    val language: StateFlow<String> = dataStore.data
         .map { it[KEY_LANGUAGE] ?: "tr" }
         .stateIn(scope, SharingStarted.Eagerly, "tr")
 
-    val updateInterval: StateFlow<Int> = context.dataStore.data
+    val updateInterval: StateFlow<Int> = dataStore.data
         .map { it[KEY_UPDATE_INTERVAL] ?: 60 }
         .stateIn(scope, SharingStarted.Eagerly, 60)
 
-    val theme: StateFlow<String> = context.dataStore.data
+    val theme: StateFlow<String> = dataStore.data
         .map { it[KEY_THEME] ?: "system" }
         .stateIn(scope, SharingStarted.Eagerly, "system")
 
-    val mockServerUrl: StateFlow<String> = context.dataStore.data
+    val mockServerUrl: StateFlow<String> = dataStore.data
         .map { it[KEY_SERVER_URL] ?: "https://mock-api.example.com/v1/telemetry/sync" }
         .stateIn(scope, SharingStarted.Eagerly, "https://mock-api.example.com/v1/telemetry/sync")
 
-    val deviceId: StateFlow<String> = context.dataStore.data
+    val deviceId: StateFlow<String> = dataStore.data
         .map { enc ->
             enc[KEY_DEVICE_ID_ENC]?.let { SecurityUtils.decrypt(it) } ?: ""
         }
         .stateIn(scope, SharingStarted.Eagerly, "")
 
-    val dynamicActivationCode: StateFlow<String?> = context.dataStore.data
+    val dynamicActivationCode: StateFlow<String?> = dataStore.data
         .map { enc ->
             enc[KEY_DYNAMIC_CODE_ENC]?.let { SecurityUtils.decrypt(it) }
         }
@@ -67,33 +70,32 @@ class PreferencesManager(private val context: Context) {
             if (current.isBlank()) {
                 val newId = UUID.randomUUID().toString()
                 val encryptedId = SecurityUtils.encrypt(newId)
-                context.dataStore.edit { it[KEY_DEVICE_ID_ENC] = encryptedId }
+                dataStore.edit { it[KEY_DEVICE_ID_ENC] = encryptedId }
             }
         }
     }
 
     fun setLanguage(lang: String) {
         scope.launch {
-            context.dataStore.edit { it[KEY_LANGUAGE] = lang }
+            dataStore.edit { it[KEY_LANGUAGE] = lang }
         }
     }
 
     fun setUpdateInterval(seconds: Int) {
         scope.launch {
-            context.dataStore.edit { it[KEY_UPDATE_INTERVAL] = seconds }
+            dataStore.edit { it[KEY_UPDATE_INTERVAL] = seconds }
         }
     }
 
     fun setTheme(themeMode: String) {
         scope.launch {
-            context.dataStore.edit { it[KEY_THEME] = themeMode }
+            dataStore.edit { it[KEY_THEME] = themeMode }
         }
     }
 
     fun setMockServerUrl(url: String) {
         scope.launch {
-            context.dataStore.edit { it[KEY_SERVER_URL] = url }
+            dataStore.edit { it[KEY_SERVER_URL] = url }
         }
     }
-
 }

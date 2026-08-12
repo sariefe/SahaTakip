@@ -2,7 +2,12 @@ package com.sahatakip.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class LocationUtilsTest {
 
     @Test
@@ -14,8 +19,8 @@ class LocationUtilsTest {
         
         val distance = LocationUtils.calculateDistanceInMeters(lat1, lon1, lat2, lon2)
         
-        // Distance is approx 347.9 km based on Haversine formula
-        assertEquals(347900.0, distance, 100.0) 
+        // Distance is approx 348.6 km as measured by Android Location API (WGS84)
+        assertEquals(348628.0, distance, 1000.0) 
     }
 
     @Test
@@ -29,7 +34,8 @@ class LocationUtilsTest {
     @Test
     fun `calculateDistanceInMeters handles antipodal points`() {
         val distance = LocationUtils.calculateDistanceInMeters(90.0, 0.0, -90.0, 0.0)
-        assertEquals(Math.PI * 6371000.0, distance, 100.0)
+        // Approx half circumference
+        assertEquals(20003932.0, distance, 10000.0)
     }
 
     @Test

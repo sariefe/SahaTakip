@@ -25,8 +25,8 @@ class EventLogsScreenTest {
     fun testEventLogsScreenContent() {
         val mockViewModel = mockk<RequestLogViewModel>(relaxed = true)
         val logs = listOf(
-            EventLogEntity(id = 1, type = "INFO", title = "Log 1", detail = "Detail 1", timestamp = System.currentTimeMillis()),
-            EventLogEntity(id = 2, type = "WARNING", title = "Log 2", detail = "Detail 2", timestamp = System.currentTimeMillis())
+            EventLogEntity(id = 1, type = "INFO", title = "Log 1", detail = "Detail 1", timestamp = System.currentTimeMillis(), isSensitive = false),
+            EventLogEntity(id = 2, type = "WARNING", title = "Log 2", detail = "Detail 2", timestamp = System.currentTimeMillis(), isSensitive = false)
         )
         
         every { mockViewModel.allEventLogs } returns MutableStateFlow(logs)

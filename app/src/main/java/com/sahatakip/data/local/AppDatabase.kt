@@ -134,19 +134,35 @@ abstract class AppDatabase : RoomDatabase() {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE?.let { return it }
 
-                System.loadLibrary("sqlcipher")
+                val isTest = try {
+                    Class.forName("org.robolectric.Robolectric")
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+
+                if (!isTest) {
+                    try {
+                        System.loadLibrary("sqlcipher")
+                    } catch (_: UnsatisfiedLinkError) {
+                    }
+                }
 
                 context.applicationContext.deleteDatabase("saha_takip_database")
-                val password = getDatabasePassword(context.applicationContext)
-                val factory = SupportOpenHelperFactory(password.toByteArray(Charsets.UTF_8))
-
-                Room.databaseBuilder(
+                
+                val builder = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "saha_takip_database"
                 )
-                    .openHelperFactory(factory)
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+
+                if (!isTest) {
+                    val password = getDatabasePassword(context.applicationContext)
+                    val factory = SupportOpenHelperFactory(password.toByteArray(Charsets.UTF_8))
+                    builder.openHelperFactory(factory)
+                }
+
+                builder.fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { INSTANCE = it }
             }

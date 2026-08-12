@@ -17,8 +17,13 @@ import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SyncRepositoryImplTest {
 
     @MockK lateinit var mockLocationRepository: LocationRepository
@@ -36,7 +41,11 @@ class SyncRepositoryImplTest {
         coEvery { mockLocationRepository.getUnsyncedLocations() } returns emptyList()
         coEvery { mockEventRepository.getUnsyncedLogs() } returns emptyList()
         coEvery { mockOfflineDao.getUnsyncedReports() } returns emptyList()
+        
+        // Use relaxed mock for preferences manager to avoid "no answer found" issues
+        mockPreferencesManager = mockk(relaxed = true)
         every { mockPreferencesManager.language } returns MutableStateFlow("tr")
+        every { mockPreferencesManager.deviceId } returns MutableStateFlow("test-device-id")
 
         syncRepository = SyncRepositoryImpl(
             mockLocationRepository,

@@ -1,6 +1,7 @@
 package com.sahatakip.data.local
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -11,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -23,21 +25,28 @@ class PreferencesManagerTest {
     @Before
     fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        preferencesManager = PreferencesManager(context)
+
+        val testFile = File(context.filesDir, "test_datastore_${System.nanoTime()}.preferences_pb")
+        val dataStore = PreferenceDataStoreFactory.create(
+            produceFile = { testFile }
+        )
+        
+        preferencesManager = PreferencesManager(context, dataStore)
     }
 
     @Test
     fun `setLanguage updates StateFlow`() = runTest {
         preferencesManager.setLanguage("en")
-        
-        // Verify StateFlow
-        assertEquals("en", preferencesManager.language.first())
+
+        val result = preferencesManager.language.first { it == "en" }
+        assertEquals("en", result)
     }
 
     @Test
     fun `setUpdateInterval updates StateFlow correctly`() = runTest {
         preferencesManager.setUpdateInterval(120)
-        assertEquals(120, preferencesManager.updateInterval.value)
+        val result = preferencesManager.updateInterval.first { it == 120 }
+        assertEquals(120, result)
     }
 
     @Test

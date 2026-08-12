@@ -18,35 +18,42 @@ object SecurityUtils {
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
 
-    init {
-        generateMasterKeyIfNeeded()
-    }
-
     private fun generateMasterKeyIfNeeded() {
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        if (!keyStore.containsAlias(KEY_ALIAS)) {
-            val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-            keyGenerator.init(
-                KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                    .build(),
-            )
-            keyGenerator.generateKey()
+        try {
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+            if (!keyStore.containsAlias(KEY_ALIAS)) {
+                val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+                keyGenerator.init(
+                    KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .build(),
+                )
+                keyGenerator.generateKey()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SecurityUtils", "Failed to initialize AndroidKeyStore", e)
         }
     }
 
-    private fun getMasterKey(): SecretKey {
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        return (keyStore.getEntry(KEY_ALIAS, null) as KeyStore.SecretKeyEntry).secretKey
+    private fun getMasterKey(): SecretKey? {
+        return try {
+            generateMasterKeyIfNeeded()
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+            (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.secretKey
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
      * Encrypts a string using AES/GCM and returns a Base64 encoded string containing IV and cipher text.
      */
     fun encrypt(text: String): String {
+        val masterKey = getMasterKey() ?: return Base64.encodeToString(text.toByteArray(), Base64.DEFAULT)
+        
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, getMasterKey())
+        cipher.init(Cipher.ENCRYPT_MODE, masterKey)
         val iv = cipher.iv
         val encryptedBytes = cipher.doFinal(text.toByteArray(Charsets.UTF_8))
 
@@ -63,13 +70,15 @@ object SecurityUtils {
     fun decrypt(encryptedBase64: String): String? {
         return try {
             val combined = Base64.decode(encryptedBase64, Base64.DEFAULT)
+            val masterKey = getMasterKey() ?: return String(combined, Charsets.UTF_8)
+            
             val cipher = Cipher.getInstance(TRANSFORMATION)
             val ivSize = 12 // Standard GCM IV size
             val iv = combined.sliceArray(0 until ivSize)
             val encryptedBytes = combined.sliceArray(ivSize until combined.size)
 
             val spec = GCMParameterSpec(128, iv)
-            cipher.init(Cipher.DECRYPT_MODE, getMasterKey(), spec)
+            cipher.init(Cipher.DECRYPT_MODE, masterKey, spec)
             String(cipher.doFinal(encryptedBytes), Charsets.UTF_8)
         } catch (_: Exception) {
             null
@@ -91,6 +100,7 @@ object SecurityUtils {
             "/system/sd/xbin/su",
             "/system/bin/failsafe/su",
             "/data/local/su",
+            "/su/bin/su"
         )
         for (path in rootPaths) {
             try {
@@ -99,7 +109,23 @@ object SecurityUtils {
                 // Ignore permission issues for specific paths
             }
         }
+
+        // Check for test-keys
         val buildTags = android.os.Build.TAGS
-        (buildTags != null) && buildTags.contains("test-keys")
+        if (buildTags != null && buildTags.contains("test-keys")) return@withContext true
+
+        // Check su binary using shell
+        var process: Process? = null
+        try {
+            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            val reader = process.inputStream.bufferedReader()
+            if (reader.readLine() != null) return@withContext true
+        } catch (_: Throwable) {
+            // Ignore
+        } finally {
+            process?.destroy()
+        }
+
+        false
     }
 }

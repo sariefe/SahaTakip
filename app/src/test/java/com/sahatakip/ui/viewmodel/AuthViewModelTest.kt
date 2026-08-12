@@ -77,7 +77,7 @@ class AuthViewModelTest {
 
     @Test
     fun `activateWithCode returns true for correct code`() = runTest {
-        val result = viewModel.activateWithCode("123456")
+        val result = viewModel.activateWithCode(PreferencesManager.DEFAULT_ACTIVATION_CODE)
         assertTrue(result)
         assertTrue(viewModel.isAuthenticated.value)
         coVerify { userRepository.insertOrUpdateUser(any()) }

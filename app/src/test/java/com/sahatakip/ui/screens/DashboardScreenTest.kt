@@ -6,12 +6,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.sahatakip.data.local.entity.UserProfileEntity
 import com.sahatakip.domain.model.DeviceStatus
-import com.sahatakip.ui.viewmodel.AuthViewModel
-import com.sahatakip.ui.viewmodel.DeviceViewModel
-import com.sahatakip.ui.viewmodel.TrackingViewModel
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,24 +22,22 @@ class DashboardScreenTest {
 
     @Test
     fun testDashboardScreenContent() {
-        val mockDeviceViewModel = mockk<DeviceViewModel>(relaxed = true)
-        val mockTrackingViewModel = mockk<TrackingViewModel>(relaxed = true)
-        val mockAuthViewModel = mockk<AuthViewModel>(relaxed = true)
         val userProfile = UserProfileEntity(fullName = "Test User", staffId = "ID-123")
         
-        every { mockDeviceViewModel.deviceStatus } returns MutableStateFlow(DeviceStatus(batteryLevel = 85))
-        every { mockDeviceViewModel.isSyncing } returns MutableStateFlow(false)
-        every { mockTrackingViewModel.userProfile } returns MutableStateFlow(userProfile)
-        every { mockTrackingViewModel.latestLocation } returns MutableStateFlow(null)
-
         composeTestRule.setContent {
-            DashboardScreen(
-                deviceViewModel = mockDeviceViewModel,
-                trackingViewModel = mockTrackingViewModel,
-                authViewModel = mockAuthViewModel,
-                onNavigateToMap = {},
-                windowWidthSizeClass = WindowWidthSizeClass.Compact
-            )
+            com.sahatakip.ui.theme.SahaTakipTheme {
+                DashboardScreenContent(
+                    deviceStatus = DeviceStatus(batteryLevel = 85),
+                    userProfile = userProfile,
+                    latestLoc = null,
+                    isSyncing = false,
+                    syncError = null,
+                    windowWidthSizeClass = WindowWidthSizeClass.Compact,
+                    onNavigateToMap = {},
+                    onTriggerSync = {},
+                    onLogout = {}
+                )
+            }
         }
 
         // Verify user info

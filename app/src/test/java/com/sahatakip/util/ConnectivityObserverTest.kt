@@ -57,7 +57,7 @@ class ConnectivityObserverTest {
         val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
         every { mockConnectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } just Runs
 
-        val results = mutableListOf<ConnectivityStatus>()
+        val results = mutableListOf<Pair<ConnectivityStatus, ConnectionType>>()
         val job = launch(UnconfinedTestDispatcher()) {
             connectivityObserver.observe().toList(results)
         }
@@ -65,10 +65,7 @@ class ConnectivityObserverTest {
         // Trigger manual callback
         val mockNetwork = mockk<Network>()
         callbackSlot.captured.onAvailable(mockNetwork)
-
-        // The first emission is usually from initial state check (Unavailable in our setup)
-        // The second one is from our trigger
-        assertTrue(results.contains(ConnectivityStatus.Available))
+        assertTrue(results.any { it.first == ConnectivityStatus.Available })
         
         job.cancel()
     }
@@ -78,7 +75,7 @@ class ConnectivityObserverTest {
         val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
         every { mockConnectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } just Runs
 
-        val results = mutableListOf<ConnectivityStatus>()
+        val results = mutableListOf<Pair<ConnectivityStatus, ConnectionType>>()
         val job = launch(UnconfinedTestDispatcher()) {
             connectivityObserver.observe().toList(results)
         }
@@ -86,7 +83,7 @@ class ConnectivityObserverTest {
         val mockNetwork = mockk<Network>()
         callbackSlot.captured.onLost(mockNetwork)
 
-        assertTrue(results.contains(ConnectivityStatus.Lost))
+        assertTrue(results.any { it.first == ConnectivityStatus.Lost })
         
         job.cancel()
     }

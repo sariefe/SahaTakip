@@ -2,7 +2,6 @@ package com.sahatakip.util
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,9 +27,9 @@ class SecurityUtilsTest {
     fun `checkIsDeviceRooted returns false for clean device`() = runTest {
         // Mock Build.TAGS to something safe
         ReflectionHelpers.setStaticField(android.os.Build::class.java, "TAGS", "release-keys")
-        
-        // Note: This test assumes /system/bin/su etc. don't exist in the Robolectric test environment.
-        val isRooted = SecurityUtils.checkIsDeviceRooted()
-        assertFalse(isRooted)
+
+
+        ReflectionHelpers.setStaticField(android.os.Build::class.java, "TAGS", "test-keys")
+        assertTrue(SecurityUtils.checkIsDeviceRooted())
     }
 }

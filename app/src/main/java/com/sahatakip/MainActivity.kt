@@ -21,8 +21,17 @@ import com.sahatakip.ui.navigation.AppNavGraph
 import com.sahatakip.ui.theme.SahaTakipTheme
 import com.sahatakip.ui.viewmodel.DeviceViewModel
 import com.sahatakip.ui.viewmodel.SettingsViewModel
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.sahatakip.util.LocalLanguage
 import com.sahatakip.util.NotificationHelper
 import com.sahatakip.util.PermissionUtils
+import com.sahatakip.util.SecurityUtils
+import com.sahatakip.util.tr
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -37,6 +46,8 @@ class MainActivity : FragmentActivity() {
 
     private val deviceViewModel: DeviceViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
+
+    private var showRootWarning by mutableStateOf(false)
 
     private val requestBackgroundPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -74,6 +85,9 @@ class MainActivity : FragmentActivity() {
 
         lifecycleScope.launch {
             userRepository.initializeAndSyncDefaultData()
+            if (SecurityUtils.checkIsDeviceRooted()) {
+                showRootWarning = true
+            }
         }
 
         NotificationHelper.createNotificationChannel(this)
@@ -85,16 +99,42 @@ class MainActivity : FragmentActivity() {
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             val themeMode by settingsViewModel.theme.collectAsStateWithLifecycle()
+            val language by settingsViewModel.language.collectAsStateWithLifecycle()
+            
             val isDarkTheme = when (themeMode) {
                 "dark" -> true
                 "light" -> false
                 else -> isSystemInDarkTheme()
             }
 
-            SahaTakipTheme(darkTheme = isDarkTheme) {
-                AppNavGraph(
-                    windowSizeClass = windowSizeClass
-                )
+            CompositionLocalProvider(LocalLanguage provides language) {
+                SahaTakipTheme(darkTheme = isDarkTheme) {
+                    AppNavGraph(
+                        windowSizeClass = windowSizeClass
+                    )
+
+                    if (showRootWarning) {
+                        AlertDialog(
+                            onDismissRequest = { showRootWarning = false },
+                            title = {
+                                Text(text = tr("Root Erişimi Tespit Edildi", "Root Access Detected"))
+                            },
+                            text = {
+                                Text(
+                                    text = tr(
+                                        "Cihazınızda root erişimi tespit edildi. Bu durum güvenlik risklerine yol açabilir. Uygulamayı kullanmaya devam edebilirsiniz ancak dikkatli olmanız önerilir.",
+                                        "Root access has been detected on your device. This may lead to security risks. You can continue using the application, but it is recommended to be cautious."
+                                    )
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showRootWarning = false }) {
+                                    Text(text = tr("Devam Et", "Continue"))
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
     }
