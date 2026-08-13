@@ -4,29 +4,40 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
-import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GppBad
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.sahatakip.domain.repository.UserRepository
 import com.sahatakip.domain.service.LocationTrackingService
 import com.sahatakip.ui.navigation.AppNavGraph
 import com.sahatakip.ui.theme.SahaTakipTheme
 import com.sahatakip.ui.viewmodel.DeviceViewModel
 import com.sahatakip.ui.viewmodel.SettingsViewModel
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import com.sahatakip.util.LocalLanguage
 import com.sahatakip.util.NotificationHelper
 import com.sahatakip.util.PermissionUtils
@@ -116,22 +127,46 @@ class MainActivity : FragmentActivity() {
                     if (showRootWarning) {
                         AlertDialog(
                             onDismissRequest = { showRootWarning = false },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.GppBad,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
                             title = {
-                                Text(text = tr("Root Erişimi Tespit Edildi", "Root Access Detected"))
+                                Text(
+                                    text = tr("Güvenlik Uyarısı", "Security Warning"),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             },
                             text = {
                                 Text(
                                     text = tr(
-                                        "Cihazınızda root erişimi tespit edildi. Bu durum güvenlik risklerine yol açabilir. Uygulamayı kullanmaya devam edebilirsiniz ancak dikkatli olmanız önerilir.",
-                                        "Root access has been detected on your device. This may lead to security risks. You can continue using the application, but it is recommended to be cautious."
-                                    )
+                                        "Cihazınızda root (yönetici) erişimi tespit edildi. Saha takibi verilerinin güvenliği ve doğruluğu için orijinal işletim sistemi kullanmanız önerilir. Devam etmeniz halinde oluşabilecek güvenlik açıklarından kullanıcı sorumludur.",
+                                        "Root (administrator) access has been detected on your device. For the security and accuracy of field tracking data, it is recommended to use the original operating system. The user is responsible for any security vulnerabilities that may occur if you continue."
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             },
                             confirmButton = {
-                                TextButton(onClick = { showRootWarning = false }) {
-                                    Text(text = tr("Devam Et", "Continue"))
+                                Button(
+                                    onClick = { showRootWarning = false },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(text = tr("Anladım, Devam Et", "I Understand, Continue"))
                                 }
-                            }
+                            },
+                            shape = RoundedCornerShape(28.dp),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 6.dp
                         )
                     }
                 }

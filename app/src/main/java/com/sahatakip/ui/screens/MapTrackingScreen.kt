@@ -190,7 +190,6 @@ fun MapTrackingScreenContent(
                             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                             .background(MaterialTheme.colorScheme.surface)
                             .verticalScroll(rememberScrollState())
-                            // Tablet dikey için yatay padding artırıldı — yazılar nefes alıyor
                             .padding(horizontal = 32.dp, vertical = 24.dp)
                     ) {
                         controlsContent()

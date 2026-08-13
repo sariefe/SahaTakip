@@ -64,7 +64,7 @@ fun CustomMapView(
         position = if (initialLocation != null) {
             CameraPosition.fromLatLngZoom(LatLng(initialLocation.latitude, initialLocation.longitude), 17f)
         } else {
-            CameraPosition.fromLatLngZoom(LatLng(41.0082, 28.9784), 12f) // Istanbul fallback
+            CameraPosition.fromLatLngZoom(LatLng(41.0082, 28.9784), 12f)
         }
     }
 
@@ -131,7 +131,6 @@ fun CustomMapView(
                             )
                             val timeDiff = point.timestamp - prevPoint.timestamp
                             
-                            // Split if distance > 1km or time gap > 15 minutes
                             if (distance > 1000.0 || timeDiff > 15 * 60 * 1000L) {
                                 segments.add(currentSegment)
                                 currentSegment = mutableListOf(latLng)
@@ -157,7 +156,6 @@ fun CustomMapView(
                         endCap = RoundCap()
                     )
                     
-                    // Directional Indicator Layer
                     Polyline(
                         points = segment,
                         color = Color.White.copy(alpha = 0.4f),
@@ -168,7 +166,6 @@ fun CustomMapView(
                 }
             }
 
-            // Draw Geofences
             geofences.forEach { zone ->
                 if (zone.isActive) {
                     androidx.compose.runtime.key(zone.id) {
@@ -190,7 +187,6 @@ fun CustomMapView(
                 }
             }
 
-            // Draw Markers for History Points (Sparsely)
             locations.forEachIndexed { index, loc ->
                 if ((index % 15 == 0) || (index == (locations.size - 1))) {
                     Marker(
@@ -201,7 +197,6 @@ fun CustomMapView(
                 }
             }
 
-            // Active Marker (Live or Playback)
             activeLocation?.let { loc ->
                 val rotation = remember(loc, locations) {
                     calculateRotation(loc, locations)
@@ -215,7 +210,6 @@ fun CustomMapView(
                     anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)
                 )
             }
-            // Start and End markers for the whole path
             if (locations.isNotEmpty()) {
                 val start = locations.first()
                 val end = locations.last()
@@ -236,7 +230,6 @@ fun CustomMapView(
             }
         }
 
-        // Map Control Overlays
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -272,7 +265,6 @@ fun CustomMapView(
 private fun calculateRotation(current: LocationEntity, allLocations: List<LocationEntity>): Float {
     if (allLocations.size < 2) return 0f
     
-    // Find the previous point to determine direction
     val currentIndex = allLocations.indexOf(current)
     if (currentIndex <= 0) return 0f
     

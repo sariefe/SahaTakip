@@ -81,7 +81,6 @@ class LocationTrackingService : Service() {
             .setOngoing(true)
             .build()
 
-        // Always call startForeground as soon as possible to avoid ForegroundServiceDidNotStartInTimeException
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -102,7 +101,6 @@ class LocationTrackingService : Service() {
             return
         }
 
-        // Now check for permissions. If missing, we already called startForeground, so we can stop safely.
         val hasFineLocation = androidx.core.content.ContextCompat.checkSelfPermission(
             this,
             android.Manifest.permission.ACCESS_FINE_LOCATION,

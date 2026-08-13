@@ -46,9 +46,6 @@ object SecurityUtils {
         }
     }
 
-    /**
-     * Encrypts a string using AES/GCM and returns a Base64 encoded string containing IV and cipher text.
-     */
     fun encrypt(text: String): String {
         val masterKey = getMasterKey() ?: return Base64.encodeToString(text.toByteArray(), Base64.DEFAULT)
         
@@ -64,16 +61,13 @@ object SecurityUtils {
         return Base64.encodeToString(combined, Base64.DEFAULT)
     }
 
-    /**
-     * Decrypts a Base64 encoded string (IV + cipher text) and returns the original string.
-     */
     fun decrypt(encryptedBase64: String): String? {
         return try {
             val combined = Base64.decode(encryptedBase64, Base64.DEFAULT)
             val masterKey = getMasterKey() ?: return String(combined, Charsets.UTF_8)
             
             val cipher = Cipher.getInstance(TRANSFORMATION)
-            val ivSize = 12 // Standard GCM IV size
+            val ivSize = 12
             val iv = combined.sliceArray(0 until ivSize)
             val encryptedBytes = combined.sliceArray(ivSize until combined.size)
 
@@ -85,10 +79,6 @@ object SecurityUtils {
         }
     }
 
-    /**
-     * Checks common indicators for root access on Android.
-     * Run on IO thread to avoid blocking main thread with file lookups.
-     */
     suspend fun checkIsDeviceRooted(): Boolean = withContext(Dispatchers.IO) {
         val rootPaths = arrayOf(
             "/system/app/Superuser.apk",
@@ -100,30 +90,48 @@ object SecurityUtils {
             "/system/sd/xbin/su",
             "/system/bin/failsafe/su",
             "/data/local/su",
-            "/su/bin/su"
+            "/su/bin/su",
+            "/system/xbin/daemonsu",
+            "/system/etc/init.d/99SuperSUDaemon",
+            "/system/bin/.ext/.su",
+            "/system/etc/.has_su_daemon",
+            "/system/etc/.installed_su_daemon",
+            "/dev/com.koushikdutta.superuser.daemon/",
+            "/system/xbin/busybox",
+            "/system/bin/busybox",
+            "/sbin/magisk",
+            "/cache/magisk.log",
+            "/data/magisk.img",
+            "/data/magisk/"
         )
         for (path in rootPaths) {
             try {
                 if (File(path).exists()) return@withContext true
             } catch (_: Exception) {
-                // Ignore permission issues for specific paths
             }
         }
 
-        // Check for test-keys
         val buildTags = android.os.Build.TAGS
         if (buildTags != null && buildTags.contains("test-keys")) return@withContext true
 
-        // Check su binary using shell
         var process: Process? = null
         try {
-            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            process = Runtime.getRuntime().exec(arrayOf("which", "su"))
             val reader = process.inputStream.bufferedReader()
             if (reader.readLine() != null) return@withContext true
         } catch (_: Throwable) {
-            // Ignore
         } finally {
             process?.destroy()
+        }
+
+        val properties = mapOf("ro.debuggable" to "1", "ro.secure" to "0")
+        for ((prop, rootedValue) in properties) {
+            try {
+                val p = Runtime.getRuntime().exec(arrayOf("getprop", prop))
+                val value = p.inputStream.bufferedReader().readLine()
+                if (value == rootedValue) return@withContext true
+            } catch (_: Throwable) {
+            }
         }
 
         false
