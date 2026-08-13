@@ -20,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.ui.theme.StatusRed
@@ -85,7 +87,7 @@ fun SettingsScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp)
+                .padding(if (windowWidthSizeClass == WindowWidthSizeClass.Compact) 16.dp else 24.dp)
         ) {
             // Header
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
@@ -105,17 +107,18 @@ fun SettingsScreenContent(
                 SettingsBody(
                     currentLang, currentInterval, currentTheme, serverUrl,
                     bioAvailability, bioManager, context,
-                    onSetLanguage, onSetTheme, onSetUpdateInterval, onSetMockServerUrl
+                    onSetLanguage, onSetTheme, onSetUpdateInterval, onSetMockServerUrl,
+                    isCompact = true
                 )
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme)
+                        AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme, isCompact = false)
                         Spacer(modifier = Modifier.height(24.dp))
-                        SecuritySettings(bioAvailability, bioManager, context)
+                        SecuritySettings(bioAvailability, bioManager, context, isCompact = false)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl)
+                        TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl, isCompact = false)
                     }
                 }
             }
@@ -126,7 +129,7 @@ fun SettingsScreenContent(
 }
 
 @Composable
-private fun SettingsBody(
+fun SettingsBody(
     currentLang: String,
     currentInterval: Int,
     currentTheme: String,
@@ -137,13 +140,14 @@ private fun SettingsBody(
     onSetLanguage: (String) -> Unit,
     onSetTheme: (String) -> Unit,
     onSetUpdateInterval: (Int) -> Unit,
-    onSetMockServerUrl: (String) -> Unit
+    onSetMockServerUrl: (String) -> Unit,
+    isCompact: Boolean = false
 ) {
-    AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme)
-    Spacer(modifier = Modifier.height(24.dp))
-    TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl)
-    Spacer(modifier = Modifier.height(24.dp))
-    SecuritySettings(bioAvailability, bioManager, context)
+    AppearanceSettings(currentLang, currentTheme, onSetLanguage, onSetTheme, isCompact)
+    Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 24.dp))
+    TrackingSettings(currentInterval, serverUrl, onSetUpdateInterval, onSetMockServerUrl, isCompact)
+    Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 24.dp))
+    SecuritySettings(bioAvailability, bioManager, context, isCompact)
 }
 
 @Composable
@@ -151,26 +155,29 @@ private fun AppearanceSettings(
     currentLang: String,
     currentTheme: String,
     onSetLanguage: (String) -> Unit,
-    onSetTheme: (String) -> Unit
+    onSetTheme: (String) -> Unit,
+    isCompact: Boolean = false
 ) {
-    SettingsSectionHeader(tr("Görünüm ve Dil", "Appearance & Language"))
-    SettingsCard {
+    SettingsSectionHeader(tr("Görünüm ve Dil", "Appearance & Language"), isCompact)
+    SettingsCard(isCompact = isCompact) {
         SettingsRowItem(
             title = tr("Dil", "Language"),
-            icon = Icons.Default.Language
+            icon = Icons.Default.Language,
+            isCompact = isCompact
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LanguageChip("TR", currentLang == "tr") { onSetLanguage("tr") }
-                LanguageChip("EN", currentLang == "en") { onSetLanguage("en") }
+            Row(horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 8.dp)) {
+                LanguageChip("TR", currentLang == "tr", isCompact) { onSetLanguage("tr") }
+                LanguageChip("EN", currentLang == "en", isCompact) { onSetLanguage("en") }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(modifier = Modifier.padding(vertical = if (isCompact) 8.dp else 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         SettingsRowItem(
             title = tr("Tema Seçimi", "Theme Selection"),
-            icon = Icons.Default.Palette
+            icon = Icons.Default.Palette,
+            isCompact = isCompact
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ThemeIconChip(Icons.Default.SettingsBrightness, currentTheme == "system") { onSetTheme("system") }
+            Row(horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 8.dp)) {
+                ThemeIconChip(Icons.Default.SettingsBrightness, currentTheme == "system", isCompact) { onSetTheme("system") }
                 ThemeIconChip(Icons.Default.LightMode, currentTheme == "light") { onSetTheme("light") }
                 ThemeIconChip(Icons.Default.DarkMode, currentTheme == "dark") { onSetTheme("dark") }
             }
@@ -183,35 +190,37 @@ private fun TrackingSettings(
     currentInterval: Int,
     serverUrl: String,
     onSetUpdateInterval: (Int) -> Unit,
-    onSetMockServerUrl: (String) -> Unit
+    onSetMockServerUrl: (String) -> Unit,
+    isCompact: Boolean = false
 ) {
     var urlInput by remember { mutableStateOf(serverUrl) }
-    SettingsSectionHeader(tr("Takip Yapılandırması", "Tracking Configuration"))
-    SettingsCard {
+    SettingsSectionHeader(tr("Takip Yapılandırması", "Tracking Configuration"), isCompact)
+    SettingsCard(isCompact = isCompact) {
         SettingsRowItem(
             title = tr("Kontrol Sıklığı", "Control Interval"),
-            icon = Icons.Default.Timer
+            icon = Icons.Default.Timer,
+            isCompact = isCompact
         ) {
             Column(horizontalAlignment = Alignment.End) {
                 val intervals = listOf(30, 60, 120, 300)
-                intervals.chunked(2).forEach { rowIntervals ->
+                intervals.chunked(if (isCompact) 4 else 2).forEach { rowIntervals ->
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 8.dp),
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
                         rowIntervals.forEach { sec ->
                             val isSelected = currentInterval == sec
                             Surface(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable { onSetUpdateInterval(sec) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    .padding(horizontal = if (isCompact) 8.dp else 12.dp, vertical = if (isCompact) 4.dp else 6.dp),
                                 color = Color.Transparent
                             ) {
                                 Text(
                                     "${sec}s",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = if (isCompact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -221,20 +230,20 @@ private fun TrackingSettings(
                 }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(modifier = Modifier.padding(vertical = if (isCompact) 8.dp else 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(tr("Senkronizasyon Sunucusu", "Sync Server"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (isCompact) 18.dp else 20.dp))
+                Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+                Text(tr("Senkronizasyon Sunucusu", "Sync Server"), style = if (isCompact) MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp) else MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 12.dp))
             OutlinedTextField(
                 value = urlInput,
                 onValueChange = { urlInput = it },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                textStyle = MaterialTheme.typography.bodySmall,
+                textStyle = if (isCompact) MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp) else MaterialTheme.typography.bodySmall,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -276,21 +285,26 @@ fun SettingsScreenPreview() {
 
 
 @Composable
-private fun SecuritySettings(bioAvailability: BiometricStatus, bioManager: BiometricPromptManager, context: android.content.Context) {
+private fun SecuritySettings(
+    bioAvailability: BiometricStatus,
+    bioManager: BiometricPromptManager,
+    context: android.content.Context,
+    isCompact: Boolean = false
+) {
     var biometricTestResult by remember { mutableStateOf<String?>(null) }
     val sensorTestTitle = tr("Sensör Testi", "Sensor Test")
     val authSuccessMsg = tr("Doğrulama Başarılı", "Auth Successful")
     val failedMsg = tr("Başarısız", "Failed")
     val simulatedMsg = tr("Simüle Edildi", "Simulated Success")
 
-    SettingsSectionHeader(tr("Güvenlik ve Tanılama", "Security & Diagnostics"))
-    SettingsCard {
+    SettingsSectionHeader(tr("Güvenlik ve Tanılama", "Security & Diagnostics"), isCompact)
+    SettingsCard(isCompact = isCompact) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(tr("Biyometrik Test", "Biometric Test"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (isCompact) 18.dp else 20.dp))
+                    Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+                    Text(tr("Biyometrik Test", "Biometric Test"), style = if (isCompact) MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp) else MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
                 val (statusText, statusColor) = when (bioAvailability) {
                     is BiometricStatus.Available -> tr("Hazır", "Ready") to StatusGreen
@@ -300,7 +314,7 @@ private fun SecuritySettings(bioAvailability: BiometricStatus, bioManager: Biome
                     Text(statusText, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = statusColor)
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 12.dp))
             Text(tr("Sensörün çalışmasını ve yetkilendirme akışını test edin.", "Test sensor functionality and auth flow."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
             biometricTestResult?.let {
                 Text(it, style = MaterialTheme.typography.labelSmall, color = if (it.contains("✓")) StatusGreen else StatusRed, modifier = Modifier.padding(top = 8.dp))
@@ -324,32 +338,32 @@ private fun SecuritySettings(bioAvailability: BiometricStatus, bioManager: Biome
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(tr("Sensörü Şimdi Test Et", "Test Sensor Now"))
+                Text(tr("Sensörü Şimdi Test Et", "Test Sensor Now"), style = if (isCompact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelLarge)
             }
         }
     }
 }
 
 @Composable
-fun SettingsSectionHeader(title: String) {
+fun SettingsSectionHeader(title: String, isCompact: Boolean = false) {
     Text(
         text = title,
-        style = MaterialTheme.typography.labelLarge,
+        style = if (isCompact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+        modifier = Modifier.padding(start = 4.dp, bottom = if (isCompact) 8.dp else 12.dp)
     )
 }
 
 @Composable
-fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+fun SettingsCard(isCompact: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(if (isCompact) 20.dp else 24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp), content = content)
+        Column(modifier = Modifier.padding(if (isCompact) 16.dp else 20.dp), content = content)
     }
 }
 
@@ -357,6 +371,7 @@ fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 fun SettingsRowItem(
     title: String,
     icon: ImageVector,
+    isCompact: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Row(
@@ -364,41 +379,52 @@ fun SettingsRowItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (isCompact) 18.dp else 20.dp))
+            Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+            Text(
+                text = title,
+                style = if (isCompact) MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp) else MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         content()
     }
 }
 
 @Composable
-fun LanguageChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+fun LanguageChip(label: String, isSelected: Boolean, isCompact: Boolean = false, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .clip(CircleShape)
             .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = if (isCompact) 10.dp else 14.dp, vertical = if (isCompact) 4.dp else 6.dp),
         color = Color.Transparent
     ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            label,
+            style = if (isCompact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
-fun ThemeIconChip(icon: ImageVector, isSelected: Boolean, onClick: () -> Unit) {
+fun ThemeIconChip(icon: ImageVector, isSelected: Boolean, isCompact: Boolean = false, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
-            .size(36.dp)
+            .size(if (isCompact) 32.dp else 36.dp)
             .clip(CircleShape)
             .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() },
         color = Color.Transparent
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(icon, contentDescription = null, modifier = Modifier.size(if (isCompact) 16.dp else 18.dp), tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

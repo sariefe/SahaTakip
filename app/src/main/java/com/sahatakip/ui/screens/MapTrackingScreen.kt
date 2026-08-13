@@ -55,12 +55,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sahatakip.data.local.entity.LocationEntity
 import com.sahatakip.ui.components.CustomMapView
@@ -137,7 +139,8 @@ fun MapTrackingScreenContent(
             onSeekPlayback = onSeekPlayback,
             onStartPlayback = onStartPlayback,
             onPausePlayback = onPausePlayback,
-            onToggleGeofence = onToggleGeofence
+            onToggleGeofence = onToggleGeofence,
+            windowWidthSizeClass = windowWidthSizeClass
         )
     }
 
@@ -329,34 +332,39 @@ private fun MapControls(
     onSeekPlayback: (Float) -> Unit,
     onStartPlayback: () -> Unit,
     onPausePlayback: () -> Unit,
-    onToggleGeofence: (Long, Boolean) -> Unit
+    onToggleGeofence: (Long, Boolean) -> Unit,
+    windowWidthSizeClass: WindowWidthSizeClass
 ) {
     val totalDistKm = remember(locations) { calculateTotalDistanceKm(locations) }
     val avgSpeed = remember(locations) {
         if (locations.isNotEmpty()) locations.asSequence().map { it.speed }.average() else 0.0
     }
 
+    val isCompact = windowWidthSizeClass == WindowWidthSizeClass.Compact
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
     ) {
         TelemetryCard(
             modifier = Modifier.weight(1f),
             label = tr("Mesafe", "Distance"),
             value = "${String.format("%.1f", totalDistKm)} km",
             icon = Icons.Default.Route,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            isCompact = isCompact
         )
         TelemetryCard(
             modifier = Modifier.weight(1f),
             label = tr("Ort. Hız", "Avg Speed"),
             value = "${avgSpeed.toInt()} km/h",
             icon = Icons.Default.Speed,
-            color = MaterialTheme.colorScheme.secondary
+            color = MaterialTheme.colorScheme.secondary,
+            isCompact = isCompact
         )
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 20.dp))
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -462,6 +470,7 @@ private fun MapControls(
             onToggle = { active -> onToggleGeofence(zone.id, active) },
             onDelete = { onDeleteGeofence(zone.id) },
             onEdit = { onEditGeofence(zone) },
+            isCompact = isCompact
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -540,21 +549,22 @@ fun TelemetryCard(
     label: String,
     value: String,
     icon: ImageVector,
-    color: Color
+    color: Color,
+    isCompact: Boolean = false
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(if (isCompact) 16.dp else 20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+        Column(modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp)) {
+            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(if (isCompact) 18.dp else 20.dp))
+            Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 8.dp))
+            Text(text = label, style = if (isCompact) MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp) else MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleMedium,
+                style = if (isCompact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -570,7 +580,8 @@ fun GeofenceItem(
     isActive: Boolean,
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    isCompact: Boolean = false
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -579,12 +590,12 @@ fun GeofenceItem(
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(if (isCompact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(if (isCompact) 32.dp else 40.dp)
                     .clip(CircleShape)
                     .background(if (isActive) StatusGreen.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
@@ -593,15 +604,15 @@ fun GeofenceItem(
                     imageVector = Icons.Default.Security,
                     contentDescription = null,
                     tint = if (isActive) StatusGreen else Color.Gray,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isCompact) 16.dp else 20.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = zoneName,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -615,28 +626,48 @@ fun GeofenceItem(
                 )
             }
 
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            if (!isCompact) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
 
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
-                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else {
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Switch(
                 checked = isActive,
                 onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(checkedThumbColor = StatusGreen)
+                colors = SwitchDefaults.colors(checkedThumbColor = StatusGreen),
+                modifier = if (isCompact) Modifier.scale(0.8f) else Modifier
             )
         }
     }
