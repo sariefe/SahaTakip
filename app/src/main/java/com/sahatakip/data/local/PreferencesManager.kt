@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "saha_settings")
@@ -30,11 +31,16 @@ class PreferencesManager(
         private val KEY_DYNAMIC_CODE_ENC = stringPreferencesKey("key_dynamic_code_enc")
         
         const val DEFAULT_ACTIVATION_CODE = "SAHA2026"
+
+        private fun getDefaultLanguage(): String {
+            val systemLang = Locale.getDefault().language
+            return if (systemLang == "tr") "tr" else "en"
+        }
     }
 
     val language: StateFlow<String> = dataStore.data
-        .map { it[KEY_LANGUAGE] ?: "tr" }
-        .stateIn(scope, SharingStarted.Eagerly, "tr")
+        .map { it[KEY_LANGUAGE] ?: getDefaultLanguage() }
+        .stateIn(scope, SharingStarted.Eagerly, getDefaultLanguage())
 
     val updateInterval: StateFlow<Int> = dataStore.data
         .map { it[KEY_UPDATE_INTERVAL] ?: 60 }

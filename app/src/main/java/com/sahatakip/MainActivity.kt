@@ -12,6 +12,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,8 +44,11 @@ import com.sahatakip.util.NotificationHelper
 import com.sahatakip.util.PermissionUtils
 import com.sahatakip.util.SecurityUtils
 import com.sahatakip.util.tr
+import com.sahatakip.util.trGlobal
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -59,14 +63,7 @@ class MainActivity : FragmentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     private var showRootWarning by mutableStateOf(false)
-
-    private val requestBackgroundPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            deviceViewModel.updateDeviceStatus()
-        }
-    }
+    private var showBatteryOptimizationWarning by mutableStateOf(false)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -75,10 +72,17 @@ class MainActivity : FragmentActivity() {
         val coarseLocationGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         
         if (fineLocationGranted || coarseLocationGranted) {
-            requestBackgroundLocationPermission()
             startTrackingService()
+            if (!PermissionUtils.isIgnoringBatteryOptimizations(this@MainActivity)) {
+                showBatteryOptimizationWarning = true
+            }
         } else {
-            Toast.makeText(this, "Saha takibi için konum izni gereklidir.", Toast.LENGTH_LONG).show()
+            val lang = settingsViewModel.language.value
+            Toast.makeText(
+                this,
+                trGlobal("Saha takibi için konum izni gereklidir.", "Location permission is required for field tracking.", lang),
+                Toast.LENGTH_LONG
+            ).show()
         }
         
         deviceViewModel.updateDeviceStatus()
@@ -105,6 +109,12 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch {
             delay(500.milliseconds)
             checkAndRequestPermissions()
+        }
+
+        lifecycleScope.launch {
+            deviceViewModel.statusAlert.collectLatest { message ->
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+            }
         }
 
         setContent {
@@ -169,6 +179,63 @@ class MainActivity : FragmentActivity() {
                             tonalElevation = 6.dp
                         )
                     }
+
+                    if (showBatteryOptimizationWarning) {
+                        AlertDialog(
+                            onDismissRequest = { showBatteryOptimizationWarning = false },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.BatteryAlert,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            title = {
+                                Text(
+                                    text = tr("Pil Optimizasyonu", "Battery Optimization"),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = tr(
+                                        "Uygulamanın arka planda kesintisiz çalışabilmesi için pil optimizasyonunu kapatmanız önerilir. Aksi takdirde sistem konum takibini durdurabilir.",
+                                        "It is recommended to turn off battery optimization for the app to run smoothly in the background. Otherwise, the system may stop location tracking."
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showBatteryOptimizationWarning = false
+                                        PermissionUtils.requestIgnoreBatteryOptimizations(this@MainActivity)
+                                    },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(text = tr("Ayarlara Git", "Go to Settings"))
+                                }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = { showBatteryOptimizationWarning = false },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(text = tr("Daha Sonra", "Later"))
+                                }
+                            },
+                            shape = RoundedCornerShape(28.dp),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 6.dp
+                        )
+                    }
                 }
             }
         }
@@ -188,26 +255,9 @@ class MainActivity : FragmentActivity() {
         if (toRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(toRequest)
         } else {
-            requestBackgroundLocationPermission()
             startTrackingService()
-        }
-    }
-
-    private fun requestBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                android.app.AlertDialog.Builder(this)
-                    .setTitle("Arka Plan Konum İzni")
-                    .setMessage("Saha takibinin kesintisiz devam etmesi için konum iznini 'Her zaman izin ver' olarak ayarlamanız gerekmektedir.")
-                    .setPositiveButton("Ayarlara Git") { _, _ ->
-                        requestBackgroundPermissionLauncher.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    }
-                    .setNegativeButton("İptal", null)
-                    .show()
+            if (!PermissionUtils.isIgnoringBatteryOptimizations(this)) {
+                showBatteryOptimizationWarning = true
             }
         }
     }
@@ -219,13 +269,13 @@ class MainActivity : FragmentActivity() {
                 startForegroundService(serviceIntent)
             } catch (e: Exception) {
                 if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (e is android.app.ForegroundServiceStartNotAllowedException)) {
-                    android.util.Log.e("MainActivity", "Foreground service start not allowed from background", e)
+                    Timber.tag("MainActivity").e(e, "Foreground service start not allowed from background")
                 } else {
                     throw e
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to start tracking service", e)
+            Timber.tag("MainActivity").e(e, "Failed to start tracking service")
         }
     }
 }

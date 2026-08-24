@@ -3,8 +3,9 @@ package com.sahatakip.util
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import java.util.Locale
 
-val LocalLanguage = compositionLocalOf { "tr" }
+val LocalLanguage = compositionLocalOf { if (Locale.getDefault().language == "tr") "tr" else "en" }
 
 @Composable
 @ReadOnlyComposable

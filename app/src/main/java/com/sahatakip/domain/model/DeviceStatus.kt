@@ -8,6 +8,7 @@ data class DeviceStatus(
     val isGpsEnabled: Boolean = true,
     val isBackgroundLocationGranted: Boolean = true,
     val isNotificationGranted: Boolean = true,
+    val isCameraPermissionGranted: Boolean = true,
     val isBatteryOptimizationIgnored: Boolean = true,
     val batteryLevel: Int = 90,
     val isBatteryCharging: Boolean = false,
@@ -15,5 +16,5 @@ data class DeviceStatus(
     val isRooted: Boolean = false
 ) {
     val hasMissingCriticalPermissions: Boolean
-        get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted
+        get() = !isGpsEnabled || !isBackgroundLocationGranted || !isNotificationGranted || !isCameraPermissionGranted
 }

@@ -27,13 +27,23 @@ class ConnectivityObserver(context: Context) {
         return callbackFlow {
             val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    val capabilities = connectivityManager.getNetworkCapabilities(network)
+                }
+
+                override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                    val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                            networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    
                     val type = when {
-                        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> ConnectionType.Wifi
-                        capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> ConnectionType.Cellular
+                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> ConnectionType.Wifi
+                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> ConnectionType.Cellular
                         else -> ConnectionType.None
                     }
-                    launch { send(ConnectivityStatus.Available to type) }
+                    
+                    if (hasInternet) {
+                        launch { send(ConnectivityStatus.Available to type) }
+                    } else {
+                        launch { send(ConnectivityStatus.Unavailable to type) }
+                    }
                 }
 
                 override fun onLosing(network: Network, maxMsToLive: Int) {
@@ -49,17 +59,28 @@ class ConnectivityObserver(context: Context) {
                 }
             }
 
-            connectivityManager.registerDefaultNetworkCallback(callback)
-            
+            val request = android.net.NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                .build()
+
+            connectivityManager.registerNetworkCallback(request, callback)
+
             val activeNetwork = connectivityManager.activeNetwork
             val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+            val hasInternet = capabilities?.let {
+                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            } ?: false
+
             val type = when {
                 capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> ConnectionType.Wifi
                 capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> ConnectionType.Cellular
                 else -> ConnectionType.None
             }
             
-            if (type != ConnectionType.None) {
+            if (hasInternet) {
                 launch { send(ConnectivityStatus.Available to type) }
             } else {
                 launch { send(ConnectivityStatus.Unavailable to ConnectionType.None) }

@@ -54,7 +54,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sahatakip.ui.components.OcrCameraScannerModal
 import com.sahatakip.ui.theme.SahaTakipTheme
@@ -65,8 +64,6 @@ import com.sahatakip.util.BiometricPromptManager
 import com.sahatakip.util.BiometricStatus
 import com.sahatakip.util.ScannedStaffCardResult
 import com.sahatakip.util.tr
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun AuthScreen(
@@ -77,27 +74,17 @@ fun AuthScreen(
     val ocrResult by viewModel.ocrScanningState.collectAsStateWithLifecycle()
     val ocrIsLoading by viewModel.ocrIsLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.authErrorMessage.collectAsStateWithLifecycle()
-    val ocrScanSuggested by viewModel.ocrScanSuggested.collectAsStateWithLifecycle()
 
     var showCameraModal by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+    ) { isGranted ->
+        if (isGranted) {
             showCameraModal = true
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (!ocrScanSuggested && ocrResult == null) {
-            delay(800.milliseconds)
-            if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                showCameraModal = true
-            } else {
-                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-            }
-            viewModel.markOcrScanSuggested()
+        } else {
+            showPermissionDeniedDialog = true
         }
     }
 
@@ -113,7 +100,13 @@ fun AuthScreen(
         onBiometricAuth = {
             if (viewModel.authenticateWithBiometrics()) onAuthSuccess()
         },
-        onLaunchCamera = { showCameraModal = true }
+        onLaunchCamera = {
+            if (com.sahatakip.util.PermissionUtils.hasCameraPermission(context)) {
+                showCameraModal = true
+            } else {
+                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            }
+        }
     )
 
     if (showCameraModal) {
@@ -125,6 +118,54 @@ fun AuthScreen(
                 showCameraModal = false
             }
         )
+    }
+
+    if (showPermissionDeniedDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPermissionDeniedDialog = false },
+            title = { Text(tr("Kamera İzni Gerekli", "Camera Permission Required")) },
+            text = {
+                Text(
+                    tr(
+                        "Personel kartı tarama özelliğini kullanabilmek için kamera izni vermeniz gerekmektedir. Lütfen ayarlardan kamera iznini aktif edin.",
+                        "You need to grant camera permission to use the staff card scanning feature. Please enable camera permission in settings."
+                    )
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showPermissionDeniedDialog = false
+                    com.sahatakip.util.PermissionUtils.openAppSettings(context)
+                }) {
+                    Text(tr("Ayarlara Git", "Go to Settings"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                    Text(tr("İptal", "Cancel"))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun AuthStepHeader(number: String, title: String, subtitle: String) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(number, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+        }
     }
 }
 
@@ -333,26 +374,6 @@ fun AuthScreenContent(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-fun AuthStepHeader(number: String, title: String, subtitle: String) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(number, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         }
     }
 }

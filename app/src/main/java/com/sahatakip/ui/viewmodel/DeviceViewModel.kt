@@ -17,10 +17,16 @@ import com.sahatakip.util.ConnectionType
 import com.sahatakip.util.ConnectivityStatus
 import com.sahatakip.util.PermissionUtils
 import com.sahatakip.util.SecurityUtils
+import com.sahatakip.util.trGlobal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.sahatakip.data.local.PreferencesManager
+import timber.log.Timber
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +36,7 @@ class DeviceViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val eventRepository: EventRepository,
     private val syncRepository: SyncRepository,
+    private val preferencesManager: PreferencesManager,
     private val connectivityObserver: com.sahatakip.util.ConnectivityObserver,
 ) : androidx.lifecycle.ViewModel() {
 
@@ -41,6 +48,9 @@ class DeviceViewModel @Inject constructor(
 
     private val _lastSyncError = MutableStateFlow<String?>(value = null)
     val lastSyncError: StateFlow<String?> = _lastSyncError.asStateFlow()
+
+    private val _statusAlert = MutableSharedFlow<String>()
+    val statusAlert: SharedFlow<String> = _statusAlert.asSharedFlow()
 
     private val gpsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -79,11 +89,47 @@ class DeviceViewModel @Inject constructor(
         
         viewModelScope.launch {
             connectivityObserver.observe().collect { (status, type) ->
+                val wasOnline = _deviceStatus.value.isInternetConnected
                 val isOnline = status == ConnectivityStatus.Available
+                
                 _deviceStatus.value = _deviceStatus.value.copy(
                     isInternetConnected = isOnline,
                     connectionType = type
                 )
+
+                if (wasOnline != isOnline) {
+                    val lang = preferencesManager.language.value
+                    val message = if (isOnline) {
+                        val connectionName = when (type) {
+                            ConnectionType.Wifi -> "Wi-Fi"
+                            ConnectionType.Cellular -> trGlobal("Mobil Veri", "Mobile Data", lang)
+                            else -> trGlobal("İnternet", "Internet", lang)
+                        }
+                        trGlobal(
+                            "Bağlantı sağlandı ($connectionName). Veriler senkronize ediliyor.",
+                            "Connection established ($connectionName). Data is being synchronized.",
+                            lang
+                        )
+                    } else {
+                        trGlobal(
+                            "İnternet bağlantısı kesildi. Çevrimdışı mod aktif.",
+                            "Internet connection lost. Offline mode active.",
+                            lang
+                        )
+                    }
+                    _statusAlert.emit(message)
+                    
+                    eventRepository.addEventLog(
+                        type = if (isOnline) "INTERNET_RESTORED" else "INTERNET_LOST",
+                        title = if (isOnline) 
+                            trGlobal("Bağlantı Sağlandı", "Connection Restored", lang)
+                        else 
+                            trGlobal("Bağlantı Kesildi", "Connection Lost", lang),
+                        detail = message,
+                        status = if (isOnline) "BİLGİ" else "UYARI"
+                    )
+                }
+
                 if (isOnline) triggerOfflineSync()
             }
         }
@@ -117,7 +163,7 @@ class DeviceViewModel @Inject constructor(
             context.unregisterReceiver(powerReceiver)
             context.unregisterReceiver(batteryReceiver)
         } catch (e: Exception) {
-            android.util.Log.e("DeviceViewModel", "Error unregistering receivers", e)
+            Timber.tag("DeviceViewModel").e(e, "Error unregistering receivers")
         }
         super.onCleared()
     }
@@ -151,18 +197,94 @@ class DeviceViewModel @Inject constructor(
                 cachedIsRooted = it
             }
 
-            _deviceStatus.value = DeviceStatus(
+            val oldStatus = _deviceStatus.value
+            val newStatus = DeviceStatus(
                 isInternetConnected = isOnline,
                 connectionType = type,
                 isGpsEnabled = PermissionUtils.isGpsEnabled(context) && PermissionUtils.hasLocationPermissions(context),
                 isBackgroundLocationGranted = PermissionUtils.hasBackgroundLocationPermission(context),
                 isNotificationGranted = PermissionUtils.hasNotificationPermission(context),
+                isCameraPermissionGranted = PermissionUtils.hasCameraPermission(context),
                 isBatteryOptimizationIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context),
                 isPowerSaveModeActive = PermissionUtils.isPowerSaveMode(context),
                 batteryLevel = batteryPct,
                 isBatteryCharging = isCharging,
                 isRooted = isRooted
             )
+
+            if (oldStatus != newStatus) {
+                detectCriticalStatusChanges(oldStatus, newStatus)
+                _deviceStatus.value = newStatus
+            }
+        }
+    }
+
+    private suspend fun detectCriticalStatusChanges(old: DeviceStatus, new: DeviceStatus) {
+        val lang = preferencesManager.language.value
+        if (old.isGpsEnabled != new.isGpsEnabled) {
+            val msg = if (new.isGpsEnabled) 
+                trGlobal("Konum servisleri aktif edildi.", "Location services enabled.", lang)
+            else 
+                trGlobal("Konum servisleri kapatıldı! Saha takibi durduruldu.", "Location services disabled! Field tracking stopped.", lang)
+            
+            _statusAlert.emit(msg)
+            eventRepository.addEventLog(
+                type = if (new.isGpsEnabled) "GPS_ENABLED" else "GPS_DISABLED",
+                title = if (new.isGpsEnabled) 
+                    trGlobal("GPS Aktif", "GPS Active", lang)
+                else 
+                    trGlobal("GPS Kapalı", "GPS Off", lang),
+                detail = msg,
+                status = if (new.isGpsEnabled) "BİLGİ" else "TEHLİKE"
+            )
+        }
+
+        if (old.isBackgroundLocationGranted != new.isBackgroundLocationGranted) {
+            val msg = if (new.isBackgroundLocationGranted) 
+                trGlobal("Arka plan konum izni sağlandı.", "Background location permission granted.", lang)
+            else 
+                trGlobal("Arka plan konum izni iptal edildi! Takip kesilebilir.", "Background location permission revoked! Tracking may be interrupted.", lang)
+            
+            _statusAlert.emit(msg)
+            eventRepository.addEventLog(
+                type = "PERMISSION_CHANGED",
+                title = trGlobal("Arka Plan Konum İzni", "Background Location Permission", lang),
+                detail = msg,
+                status = if (new.isBackgroundLocationGranted) "BİLGİ" else "UYARI"
+            )
+        }
+
+        if (old.isNotificationGranted != new.isNotificationGranted) {
+            val msg = if (new.isNotificationGranted) 
+                trGlobal("Bildirim izni sağlandı.", "Notification permission granted.", lang)
+            else 
+                trGlobal("Bildirim izni iptal edildi! Önemli uyarıları alamayabilirsiniz.", "Notification permission revoked! You may miss important alerts.", lang)
+            _statusAlert.emit(msg)
+        }
+
+        if (old.isCameraPermissionGranted != new.isCameraPermissionGranted) {
+            val msg = if (new.isCameraPermissionGranted) 
+                trGlobal("Kamera izni sağlandı.", "Camera permission granted.", lang)
+            else 
+                trGlobal("Kamera izni iptal edildi! OCR tarama çalışmayacaktır.", "Camera permission revoked! OCR scanning will not work.", lang)
+            _statusAlert.emit(msg)
+        }
+
+        if (old.isBatteryOptimizationIgnored != new.isBatteryOptimizationIgnored) {
+            if (!new.isBatteryOptimizationIgnored) {
+                val msg = trGlobal(
+                    "Pil optimizasyonu kısıtlaması tespit edildi. Uygulamanın arka planda kapanmaması için optimizasyonu devre dışı bırakın.",
+                    "Battery optimization restriction detected. Disable optimization to prevent the app from closing in the background.",
+                    lang
+                )
+                _statusAlert.emit(msg)
+                eventRepository.addEventLog(
+                    type = "BATTERY_OPTIMIZATION_RESTORED",
+                    title = trGlobal("Pil Kısıtlaması Aktif", "Battery Restriction Active", lang),
+                    detail = msg,
+                    status = "UYARI"
+                )
+            }
         }
     }
 
@@ -219,7 +341,7 @@ class DeviceViewModel @Inject constructor(
                     _lastSyncError.value = "Sunucu bağlantısı kurulamadı."
                 }
             } catch (e: Exception) {
-                android.util.Log.e("DeviceViewModel", "Sync failed", e)
+                Timber.tag("DeviceViewModel").e(e, "Sync failed")
                 _lastSyncError.value = e.message ?: "Beklenmeyen bir hata oluştu."
             } finally {
                 _isSyncing.value = false

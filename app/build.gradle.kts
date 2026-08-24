@@ -15,7 +15,7 @@ android {
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.aistudio.sahatakip.app"
+    applicationId = "com.staj.sahatakip.app"
     minSdk = 26
     targetSdk = 37
     versionCode = 1

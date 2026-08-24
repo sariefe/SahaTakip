@@ -5,7 +5,7 @@ import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -38,7 +38,7 @@ object LocationUtils {
                         }
 
                         override fun onError(errorMessage: String?) {
-                            Log.e("LocationUtils", "Geocode error: $errorMessage")
+                            Timber.tag("LocationUtils").e("Geocode error: $errorMessage")
                             continuation.resume("Konum Çözülemedi ($lat, $lng)")
                         }
                     })
@@ -51,7 +51,7 @@ object LocationUtils {
                 }
             }
         } catch (e: Exception) {
-            Log.e("LocationUtils", "Geocoder exception: ${e.message}", e)
+            Timber.tag("LocationUtils").e(e, "Geocoder exception: ${e.message}")
             "Konum Çözülemedi ($lat, $lng)"
         }
     }

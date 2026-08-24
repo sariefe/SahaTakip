@@ -2,7 +2,11 @@ package com.sahatakip.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +39,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SignalCellular4Bar
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
@@ -67,24 +72,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.sahatakip.data.local.entity.LocationEntity
+import com.sahatakip.data.local.entity.UserProfileEntity
+import com.sahatakip.domain.model.DeviceStatus
+import com.sahatakip.ui.theme.SahaTakipTheme
 import com.sahatakip.ui.theme.StatusAmber
 import com.sahatakip.ui.theme.StatusGreen
 import com.sahatakip.ui.theme.StatusRed
 import com.sahatakip.ui.viewmodel.AuthViewModel
 import com.sahatakip.ui.viewmodel.DeviceViewModel
 import com.sahatakip.ui.viewmodel.TrackingViewModel
+import com.sahatakip.util.ConnectionType
 import com.sahatakip.util.tr
 
-import androidx.compose.ui.tooling.preview.Preview
-import com.sahatakip.ui.theme.SahaTakipTheme
-import com.sahatakip.domain.model.DeviceStatus
-import com.sahatakip.data.local.entity.UserProfileEntity
-import com.sahatakip.data.local.entity.LocationEntity
-
-import androidx.compose.material.icons.filled.SignalCellular4Bar
-import com.sahatakip.util.ConnectionType
-
+@RequiresApi(Build.VERSION_CODES.Q)
 @SuppressLint("BatteryLife")
 @Composable
 fun DashboardScreen(
@@ -100,6 +103,12 @@ fun DashboardScreen(
     val isSyncing by deviceViewModel.isSyncing.collectAsState()
     val syncError by deviceViewModel.lastSyncError.collectAsState()
     
+    val backgroundLocationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        deviceViewModel.updateDeviceStatus()
+    }
+
     DashboardScreenContent(
         deviceStatus = deviceStatus,
         userProfile = userProfile,
@@ -109,9 +118,11 @@ fun DashboardScreen(
         windowWidthSizeClass = windowWidthSizeClass,
         onNavigateToMap = onNavigateToMap,
         onTriggerSync = { deviceViewModel.triggerOfflineSync() },
-    ) {
-        authViewModel.logout()
-    }
+        onLogout = { authViewModel.logout() },
+        onRequestBackgroundLocation = {
+            backgroundLocationLauncher.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
+    )
 }
 
 @SuppressLint("BatteryLife")
@@ -126,6 +137,7 @@ fun DashboardScreenContent(
     onNavigateToMap: () -> Unit,
     onTriggerSync: () -> Unit,
     onLogout: () -> Unit,
+    onRequestBackgroundLocation: () -> Unit
 ) {
     val context = LocalContext.current
     var showProfileModal by remember { mutableStateOf(value = false) }
@@ -142,12 +154,7 @@ fun DashboardScreenContent(
             onDismiss = { showBackgroundPermissionRationale = false },
             onConfirm = {
                 showBackgroundPermissionRationale = false
-                try {
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                    }
-                    context.startActivity(intent)
-                } catch (_: Exception) {}
+                onRequestBackgroundLocation()
             }
         )
     }
@@ -218,12 +225,7 @@ fun DashboardScreenContent(
                                     } catch (_: Exception) {}
                                 }
                                 !deviceStatus.isBackgroundLocationGranted -> {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = android.net.Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
+                                    showBackgroundPermissionRationale = true
                                 }
                             }
                         },
@@ -303,12 +305,7 @@ fun DashboardScreenContent(
                                 if (!deviceStatus.isBackgroundLocationGranted) {
                                     showBackgroundPermissionRationale = true
                                 } else {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = android.net.Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
+                                    onRequestBackgroundLocation()
                                 }
                             }
                             Spacer(modifier = Modifier.width(12.dp))
@@ -363,12 +360,7 @@ fun DashboardScreenContent(
                             if (!deviceStatus.isBackgroundLocationGranted) {
                                 showBackgroundPermissionRationale = true
                             } else {
-                                try {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = android.net.Uri.fromParts("package", context.packageName, null)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
+                                onRequestBackgroundLocation()
                             }
                         }
                         StatusGridItem(
@@ -539,12 +531,11 @@ fun DashboardScreenPreview() {
             windowWidthSizeClass = WindowWidthSizeClass.Compact,
             onNavigateToMap = {},
             onTriggerSync = {},
-            onLogout = {}
+            onLogout = {},
+            onRequestBackgroundLocation = {}
         )
     }
 }
-
-
 
 @Composable
 fun ProfileInfoModal(

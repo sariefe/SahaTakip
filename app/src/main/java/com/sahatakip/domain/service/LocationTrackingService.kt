@@ -121,7 +121,7 @@ class LocationTrackingService : Service() {
         super.onCreate()
         Timber.tag("LocationTrackingService").d("Service onCreate")
         startForegroundServiceNotification()
-        
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
         setupLocationCallback()

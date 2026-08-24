@@ -1,5 +1,7 @@
 package com.sahatakip.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -70,11 +72,22 @@ fun BiometricLockScreen(
     val isAuthenticated by authViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
     var showOcrModal by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
     var verificationInProgress by remember { mutableStateOf(false) }
     var biometricErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val biometricManager = remember { BiometricPromptManager(context) }
     val bioAvailability = remember { biometricManager.checkBiometricAvailability() }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showOcrModal = true
+        } else {
+            showPermissionDeniedDialog = true
+        }
+    }
 
     val promptTitle = tr("Biyometrik Kimlik Doğrulama", "Biometric Authentication")
     val promptSubtitle = tr("Saha personeli güvenli giriş doğrulaması", "Field personnel secure login verification")
@@ -120,7 +133,13 @@ fun BiometricLockScreen(
                 biometricErrorMessage = (bioAvailability as? BiometricStatus.Unavailable)?.reason ?: "Biyometrik hata."
             }
         },
-        onOcrClick = { showOcrModal = true }
+        onOcrClick = {
+            if (com.sahatakip.util.PermissionUtils.hasCameraPermission(context)) {
+                showOcrModal = true
+            } else {
+                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            }
+        }
     )
 
     if (showOcrModal) {
@@ -143,6 +162,34 @@ fun BiometricLockScreen(
                         showOcrModal = false
                         onLoginSuccess()
                     }
+                }
+            }
+        )
+    }
+
+    if (showPermissionDeniedDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPermissionDeniedDialog = false },
+            title = { Text(tr("Kamera İzni Gerekli", "Camera Permission Required")) },
+            text = {
+                Text(
+                    tr(
+                        "Personel kartı doğrulama özelliğini kullanabilmek için kamera izni vermeniz gerekmektedir. Lütfen ayarlardan kamera iznini aktif edin.",
+                        "You need to grant camera permission to use the staff card verification feature. Please enable camera permission in settings."
+                    )
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    showPermissionDeniedDialog = false
+                    com.sahatakip.util.PermissionUtils.openAppSettings(context)
+                }) {
+                    Text(tr("Ayarlara Git", "Go to Settings"))
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                    Text(tr("İptal", "Cancel"))
                 }
             }
         )
