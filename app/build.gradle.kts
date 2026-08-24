@@ -113,6 +113,8 @@ dependencies {
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.sqlcipher.android)
   implementation(libs.androidx.sqlite.ktx)
+  implementation(libs.timber)
+  implementation(libs.androidx.work.runtime.ktx)
   testImplementation(libs.androidx.core)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)

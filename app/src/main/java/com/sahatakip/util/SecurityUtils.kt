@@ -3,6 +3,7 @@ package com.sahatakip.util
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -32,7 +33,7 @@ object SecurityUtils {
                 keyGenerator.generateKey()
             }
         } catch (e: Exception) {
-            android.util.Log.e("SecurityUtils", "Failed to initialize AndroidKeyStore", e)
+            Timber.tag("SecurityUtils").e(e, "Failed to initialize AndroidKeyStore")
         }
     }
 

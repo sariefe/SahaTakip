@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.sahatakip.MainActivity
 import com.sahatakip.R
 import com.sahatakip.data.local.PreferencesManager
+import timber.log.Timber
 
 object NotificationHelper {
 
@@ -37,7 +38,7 @@ object NotificationHelper {
     fun sendPrivacySafeAlert(context: Context, alertTitle: String = "Saha Takip Uyarısı") {
         val now = System.currentTimeMillis()
         if (now - lastNotificationTime < NOTIFICATION_COOLDOWN_MS) {
-            android.util.Log.d("NotificationHelper", "Notification suppressed due to rate limiting.")
+            Timber.tag("NotificationHelper").d("Notification suppressed due to rate limiting.")
             return
         }
         lastNotificationTime = now

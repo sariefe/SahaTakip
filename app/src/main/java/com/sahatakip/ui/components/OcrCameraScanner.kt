@@ -65,6 +65,7 @@ import com.sahatakip.ui.viewmodel.AuthViewModel
 import com.sahatakip.util.OcrAnalyzer
 import com.sahatakip.util.StaffCardPreset
 import com.sahatakip.util.tr
+import timber.log.Timber
 import java.util.concurrent.Executors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -195,7 +196,7 @@ fun OcrCameraScannerModal(
                                         camera.cameraControl.startFocusAndMetering(action)
 
                                     } catch (e: Exception) {
-                                        android.util.Log.e("OcrCamera", "Camera binding failed", e)
+                                        Timber.tag("OcrCamera").e(e, "Camera binding failed")
                                     }
                                 }, ContextCompat.getMainExecutor(ctx))
                                 previewView

@@ -25,6 +25,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.sahatakip.R
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,7 +41,7 @@ class LocationTrackingService : Service() {
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private val addressMutex = Mutex()
-    
+
     @Inject
     lateinit var locationRepository: LocationRepository
 
@@ -93,9 +94,9 @@ class LocationTrackingService : Service() {
             }
         } catch (e: Exception) {
             if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) && (e is android.app.ForegroundServiceStartNotAllowedException)) {
-                android.util.Log.e("LocationTrackingService", "FGS start not allowed from background", e)
+                Timber.tag("LocationTrackingService").e(e, "FGS start not allowed from background")
             } else {
-                android.util.Log.e("LocationTrackingService", "Failed to start foreground service: ${e.message}", e)
+                Timber.tag("LocationTrackingService").e(e, "Failed to start foreground service: ${e.message}")
             }
             stopSelf()
             return
@@ -111,14 +112,14 @@ class LocationTrackingService : Service() {
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (!hasFineLocation && !hasCoarseLocation) {
-            android.util.Log.e("LocationTrackingService", "Service started without location permissions. Stopping.")
+            Timber.tag("LocationTrackingService").e("Service started without location permissions. Stopping.")
             stopSelf()
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        android.util.Log.d("LocationTrackingService", "Service onCreate")
+        Timber.tag("LocationTrackingService").d("Service onCreate")
         startForegroundServiceNotification()
         
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -139,7 +140,7 @@ class LocationTrackingService : Service() {
 
     private fun saveLocationToRepository(location: Location) {
         if ((location.latitude == 0.0) && (location.longitude == 0.0)) return
-        
+
         serviceScope.launch {
             val address = addressMutex.withLock {
                 LocationUtils.getAddressFromLocation(
@@ -178,6 +179,7 @@ class LocationTrackingService : Service() {
 
                 val locationRequest = LocationRequest.Builder(priority, intervalSeconds * 1000L)
                     .setMinUpdateIntervalMillis(intervalSeconds * 500L)
+                    .setMaxUpdateDelayMillis(0)
                     .build()
 
                 fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -186,15 +188,20 @@ class LocationTrackingService : Service() {
                     locationCallback,
                     Looper.getMainLooper()
                 )
-                android.util.Log.d("LocationTrackingService", "Location updates restarted. Priority: $priority, Interval: $intervalSeconds s")
+                Timber.tag("LocationTrackingService").d("Location updates restarted. Priority: $priority, Interval: $intervalSeconds s")
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        android.util.Log.d("LocationTrackingService", "Service onStartCommand")
+        Timber.tag("LocationTrackingService").d("Service onStartCommand")
         startForegroundServiceNotification()
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Timber.tag("LocationTrackingService").d("Task removed. Service will be kept alive by system and watchdog.")
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {

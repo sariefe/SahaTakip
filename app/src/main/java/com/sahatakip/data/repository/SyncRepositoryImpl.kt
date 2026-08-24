@@ -9,6 +9,7 @@ import com.sahatakip.domain.repository.EventRepository
 import com.sahatakip.domain.repository.LocationRepository
 import com.sahatakip.domain.repository.SyncRepository
 import com.sahatakip.util.trGlobal
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -72,7 +73,7 @@ class SyncRepositoryImpl @Inject constructor(
                 throw Exception(response.message)
             }
         } catch (e: Exception) {
-            android.util.Log.e("SyncRepository", "Sync failed: ${e.message}", e)
+            Timber.tag("SyncRepository").e(e, "Sync failed: ${e.message}")
             throw e
         }
     }
