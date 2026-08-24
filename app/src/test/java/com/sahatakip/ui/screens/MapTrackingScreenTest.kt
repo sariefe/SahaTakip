@@ -1,20 +1,16 @@
 package com.sahatakip.ui.screens
 
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.sahatakip.ui.viewmodel.TrackingViewModel
 import com.sahatakip.ui.viewmodel.PlaybackState
 import com.sahatakip.data.local.entity.LocationEntity
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,26 +18,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "tr")
 class MapTrackingScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
-
-    @Before
-    fun setup() {
-        mockkStatic(CameraUpdateFactory::class)
-        mockkStatic(CameraPosition::class)
-        every { CameraUpdateFactory.newCameraPosition(any()) } returns mockk(relaxed = true)
-        every { CameraUpdateFactory.newLatLngZoom(any(), any()) } returns mockk(relaxed = true)
-        every { CameraPosition.fromLatLngZoom(any(), any()) } returns mockk(relaxed = true)
-        every { CameraPosition.builder() } returns mockk(relaxed = true)
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
-    }
 
     @Test
     fun testMapTrackingScreenContent() {
@@ -57,20 +38,25 @@ class MapTrackingScreenTest {
         every { mockViewModel.playbackState } returns MutableStateFlow(PlaybackState())
 
         composeTestRule.setContent {
-            MapTrackingScreen(
-                viewModel = mockViewModel,
-                windowWidthSizeClass = WindowWidthSizeClass.Compact
-            )
+            CompositionLocalProvider(LocalInspectionMode provides true) {
+                MapTrackingScreen(
+                    viewModel = mockViewModel,
+                    windowWidthSizeClass = WindowWidthSizeClass.Compact
+                )
+            }
         }
 
         // Verify telemetry
         composeTestRule.onNodeWithText("Mesafe", ignoreCase = true).assertExists()
         composeTestRule.onNodeWithText("Ort. Hız", ignoreCase = true).assertExists()
-        
+
         // Verify playback card
         composeTestRule.onNodeWithText("Güzergah Oynat", ignoreCase = true).assertExists()
         
         // Verify geofence section
         composeTestRule.onNodeWithText("Güvenli Bölgeler", ignoreCase = true).assertExists()
+        
+        // Verify Map Placeholder (from LocalInspectionMode)
+        composeTestRule.onNodeWithText("Map Placeholder").assertExists()
     }
 }

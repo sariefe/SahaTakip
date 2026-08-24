@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNotificationManager
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "tr")
 class NotificationHelperTest {
 
     private lateinit var context: Context

@@ -2,6 +2,7 @@ package com.sahatakip.ui.viewmodel
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.sahatakip.data.local.PreferencesManager
 import com.sahatakip.domain.repository.EventRepository
 import com.sahatakip.domain.repository.SyncRepository
 import com.sahatakip.util.ConnectivityObserver
@@ -18,6 +19,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -41,6 +43,7 @@ class DeviceViewModelTest {
 
     @MockK lateinit var eventRepository: EventRepository
     @MockK lateinit var syncRepository: SyncRepository
+    @MockK lateinit var preferencesManager: PreferencesManager
     @MockK lateinit var mockConnectivityObserver: ConnectivityObserver
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -51,6 +54,7 @@ class DeviceViewModelTest {
         Dispatchers.setMain(testDispatcher)
         app = ApplicationProvider.getApplicationContext()
 
+        every { preferencesManager.language } returns MutableStateFlow(value = "tr")
         coEvery { eventRepository.addEventLog(any(), any(), any(), any(), any()) } just Runs
         coEvery { syncRepository.performOfflineSync() } returns true
         
@@ -60,6 +64,7 @@ class DeviceViewModelTest {
         every { PermissionUtils.hasLocationPermissions(any()) } returns true
         every { PermissionUtils.hasBackgroundLocationPermission(any()) } returns true
         every { PermissionUtils.hasNotificationPermission(any()) } returns true
+        every { PermissionUtils.hasCameraPermission(any()) } returns true
         every { PermissionUtils.isGpsEnabled(any()) } returns true
         every { PermissionUtils.isIgnoringBatteryOptimizations(any()) } returns true
         every { PermissionUtils.isPowerSaveMode(any()) } returns false
@@ -67,7 +72,7 @@ class DeviceViewModelTest {
         mockkObject(SecurityUtils)
         coEvery { SecurityUtils.checkIsDeviceRooted() } returns false
 
-        viewModel = DeviceViewModel(app, eventRepository, syncRepository, mockConnectivityObserver)
+        viewModel = DeviceViewModel(app, eventRepository, syncRepository, preferencesManager, mockConnectivityObserver)
     }
 
     @After

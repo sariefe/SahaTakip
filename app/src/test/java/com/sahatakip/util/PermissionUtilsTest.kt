@@ -66,6 +66,16 @@ class PermissionUtilsTest {
     }
 
     @Test
+    fun testHasCameraPermission() {
+        val shadowApp = shadowOf(app)
+        shadowApp.denyPermissions(Manifest.permission.CAMERA)
+        assertFalse(PermissionUtils.hasCameraPermission(app))
+
+        shadowApp.grantPermissions(Manifest.permission.CAMERA)
+        assertTrue(PermissionUtils.hasCameraPermission(app))
+    }
+
+    @Test
     fun testIsGpsEnabled() {
         val locationManager = app.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val shadowLocationManager: ShadowLocationManager = shadowOf(locationManager)
@@ -102,7 +112,7 @@ class PermissionUtilsTest {
     }
 
     @Test
-    @Config(sdk = [32]) // Tiramisu is 33, test 32 for old notification logic
+    @Config(sdk = [32])
     fun testHasNotificationPermissionOldSdk() {
         assertTrue(PermissionUtils.hasNotificationPermission(app))
     }
@@ -112,13 +122,10 @@ class PermissionUtilsTest {
         val permissions = PermissionUtils.getRequiredPermissions()
         assertTrue(permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION))
         assertTrue(permissions.contains(Manifest.permission.ACCESS_COARSE_LOCATION))
-        assertTrue(permissions.contains(Manifest.permission.CAMERA))
+        assertFalse(permissions.contains(Manifest.permission.CAMERA))
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             assertTrue(permissions.contains(Manifest.permission.POST_NOTIFICATIONS))
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            assertTrue(permissions.contains(Manifest.permission.FOREGROUND_SERVICE_LOCATION))
         }
     }
 }

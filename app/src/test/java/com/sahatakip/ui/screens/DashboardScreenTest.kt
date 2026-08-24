@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "tr")
 class DashboardScreenTest {
 
     @get:Rule
@@ -35,7 +35,8 @@ class DashboardScreenTest {
                     windowWidthSizeClass = WindowWidthSizeClass.Compact,
                     onNavigateToMap = {},
                     onTriggerSync = {},
-                    onLogout = {}
+                    onLogout = {},
+                    onRequestBackgroundLocation = {}
                 )
             }
         }

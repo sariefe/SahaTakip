@@ -63,13 +63,17 @@ class DeviceViewModel @Inject constructor(
             updateDeviceStatus()
             val isPowerSave = PermissionUtils.isPowerSaveMode(context)
             viewModelScope.launch {
+                val lang = preferencesManager.language.value
                 eventRepository.addEventLog(
                     type = "POWER_MODE_CHANGED",
-                    title = if (isPowerSave) "Düşük Güç Modu Aktif" else "Normal Güç Moduna Geçildi",
-                    detail = if (isPowerSave) 
-                        "Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir."
+                    title = if (isPowerSave) 
+                        trGlobal("Düşük Güç Modu Aktif", "Low Power Mode Active", lang)
                     else 
-                        "Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.",
+                        trGlobal("Normal Güç Moduna Geçildi", "Switched to Normal Power Mode", lang),
+                    detail = if (isPowerSave) 
+                        trGlobal("Cihaz pil tasarrufu moduna girdi. Konum hassasiyeti ve arka plan aktiviteleri kısıtlanabilir.", "Device entered battery saver mode. Location accuracy and background activities may be restricted.", lang)
+                    else 
+                        trGlobal("Cihaz normal güç moduna döndü. Takip servisleri tam kapasite çalışıyor.", "Device returned to normal power mode. Tracking services are running at full capacity.", lang),
                     status = if (isPowerSave) "UYARI" else "BİLGİ",
                 )
             }
@@ -290,12 +294,13 @@ class DeviceViewModel @Inject constructor(
 
     fun toggleGpsSimulation() {
         _deviceStatus.value = _deviceStatus.value.copy(isGpsEnabled = !_deviceStatus.value.isGpsEnabled)
+        val lang = preferencesManager.language.value
         if (!_deviceStatus.value.isGpsEnabled) {
             viewModelScope.launch {
                 eventRepository.addEventLog(
                     type = "GPS_DISABLED",
-                    title = "Konum Servisleri Kapatıldı",
-                    detail = "Saha personeli konum servislerini veya GPS antenini devre dışı bıraktı.",
+                    title = trGlobal("Konum Servisleri Kapatıldı", "Location Services Disabled", lang),
+                    detail = trGlobal("Saha personeli konum servislerini veya GPS antenini devre dışı bıraktı.", "Field staff disabled location services or GPS antenna.", lang),
                     status = "TEHLİKE"
                 )
             }
@@ -309,19 +314,20 @@ class DeviceViewModel @Inject constructor(
             isInternetConnected = nextOnline,
             connectionType = nextType
         )
+        val lang = preferencesManager.language.value
         viewModelScope.launch {
             if (!nextOnline) {
                 eventRepository.addEventLog(
                     type = "INTERNET_LOST",
-                    title = "İnternet Bağlantı Kaybı",
-                    detail = "Şebeke bağlantısı kesildi. Çevrimdışı mod devreye girdi.",
+                    title = trGlobal("İnternet Bağlantı Kaybı", "Internet Connection Lost", lang),
+                    detail = trGlobal("Şebeke bağlantısı kesildi. Çevrimdışı mod devreye girdi.", "Network connection lost. Offline mode activated.", lang),
                     status = "UYARI"
                 )
             } else {
                 eventRepository.addEventLog(
                     type = "INTERNET_RESTORED",
-                    title = "İnternet Bağlantısı Sağlandı",
-                    detail = "Şebeke bağlantısı yeniden sağlandı. Çevrimdışı veriler senkronize ediliyor.",
+                    title = trGlobal("İnternet Bağlantısı Sağlandı", "Internet Connection Restored", lang),
+                    detail = trGlobal("Şebeke bağlantısı yeniden sağlandı. Çevrimdışı veriler senkronize ediliyor.", "Network connection restored. Offline data is being synchronized.", lang),
                     status = "BİLGİ"
                 )
                 triggerOfflineSync()
@@ -331,18 +337,18 @@ class DeviceViewModel @Inject constructor(
 
     fun triggerOfflineSync() {
         if (_isSyncing.value) return
-        
+        val lang = preferencesManager.language.value
         viewModelScope.launch {
             _isSyncing.value = true
             _lastSyncError.value = null
             try {
                 val success = syncRepository.performOfflineSync()
                 if (!success) {
-                    _lastSyncError.value = "Sunucu bağlantısı kurulamadı."
+                    _lastSyncError.value = trGlobal("Sunucu bağlantısı kurulamadı.", "Server connection could not be established.", lang)
                 }
             } catch (e: Exception) {
                 Timber.tag("DeviceViewModel").e(e, "Sync failed")
-                _lastSyncError.value = e.message ?: "Beklenmeyen bir hata oluştu."
+                _lastSyncError.value = e.message ?: trGlobal("Beklenmeyen bir hata oluştu.", "An unexpected error occurred.", lang)
             } finally {
                 _isSyncing.value = false
             }

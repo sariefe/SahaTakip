@@ -1,6 +1,7 @@
 package com.sahatakip
 
 import android.app.Application
+import androidx.work.Configuration
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -12,7 +13,13 @@ import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 @HiltAndroidApp
-class SahaApplication : Application() {
+class SahaApplication : Application(), Configuration.Provider {
+    
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.ERROR)
+            .build()
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
@@ -22,20 +29,24 @@ class SahaApplication : Application() {
     }
 
     private fun setupLocationWatchdog() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .build()
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                .build()
 
-        val watchdogRequest = PeriodicWorkRequestBuilder<LocationWatchdogWorker>(
-            15, TimeUnit.MINUTES
-        ).setConstraints(constraints)
-            .build()
+            val watchdogRequest = PeriodicWorkRequestBuilder<LocationWatchdogWorker>(
+                15, TimeUnit.MINUTES
+            ).setConstraints(constraints)
+                .build()
 
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "LocationTrackingWatchdog",
-            ExistingPeriodicWorkPolicy.KEEP,
-            watchdogRequest
-        )
-        Timber.tag("SahaApplication").d("Location watchdog scheduled.")
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "LocationTrackingWatchdog",
+                ExistingPeriodicWorkPolicy.KEEP,
+                watchdogRequest
+            )
+            Timber.tag("SahaApplication").d("Location watchdog scheduled.")
+        } catch (e: Exception) {
+            Timber.tag("SahaApplication").e(e, "Failed to setup location watchdog")
+        }
     }
 }

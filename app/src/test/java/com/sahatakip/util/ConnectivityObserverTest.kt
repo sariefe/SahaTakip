@@ -45,7 +45,8 @@ class ConnectivityObserverTest {
         every { mockConnectivityManager.activeNetwork } returns null
         every { mockConnectivityManager.getNetworkCapabilities(any()) } returns null
         
-        // Mock registration method
+        // Mock registration methods
+        every { mockConnectivityManager.registerNetworkCallback(any(), any<ConnectivityManager.NetworkCallback>()) } just Runs
         every { mockConnectivityManager.registerDefaultNetworkCallback(any()) } just Runs
         every { mockConnectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) } just Runs
 
@@ -55,7 +56,7 @@ class ConnectivityObserverTest {
     @Test
     fun `observe emits Available when callback onAvailable is triggered`() = runTest {
         val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
-        every { mockConnectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } just Runs
+        every { mockConnectivityManager.registerNetworkCallback(any(), capture(callbackSlot)) } just Runs
 
         val results = mutableListOf<Pair<ConnectivityStatus, ConnectionType>>()
         val job = launch(UnconfinedTestDispatcher()) {
@@ -65,7 +66,17 @@ class ConnectivityObserverTest {
         // Trigger manual callback
         val mockNetwork = mockk<Network>()
         callbackSlot.captured.onAvailable(mockNetwork)
-        assertTrue(results.any { it.first == ConnectivityStatus.Available })
+        
+        // ConnectivityObserver logic now relies on onCapabilitiesChanged for Available status
+        val mockCapabilities = mockk<android.net.NetworkCapabilities>()
+        every { mockCapabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) } returns true
+        every { mockCapabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) } returns true
+        every { mockCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) } returns true
+        every { mockCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) } returns false
+        
+        callbackSlot.captured.onCapabilitiesChanged(mockNetwork, mockCapabilities)
+
+        assertTrue(results.any { it.first == ConnectivityStatus.Available && it.second == ConnectionType.Wifi })
         
         job.cancel()
     }
@@ -73,7 +84,7 @@ class ConnectivityObserverTest {
     @Test
     fun `observe emits Lost when callback onLost is triggered`() = runTest {
         val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
-        every { mockConnectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } just Runs
+        every { mockConnectivityManager.registerNetworkCallback(any(), capture(callbackSlot)) } just Runs
 
         val results = mutableListOf<Pair<ConnectivityStatus, ConnectionType>>()
         val job = launch(UnconfinedTestDispatcher()) {
