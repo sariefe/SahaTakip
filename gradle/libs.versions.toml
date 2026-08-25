@@ -40,6 +40,7 @@ sqlcipher = "4.18.0"
 sqlite = "2.7.0"
 timber = "5.0.1"
 work = "2.11.2"
+mqtt = "1.2.5"
 
 [libraries]
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
@@ -101,6 +102,7 @@ sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version
 androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "sqlite" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+mqtt-paho = { group = "org.eclipse.paho", name = "org.eclipse.paho.client.mqttv3", version.ref = "mqtt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

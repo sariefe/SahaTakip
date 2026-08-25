@@ -16,6 +16,8 @@ import com.sahatakip.MainActivity
 import com.sahatakip.data.local.PreferencesManager
 import com.sahatakip.domain.repository.LocationRepository
 import com.sahatakip.util.LocationUtils
+import com.sahatakip.domain.model.MqttLocationMessage
+import com.sahatakip.util.MqttHelper
 import com.sahatakip.util.trGlobal
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -124,6 +126,7 @@ class LocationTrackingService : Service() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
+        MqttHelper.connect()
         setupLocationCallback()
         startLocationUpdates()
     }
@@ -150,6 +153,19 @@ class LocationTrackingService : Service() {
                 )
             }
             val batteryStatus = getBatteryLevel()
+
+            // MQTT Real-time publish
+            val mqttMsg = MqttLocationMessage(
+                deviceId = preferencesManager.deviceId.value,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                speed = location.speed,
+                batteryLevel = batteryStatus,
+                timestamp = System.currentTimeMillis(),
+                address = address
+            )
+            MqttHelper.publishLocation("saha/takip/live", mqttMsg)
+
             locationRepository.recordNewLocation(
                 lat = location.latitude,
                 lng = location.longitude,
@@ -207,6 +223,7 @@ class LocationTrackingService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        MqttHelper.disconnect()
         serviceJob.cancel()
     }
 

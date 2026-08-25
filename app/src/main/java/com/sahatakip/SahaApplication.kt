@@ -22,6 +22,7 @@ class SahaApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        //build olduğunda loglar görünmesin
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }

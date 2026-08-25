@@ -115,6 +115,7 @@ dependencies {
   implementation(libs.androidx.sqlite.ktx)
   implementation(libs.timber)
   implementation(libs.androidx.work.runtime.ktx)
+  implementation(libs.mqtt.paho)
   testImplementation(libs.androidx.core)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
