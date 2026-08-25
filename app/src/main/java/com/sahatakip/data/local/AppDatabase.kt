@@ -62,6 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
+        private var cachedDbPassword: String? = null
         private val PREF_ENCRYPTED_PASS = stringPreferencesKey("enc_db_pass_v1")
 
 
@@ -112,11 +113,12 @@ abstract class AppDatabase : RoomDatabase() {
             return cipher.doFinal(ciphertext)
         }
         private fun getDatabasePassword(context: Context): String {
+            cachedDbPassword?.let { return it }
             return runBlocking {
                 val prefs = context.applicationContext.dbKeyStore.data.first()
                 val stored = prefs[PREF_ENCRYPTED_PASS]
 
-                if (stored != null) {
+                val password = if (stored != null) {
                     decrypt(stored).joinToString("") { "%02x".format(it) }
                 } else {
                     val rawPassword = ByteArray(DB_PASSWORD_BYTES)
@@ -128,6 +130,8 @@ abstract class AppDatabase : RoomDatabase() {
 
                     rawPassword.joinToString("") { "%02x".format(it) }
                 }
+                cachedDbPassword = password
+                password
             }
         }
         fun getDatabase(context: Context): AppDatabase {
@@ -147,8 +151,6 @@ abstract class AppDatabase : RoomDatabase() {
                     } catch (_: UnsatisfiedLinkError) {
                     }
                 }
-
-                context.applicationContext.deleteDatabase("saha_takip_database")
                 
                 val builder = Room.databaseBuilder(
                     context.applicationContext,

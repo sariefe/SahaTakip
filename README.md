@@ -5,28 +5,27 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 ## 🚀 Öne Çıkan Özellikler
 
 ### 📍 Takip ve İzleme
-- **Gerçek Zamanlı MQTT Yayını:** Konum verilerinin anlık olarak JSON formatında MQTT (`test.mosquitto.org`) üzerinden yayınlanması ve izlenebilmesi.
 - **Kesintisiz Arka Plan Konumu:** Cihaz uykuda veya uygulama kapalıyken bile düşük güç tüketimiyle hassas konum kaydı.
-- **Watchdog (Bekçi) Sistemi:** `WorkManager` kullanılarak, takip servisinin sistem tarafından öldürülmesi durumunda otomatik olarak tekrar başlatılması (15 dk periyotlu kontrol).
 - **Akıllı Rota Oynatma:** Geçmiş konum verilerini harita üzerinde farklı hızlarda (1x, 2x, 4x) görselleştirme.
-- **Dinamik Geofencing:** Harita üzerinden güvenli bölgeler tanımlama; bölge ihlali durumunda anlık sistem bildirimi ve olay günlüğü oluşturma.
+- **Dinamik Geofencing:** Harita üzerinden güvenli bölgeler tanımlama; bölge ihlali durumunda anlık sistem bildirimi ve olay günlüğü oluşturma (Türkçe karakter desteği ile).
+- **Gelişmiş Harita Görselleştirme:** Binaların, yerleşkelerin (kampüs, AVM vb.) ve yapıların detaylı kuşbakışı görünümü; kullanıcı deneyimini artıran optimize edilmiş harita katmanları.
 
 ### 🛡️ Güvenlik ve Gizlilik
 - **Hibrit Veri Şifreleme:** Yerel Room veritabanının **SQLCipher (AES-256)** ile şifrelenmesi ve hassas ayarların **Android Keystore** destekli **AES/GCM** ile korunması.
-- **Just-In-Time Kamera & OCR:** Personel aktivasyonu için MLKit destekli OCR teknolojisi; minimum izin politikasıyla sadece tarama anında kamera izni istemi.
 - **Biyometrik Giriş:** Parmak izi veya yüz tanıma desteği ile verilerin güvenliğini sağlayan ekran kilidi.
-- **Gelişmiş Cihaz Güvenliği:** Kapsamlı root tespiti (Magisk, sistem bütünlüğü vb.) ve profesyonel Material 3 uyarı sistemi.
-- **Ekran Güvenliği:** `FLAG_SECURE` ile ekran görüntüsü alınmasının ve App Switcher üzerinden veri sızıntısının engellenmesi.
-- **Timber Güvenli Log:** Gelişmiş loglama politikası; logların sadece `debug` modda görünmesi, `release` sürümde otomatik gizlenmesi.
+- **Güvenli Anahtar Yönetimi:** API anahtarlarının ve hassas verilerin `Secrets Gradle Plugin` ile korunması; kaynak kodda anahtar sızıntısının önlenmesi.
+- **Gelişmiş Cihaz Güvenliği:** Magisk, BusyBox, sistem bütünlüğü (test-keys) ve düşük seviyeli sistem özelliklerini (ro.debuggable, ro.secure) kapsayan kapsamlı root tespiti ve profesyonel Material 3 uyarı sistemi.
+- **Gizlilik Bildirimleri:** Arka plan aktiviteleri hakkında kullanıcıyı bilgilendiren şeffaf bildirim sistemi.
 
 ### 📊 Telemetri ve Senkronizasyon
 - **Dinamik Cihaz Durumu:** Pil yüzdesi, şarj durumu, internet bağlantısı ve GPS aktifliğinin anlık izlenmesi.
-- **Çevrimdışı Çalışma (Offline-First):** İnternet yokken verileri Room DB'de saklama; bağlantı (Wi-Fi/Cellular) geldiğinde otomatik senkronizasyon.
-- **Olay Günlüğü (Event Logs):** Düşük pil, GPS kapanması, güç modu değişiklikleri ve senkronizasyon durumlarının tam zamanlı kaydı.
+- **Çevrimdışı Çalışma (Offline-First):** İnternet bağlantısı koptuğunda verileri Room DB'de saklama; bağlantı sağlandığında otomatik senkronizasyon.
+- **Olay Günlüğü (Event Logs):** Cihazın durum değişikliklerini (Düşük pil, GPS kapanması, Bölge ihlali) zaman damgalı olarak kaydetme.
 
 ### 📱 Modern Kullanıcı Deneyimi
-- **Adaptif Tasarım:** Tablet ve telefonlar için optimize edilmiş, Material 3 "Dynamic Color" destekli esnek arayüz.
-- **Tam Lokalizasyon:** Tüm uygulama içi metinler, servis bildirimleri ve arka plan günlükleri için dinamik Türkçe ve İngilizce dil desteği.
+- **Adaptif Tasarım:** Tabletlerde Navigation Rail, telefonlarda Bottom Navigation kullanan; özellikle küçük ekranlı (Compact) cihazlar için optimize edilmiş (Scaling & Layout adjustment) esnek arayüz.
+- **Material 3:** Modern, temiz ve göz yormayan "Dynamic Color" destekli tasarım.
+- **Çift Dil Desteği:** Türkçe ve İngilizce dilleri arasında dinamik geçiş.
 
 ---
 
@@ -54,24 +53,43 @@ SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryol
 
 - **UI:** Jetpack Compose & Material 3
 - **Mimari:** Clean Architecture (MVVM) & SOLID Prensipleri
-- **Bağımlılık Enjeksiyonu:** Hilt (Dagger) - **KSP** entegrasyonu ile derleme hızı optimizasyonu
-- **Ağ & Veri:** MQTT (Paho), Retrofit, Room (**SQLCipher Encrypted**), DataStore, Moshi
-- **Analiz:** MLKit Text Recognition (OCR)
-- **Güvenlik:** Android Keystore, AES-GCM, Secrets Gradle Plugin
-- **Asenkron:** Kotlin Coroutines & Flow
-- **Arka Plan:** Foreground Services, WorkManager
-- **Test:** JUnit 4, MockK, Robolectric (85 test case - %100 Başarı)
+- **Bağımlılık Enjeksiyonu:** Hilt (Dagger)
+- **Güvenlik:** Secrets Gradle Plugin
+- **Yerel Veritabanı:** Room Persistence Library & **SQLCipher (Encrypted DB)**
+- **Veri Depolama:** Jetpack DataStore (Preferences)
+- **Şifreleme:** Android Keystore System & AES-GCM
+- **Ağ:** Retrofit & OkHttp & Moshi
+- **Asenkron Akış:** Kotlin Coroutines & Flow
+- **Konum:** Google Play Services Location
+- **Test:** JUnit 4, MockK, Robolectric, Roborazzi
 
 ## 🏗 Proje Yapısı
 
 ```text
-com.sahatakip
-├── di/             # Hilt Modülleri (App, Database, Network, Repository, Service)
-├── data/           # Veri Katmanı (Room, Preferences, Remote API, Repository Impl)
-├── domain/         # Alan Katmanı (Modeller, Repository Arayüzleri, Servisler, Workerlar)
-├── ui/             # Sunum Katmanı (Compose Ekranları, Bileşenler, ViewModeller)
-├── util/           # Yardımcı Araçlar (MQTT, OCR, Biyometri, İzinler, Lokalizasyon)
-└── MainActivity.kt # Giriş Noktası ve İzin Yönetimi
+com.example
+├── di/             # Bağımlılık Enjeksiyonu (Hilt Modülleri)
+│   ├── AppModule.kt       # Genel uygulama bağımlılıkları
+│   ├── DatabaseModule.kt  # Room DB ve DAO tanımları
+│   ├── NetworkModule.kt   # Retrofit ve API servisleri
+│   ├── RepositoryModule.kt # Repository binding işlemleri (SOLID - DIP)
+│   └── ServiceModule.kt   # Servis ve Utils binding işlemleri
+├── data/           # Veri Katmanı (Implementasyonlar)
+│   ├── local/      # Room DB, DAO'lar, Preferences
+│   ├── remote/     # Mock API tanımları
+│   └── repository/ # Repository Implementasyonları (SRP - Veri Erişimi)
+├── domain/         # Alan Katmanı (İş Kuralları ve Soyutlamalar)
+│   ├── model/      # UI'dan bağımsız veri modelleri
+│   ├── repository/ # Repository Arayüzleri (Abstractions)
+│   └── service/    # Arka plan servisleri (LocationTrackingService)
+├── ui/             # Sunum Katmanı (Jetpack Compose)
+│   ├── components/ # Özelleştirilmiş Harita ve UI bileşenleri
+│   ├── navigation/ # AppNavGraph ve Ekran rotaları
+│   ├── screens/    # Dashboard, Harita, Ayarlar, Olay Günlükleri
+│   ├── theme/      # Renk paleti, Tipografi, Material 3 Teması
+│   └── viewmodel/  # Durum yönetimi (State Management)
+├── util/           # Yardımcı Araçlar (İzinler, Güvenlik, Konum hesaplama)
+├── MainActivity.kt # Ana giriş noktası (Hilt Entry Point)
+└── SahaApplication.kt # Hilt Android App sınıfı
 ```
 
 ## 📋 Kurulum ve Çalıştırma
@@ -84,22 +102,20 @@ com.sahatakip
    ```properties
    MAPS_API_KEY=YOUR_API_KEY_HERE
    ```
-3. **MQTT Gözlemleme (Firefox):**
-   - [HiveMQ Web Client](http://www.hivemq.com/demos/websocket-client/) açın.
-   - **Host:** `test.mosquitto.org`, **Port:** `8000` ile bağlanın.
-   - **Topic:** `saha/takip/live` başlığına abone olun.
-4. **İzinler:** Uygulama açılışında konum ve bildirim izinlerini onaylayın. Arka plan takibi için "Her zaman izin ver" ve "Pil Optimizasyonunu Kapat" seçeneklerini seçin.
+3. **Derleme:** Android Studio (Ladybug 2026.1.3+) ile projeyi açın ve Gradle senkronizasyonunu başlatın.
+4. **İzinler:** Uygulama açılışında konum, bildirim ve kamera izinlerini onaylayın.
+5. **Arka Plan Takibi:** Kesintisiz izleme için cihazın "Pil Tasarrufu" modunu kapatın ve konum iznini "Her zaman izin ver" olarak ayarlayın.
 
-## 🧪 Kalite ve Test
+## 🧪 Testler ve Kalite
 
-Proje, 85 farklı test senaryosu ile %100 başarı oranına sahiptir:
-- **ViewModel Tests:** State yönetimi ve iş mantığı doğrulaması.
-- **Robolectric UI Tests:** Lokalizasyon ve navigasyon akışları.
-- **Integration Tests:** Veritabanı ve Preferences etkileşimleri.
+Proje, yüksek kod kapsamı (code coverage) hedefiyle geliştirilmiştir:
+- **Unit Tests:** ViewModel ve Repository mantığının doğrulanması.
+- **Robolectric:** Android framework bileşenlerinin (Intent, Context) simülasyonu.
+- **Screenshot Testing:** Arayüz bileşenlerinin farklı çözünürlüklerdeki görsel kontrolü.
 
 Testleri çalıştırmak için:
 ```bash
-./gradlew testDebugUnitTest
+./gradlew test
 ```
 
 ## 📜 Lisans

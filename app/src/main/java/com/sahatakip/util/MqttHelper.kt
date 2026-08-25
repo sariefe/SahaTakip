@@ -2,6 +2,10 @@ package com.sahatakip.util
 
 import com.sahatakip.domain.model.MqttLocationMessage
 import com.squareup.moshi.Moshi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -18,33 +22,40 @@ object MqttHelper {
     
     private val moshi = Moshi.Builder().build()
     private val adapter = moshi.adapter(MqttLocationMessage::class.java)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun connect() {
         if (client?.isConnected == true) return
         
-        try {
-            client = MqttClient(BROKER_URL, clientId, MemoryPersistence())
-            val options = MqttConnectOptions().apply {
-                isCleanSession = true
-                connectionTimeout = 30
-                keepAliveInterval = 60
-                isAutomaticReconnect = true
+        scope.launch {
+            try {
+                if (client == null) {
+                    client = MqttClient(BROKER_URL, clientId, MemoryPersistence())
+                }
+                val options = MqttConnectOptions().apply {
+                    isCleanSession = true
+                    connectionTimeout = 30
+                    keepAliveInterval = 60
+                    isAutomaticReconnect = true
+                }
+                
+                client?.setCallback(object : MqttCallback {
+                    override fun messageArrived(topic: String?, message: MqttMessage?) {
+                        Timber.tag("MQTT").d("Message arrived on $topic: ${message?.toString()}")
+                    }
+                    override fun connectionLost(cause: Throwable?) {
+                        Timber.tag("MQTT").w("Connection lost: ${cause?.message}")
+                    }
+                    override fun deliveryComplete(token: IMqttDeliveryToken?) {}
+                })
+                
+                if (client?.isConnected != true) {
+                    client?.connect(options)
+                    Timber.tag("MQTT").i("Connected to HiveMQ")
+                }
+            } catch (e: Exception) {
+                Timber.tag("MQTT").e(e, "Connection failed")
             }
-            
-            client?.setCallback(object : MqttCallback {
-                override fun messageArrived(topic: String?, message: MqttMessage?) {
-                    Timber.tag("MQTT").d("Message arrived on $topic: ${message?.toString()}")
-                }
-                override fun connectionLost(cause: Throwable?) {
-                    Timber.tag("MQTT").w("Connection lost: ${cause?.message}")
-                }
-                override fun deliveryComplete(token: IMqttDeliveryToken?) {}
-            })
-            
-            client?.connect(options)
-            Timber.tag("MQTT").i("Connected to HiveMQ")
-        } catch (e: Exception) {
-            Timber.tag("MQTT").e(e, "Connection failed")
         }
     }
 
