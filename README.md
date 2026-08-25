@@ -5,10 +5,15 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 ## 🚀 Öne Çıkan Özellikler
 
 ### 📍 Takip ve İzleme
-- **Kesintisiz Arka Plan Konumu:** Cihaz uykuda veya uygulama kapalıyken bile düşük güç tüketimiyle hassas konum kaydı.
+- **Kesintisiz Arka Plan Konumu:** Cihaz uykuda veya uygulama kapalıyken bile düşük güç tüketimiyle hassas konum kaydı. **WorkManager (Watchdog)** entegrasyonu ile sistem tarafından sonlandırılan servislerin otomatik olarak yeniden başlatılması.
 - **Akıllı Rota Oynatma:** Geçmiş konum verilerini harita üzerinde farklı hızlarda (1x, 2x, 4x) görselleştirme.
 - **Dinamik Geofencing:** Harita üzerinden güvenli bölgeler tanımlama; bölge ihlali durumunda anlık sistem bildirimi ve olay günlüğü oluşturma (Türkçe karakter desteği ile).
 - **Gelişmiş Harita Görselleştirme:** Binaların, yerleşkelerin (kampüs, AVM vb.) ve yapıların detaylı kuşbakışı görünümü; kullanıcı deneyimini artıran optimize edilmiş harita katmanları.
+
+### 🔍 OCR ve Akıllı Kimlik Tarama
+- **Otomatik Metin Tanıma:** Google **ML Kit Vision API** kullanarak personel kimlik kartlarının kameradan anlık olarak taranması ve doğrulanması.
+- **Görsel Geri Bildirim:** Tarama sırasında canlı ROI (Region of Interest) çerçevesi ve stabilite kontrolü (Kırmızı/Sarı/Yeşil) ile yüksek doğruluk oranı.
+- **Haptik Entegrasyon:** Başarılı tarama işlemlerinde fiziksel titreşim (Haptic Feedback) ile kullanıcıyı bilgilendirme.
 
 ### 🛡️ Güvenlik ve Gizlilik
 - **Hibrit Veri Şifreleme:** Yerel Room veritabanının **SQLCipher (AES-256)** ile şifrelenmesi ve hassas ayarların **Android Keystore** destekli **AES/GCM** ile korunması.
@@ -19,10 +24,12 @@ SahaTakip; saha teknisyenleri ve personelinin konumlarını, cihaz durumlarını
 
 ### 📊 Telemetri ve Senkronizasyon
 - **Dinamik Cihaz Durumu:** Pil yüzdesi, şarj durumu, internet bağlantısı ve GPS aktifliğinin anlık izlenmesi.
+- **Gerçek Zamanlı MQTT:** HiveMQ/Mosquitto protokolü ve **Paho MQTT** kütüphanesi ile konum verilerinin anlık ve düşük gecikmeli olarak merkeze iletilmesi.
 - **Çevrimdışı Çalışma (Offline-First):** İnternet bağlantısı koptuğunda verileri Room DB'de saklama; bağlantı sağlandığında otomatik senkronizasyon.
 - **Olay Günlüğü (Event Logs):** Cihazın durum değişikliklerini (Düşük pil, GPS kapanması, Bölge ihlali) zaman damgalı olarak kaydetme.
 
 ### 📱 Modern Kullanıcı Deneyimi
+- **İzin ve Mazeret Yönetimi:** Personelin uygulama üzerinden tarih seçimi ve mazeret girişi yaparak izin talebi oluşturması; taleplerin durum (Beklemede, Onaylandı, Reddedildi) takibi.
 - **Adaptif Tasarım:** Tabletlerde Navigation Rail, telefonlarda Bottom Navigation kullanan; özellikle küçük ekranlı (Compact) cihazlar için optimize edilmiş (Scaling & Layout adjustment) esnek arayüz.
 - **Material 3:** Modern, temiz ve göz yormayan "Dynamic Color" destekli tasarım.
 - **Çift Dil Desteği:** Türkçe ve İngilizce dilleri arasında dinamik geçiş.
@@ -58,15 +65,17 @@ SahaTakip uygulamasının gerçek zamanlı performansını ve kullanım senaryol
 - **Yerel Veritabanı:** Room Persistence Library & **SQLCipher (Encrypted DB)**
 - **Veri Depolama:** Jetpack DataStore (Preferences)
 - **Şifreleme:** Android Keystore System & AES-GCM
-- **Ağ:** Retrofit & OkHttp & Moshi
-- **Asenkron Akış:** Kotlin Coroutines & Flow
-- **Konum:** Google Play Services Location
+- **Görüntü İşleme:** **ML Kit (Text Recognition)** & **CameraX**
+- **Arka Plan İşlemleri:** **WorkManager** & Coroutines
+- **Ağ ve Haberleşme:** Retrofit, OkHttp, Moshi & **Paho MQTT**
+- **Konum:** Google Play Services Location & Maps Compose
+- **Loglama:** **Timber**
 - **Test:** JUnit 4, MockK, Robolectric, Roborazzi
 
 ## 🏗 Proje Yapısı
 
 ```text
-com.example
+com.sahatakip
 ├── di/             # Bağımlılık Enjeksiyonu (Hilt Modülleri)
 │   ├── AppModule.kt       # Genel uygulama bağımlılıkları
 │   ├── DatabaseModule.kt  # Room DB ve DAO tanımları
@@ -80,14 +89,15 @@ com.example
 ├── domain/         # Alan Katmanı (İş Kuralları ve Soyutlamalar)
 │   ├── model/      # UI'dan bağımsız veri modelleri
 │   ├── repository/ # Repository Arayüzleri (Abstractions)
-│   └── service/    # Arka plan servisleri (LocationTrackingService)
+│   ├── service/    # Arka plan servisleri (LocationTrackingService)
+│   └── worker/     # Arka plan görevleri (LocationWatchdogWorker)
 ├── ui/             # Sunum Katmanı (Jetpack Compose)
-│   ├── components/ # Özelleştirilmiş Harita ve UI bileşenleri
+│   ├── components/ # OcrCameraScanner, Harita ve UI bileşenleri
 │   ├── navigation/ # AppNavGraph ve Ekran rotaları
-│   ├── screens/    # Dashboard, Harita, Ayarlar, Olay Günlükleri
+│   ├── screens/    # Dashboard, Harita, Ayarlar, Olay Günlükleri, İzin Talepleri
 │   ├── theme/      # Renk paleti, Tipografi, Material 3 Teması
 │   └── viewmodel/  # Durum yönetimi (State Management)
-├── util/           # Yardımcı Araçlar (İzinler, Güvenlik, Konum hesaplama)
+├── util/           # Yardımcı Araçlar (Güvenlik, OCR, MQTT, Konum, İzinler)
 ├── MainActivity.kt # Ana giriş noktası (Hilt Entry Point)
 └── SahaApplication.kt # Hilt Android App sınıfı
 ```
