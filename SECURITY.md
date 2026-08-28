@@ -16,7 +16,7 @@ SahaTakip incorporates several layers of security to protect sensitive informati
 We provide security updates for the following versions of SahaTakip:
 
 | Version | Supported          |
-| ------- | ------------------ |
+|---------|--------------------|
 | 1.x     | :white_check_mark: |
 | < 1.0   | :x:                |
 
